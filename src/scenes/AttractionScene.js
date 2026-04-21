@@ -2,18 +2,6 @@ import Phaser from 'phaser';
 import Agent from '../agent/Agent.js';
 import { gsap } from 'gsap';
 
-/**
- * AttractionScene — Scenario 1: The Attraction
- *
- * NOT a video. The outcome depends on:
- *   1. Which notifications the agent happens to walk near (random positions)
- *   2. Which random events fire (unpredictable timing + type)
- *   3. Whether the player clicks Engage or Resist at decision nodes
- *   4. Whether friend messages expire before the agent "responds"
- *
- * Every run is different. The FSM reacts to events, not just timers.
- */
-
 const FRIEND_MESSAGES = [
   { speaker: 'Mia 💬', text: 'omg did you see that new trend?? 😭' },
   { speaker: 'Mia 💬', text: 'you HAVE to check this out lol' },
@@ -25,7 +13,7 @@ const FRIEND_MESSAGES = [
 
 const NOTIFICATIONS = [
   '❤️  Mia liked your post',
-  '🔔  You have 12 new followers!',
+  '🔔  12 new followers!',
   '💬  Kai commented on your photo',
   '🎉  Your post is trending!',
   '🔥  5 people reacted to your story',
@@ -36,38 +24,12 @@ const NOTIFICATIONS = [
   '👀  50 people viewed your profile',
 ];
 
-// Random events that can fire unpredictably
 const RANDOM_EVENTS = [
-  {
-    type: 'RANDOM_GOOD',
-    label: '📵 Phone battery at 1%!',
-    desc: 'The screen goes dark. Hana looks up.',
-    color: '#52b788'
-  },
-  {
-    type: 'RANDOM_GOOD',
-    label: '🌧️ It\'s raining outside',
-    desc: 'The sound of rain pulls Hana\'s attention away.',
-    color: '#74c0fc'
-  },
-  {
-    type: 'RANDOM_BAD',
-    label: '🔥 Your post went VIRAL',
-    desc: 'Notifications explode. Hana can\'t look away.',
-    color: '#ff6b6b'
-  },
-  {
-    type: 'RANDOM_BAD',
-    label: '🎰 New addictive game dropped!',
-    desc: 'Everyone is playing it. The pull is overwhelming.',
-    color: '#ff00ff'
-  },
-  {
-    type: 'RANDOM_GOOD',
-    label: '💡 Social media is down',
-    desc: 'The platform crashes. Silence.',
-    color: '#ffd43b'
-  },
+  { type: 'RANDOM_GOOD', label: '📵 Phone battery at 1%!',    desc: 'The screen goes dark. Kai looks up.',           color: 0x16a34a, hex: '#16a34a' },
+  { type: 'RANDOM_GOOD', label: '🌧️ It\'s raining outside',   desc: 'The sound of rain pulls Kai\'s attention away.', color: 0x0284c7, hex: '#0284c7' },
+  { type: 'RANDOM_BAD',  label: '🔥 Your post went VIRAL',    desc: 'Notifications explode. Kai can\'t look away.',   color: 0xdc2626, hex: '#dc2626' },
+  { type: 'RANDOM_BAD',  label: '🎰 New addictive game dropped!', desc: 'Everyone is playing it.',                    color: 0x7c3aed, hex: '#7c3aed' },
+  { type: 'RANDOM_GOOD', label: '💡 Social media is down',    desc: 'The platform crashes. Silence.',                color: 0xca8a04, hex: '#ca8a04' },
 ];
 
 export default class AttractionScene extends Phaser.Scene {
@@ -75,65 +37,66 @@ export default class AttractionScene extends Phaser.Scene {
     super({ key: 'AttractionScene' });
     this.notifications = [];
     this._msgIndex = 0;
-    this._pendingFriendMsg = false; // true while a friend msg is on screen waiting
-    this._decisionPending = false;  // true while player choice buttons are shown
+    this._pendingFriendMsg = false;
+    this._decisionPending  = false;
     this._ended = false;
+    this._logLines = [];
   }
 
   create() {
     const { width, height } = this.scale;
 
-    // ── Background — deep gradient-style digital world ────────────────────
-    // Base dark layer
-    this.bg = this.add.rectangle(width / 2, height / 2, width, height, 0x08081a);
+    // ── Background — light, airy, professional ────────────────────────────
+    // Soft gradient from light lavender to white
+    const bgGrad = this.add.graphics().setDepth(0);
+    bgGrad.fillGradientStyle(0xf0f4ff, 0xf0f4ff, 0xffffff, 0xffffff, 1);
+    bgGrad.fillRect(0, 0, width, height);
 
-    // Subtle radial glow in centre using layered circles
-    const glowColors = [0x1a0a3a, 0x120830, 0x0d0620, 0x08081a];
-    const glowSizes  = [600, 450, 300, 150];
-    glowColors.forEach((col, i) => {
-      this.add.circle(width / 2, height / 2, glowSizes[i], col, 0.4).setDepth(0);
-    });
+    // Soft decorative circles — depth/atmosphere
+    this._drawAtmosphere(width, height);
 
-    // Floor line — gives a sense of ground
-    const floor = this.add.graphics().setDepth(1);
-    floor.lineStyle(1, 0x2a1a4a, 0.6);
-    floor.lineBetween(0, height - 80, width, height - 80);
+    // Ground platform
+    const ground = this.add.graphics().setDepth(1);
+    ground.fillStyle(0xe2e8f0, 1);
+    ground.fillRect(0, height - 70, width, 70);
+    ground.lineStyle(2, 0xc7d2fe, 1);
+    ground.lineBetween(0, height - 70, width, height - 70);
 
-    // Subtle ambient particles
-    this._spawnBackgroundOrbs(width, height);
+    // ── Scene header ──────────────────────────────────────────────────────
+    // Top bar
+    const topBar = this.add.graphics().setDepth(3);
+    topBar.fillStyle(0x1e1b4b, 1);
+    topBar.fillRect(0, 0, width, 52);
 
-    // Scene title — clean, minimal
-    this.add.text(20, 18, 'DIGITAL WORLD', {
-      fontSize: '10px', color: '#ffffff', alpha: 0.3
-    }).setDepth(2);
+    this.add.text(24, 14, '🌐  EchoSphere', {
+      fontFamily: 'Sora, Inter, sans-serif', fontSize: '20px', fontStyle: 'bold', color: '#ffffff'
+    }).setDepth(4);
 
-    this.add.text(20, 34, 'Scenario 1 — The Attraction', {
-      fontSize: '9px', color: '#7b2fff', alpha: 0.5
-    }).setDepth(2);
+    this.add.text(width / 2, 14, 'SCENARIO 1 — THE ATTRACTION', {
+      fontFamily: 'Sora, Inter, sans-serif', fontSize: '14px', color: '#a5b4fc', fontStyle: 'bold'
+    }).setOrigin(0.5, 0).setDepth(4);
+
+    this.add.text(width - 24, 14, 'Digital World', {
+      fontFamily: 'Sora, Inter, sans-serif', fontSize: '13px', color: '#818cf8'
+    }).setOrigin(1, 0).setDepth(4);
 
     // ── Agent ─────────────────────────────────────────────────────────────
-    this.agent = new Agent(this, width / 2, height / 2);
+    this.agent = new Agent(this, width / 2, height / 2 + 30);
 
-    // FSM transition handler — scene reacts to every state change
     this.agent.fsm.onTransition((newState, reason) => {
       this._onStateChange(newState, reason);
     });
 
-    // ── Notification spawner — random delay each time ─────────────────────
+    // ── Timers ────────────────────────────────────────────────────────────
     this._scheduleNextNotification();
-
-    // ── Friend message spawner ────────────────────────────────────────────
     this._scheduleNextFriendMessage();
-
-    // ── Random event spawner — fires at unpredictable intervals ──────────
     this._scheduleRandomEvent();
 
-    // ── Player choice buttons (shown at decision nodes) ───────────────────
-    this._buildChoiceButtons(width, height);
+    // ── UI wiring ─────────────────────────────────────────────────────────
+    this._buildChoiceButtons();
 
-    // ── Event log (bottom-left) ───────────────────────────────────────────
-    this._logLines = [];
-    this._buildEventLog(width, height);
+    // ── Event log ─────────────────────────────────────────────────────────
+    this._logContainer = this.add.container(16, height - 16).setDepth(15);
   }
 
   update() {
@@ -142,67 +105,81 @@ export default class AttractionScene extends Phaser.Scene {
     this.notifications = this.notifications.filter(n => n.active);
   }
 
-  // ── State change handler — scene responds visually to every transition ───
+  // ── Atmosphere ────────────────────────────────────────────────────────────
+  _drawAtmosphere(width, height) {
+    const circles = [
+      { x: width * 0.1,  y: height * 0.2, r: 180, c: 0xc7d2fe, a: 0.35 },
+      { x: width * 0.85, y: height * 0.15, r: 220, c: 0xe0e7ff, a: 0.4 },
+      { x: width * 0.5,  y: height * 0.8,  r: 260, c: 0xddd6fe, a: 0.25 },
+      { x: width * 0.9,  y: height * 0.7,  r: 150, c: 0xbfdbfe, a: 0.3 },
+      { x: width * 0.05, y: height * 0.75, r: 130, c: 0xe0e7ff, a: 0.3 },
+    ];
+    circles.forEach(({ x, y, r, c, a }) => {
+      const orb = this.add.circle(x, y, r, c, a).setDepth(0);
+      this.tweens.add({
+        targets: orb,
+        y: y - 20,
+        alpha: a + 0.08,
+        duration: Phaser.Math.Between(5000, 9000),
+        yoyo: true, repeat: -1, ease: 'Sine.easeInOut'
+      });
+    });
+  }
+
+  // ── State change ──────────────────────────────────────────────────────────
   _onStateChange(newState, reason) {
     this._log(`→ ${newState}`, reason);
 
     if (newState === 'ATTRACTED') {
-      // Background warms up slightly
-      this.tweens.add({ targets: this.bg, fillColor: 0x110d2b, duration: 1000 });
-      this._showDecisionNode('You feel the pull of the screen...', 'Engage', 'Resist');
+      this._showDecisionNode('Kai feels the pull of the screen...', 'Engage', 'Resist');
     }
-
-    if (newState === 'LOOPING') {
-      this._endScene('LOOPING', reason);
-    }
-
-    if (newState === 'RECOVERED' || newState === 'PARTIAL' || newState === 'LOST') {
+    if (newState === 'LOOPING' || newState === 'RECOVERED' || newState === 'PARTIAL' || newState === 'LOST') {
       this._endScene(newState, reason);
     }
   }
 
-  // ── Notification spawning — random position, random delay ────────────────
+  // ── Notifications ─────────────────────────────────────────────────────────
   _scheduleNextNotification() {
-    const delay = Phaser.Math.Between(1500, 4000); // unpredictable timing
-    this.time.delayedCall(delay, () => {
-      if (!this._ended) {
-        this._spawnNotification();
-        this._scheduleNextNotification();
-      }
+    this.time.delayedCall(Phaser.Math.Between(1800, 4500), () => {
+      if (!this._ended) { this._spawnNotification(); this._scheduleNextNotification(); }
     });
   }
 
   _spawnNotification() {
     const { width, height } = this.scale;
-    const x    = Phaser.Math.Between(100, width - 100);
-    const y    = Phaser.Math.Between(80,  height - 80);
+    const x    = Phaser.Math.Between(120, width - 120);
+    const y    = Phaser.Math.Between(70,  height - 90);
     const text = Phaser.Utils.Array.GetRandom(NOTIFICATIONS);
 
     const bubble = this.add.container(x, y).setDepth(8);
-    const bg = this.add.rectangle(0, 0, 210, 38, 0x1a0a3a, 0.92)
-      .setStrokeStyle(1.5, 0xff00ff, 1);
-    const label = this.add.text(0, 0, text, {
-      fontSize: '10px', color: '#ffffff', wordWrap: { width: 190 }
-    }).setOrigin(0.5);
-    bubble.add([bg, label]);
+
+    // Card shadow
+    const shadow = this.add.rectangle(3, 3, 220, 46, 0x000000, 0.08);
+    // Card background
+    const bg = this.add.rectangle(0, 0, 220, 46, 0xffffff, 0.97);
+    bg.setStrokeStyle(2, 0x6366f1, 1);
+    // Icon strip
+    const strip = this.add.rectangle(-99, 0, 22, 46, 0x6366f1, 1);
+    // Bell icon text
+    const icon = this.add.text(-99, 0, '🔔', { fontFamily: 'Sora, Inter, sans-serif', fontSize: '12px' }).setOrigin(0.5);
+    // Message text
+    const label = this.add.text(14, 0, text, {
+      fontFamily: 'Sora, Inter, sans-serif', fontSize: '12px', color: '#1e1b4b',
+      wordWrap: { width: 170 }
+    }).setOrigin(0, 0.5);
+
+    bubble.add([shadow, bg, strip, icon, label]);
     bubble.x = x;
     bubble.y = y;
     bubble._seen = false;
 
-    gsap.fromTo(bubble, { alpha: 0, scale: 0.5 }, { alpha: 1, scale: 1, duration: 0.3, ease: 'back.out(1.7)' });
+    gsap.fromTo(bubble, { alpha: 0, scale: 0.7, y: y - 10 }, { alpha: 1, scale: 1, y, duration: 0.35, ease: 'back.out(1.5)' });
 
-    // Notification lives for a random duration — if agent doesn't reach it, it's "ignored"
-    const lifetime = Phaser.Math.Between(3000, 6000);
+    const lifetime = Phaser.Math.Between(3500, 6500);
     this.time.delayedCall(lifetime, () => {
       if (bubble.active) {
-        if (!bubble._seen) {
-          // Agent never perceived it — fire ignored event
-          this.agent.onNotificationIgnored();
-        }
-        gsap.to(bubble, {
-          alpha: 0, scale: 0.4, duration: 0.25,
-          onComplete: () => { if (bubble.active) bubble.destroy(); }
-        });
+        if (!bubble._seen) this.agent.onNotificationIgnored();
+        gsap.to(bubble, { alpha: 0, scale: 0.8, duration: 0.3, onComplete: () => { if (bubble.active) bubble.destroy(); } });
       }
     });
 
@@ -210,14 +187,10 @@ export default class AttractionScene extends Phaser.Scene {
     this._showHTMLNotification(text);
   }
 
-  // ── Friend message — NLP interaction ─────────────────────────────────────
+  // ── Friend messages ───────────────────────────────────────────────────────
   _scheduleNextFriendMessage() {
-    const delay = Phaser.Math.Between(5000, 10000);
-    this.time.delayedCall(delay, () => {
-      if (!this._ended) {
-        this._showFriendMessage();
-        this._scheduleNextFriendMessage();
-      }
+    this.time.delayedCall(Phaser.Math.Between(5000, 11000), () => {
+      if (!this._ended) { this._showFriendMessage(); this._scheduleNextFriendMessage(); }
     });
   }
 
@@ -236,134 +209,112 @@ export default class AttractionScene extends Phaser.Scene {
     box.classList.remove('hidden');
     gsap.fromTo(box, { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.4 });
 
-    // Fire NLP event into agent
     this.agent.onFriendMessage();
-    this._log(`📩 ${msg.speaker}`, msg.text.slice(0, 30));
+    this._log(`📩 ${msg.speaker}`, msg.text.slice(0, 32));
 
-    // Message expires after random time — if no player interaction, it's "ignored"
-    const expiry = Phaser.Math.Between(4000, 7000);
+    const expiry = Phaser.Math.Between(4500, 8000);
     this.time.delayedCall(expiry, () => {
       if (this._pendingFriendMsg) {
         this._pendingFriendMsg = false;
         this.agent.onFriendIgnored();
         this._log('⚠️ Ignored', msg.speaker + ' got no reply');
       }
-      gsap.to(box, {
-        y: 20, opacity: 0, duration: 0.3,
-        onComplete: () => box.classList.add('hidden')
-      });
+      gsap.to(box, { y: 20, opacity: 0, duration: 0.3, onComplete: () => box.classList.add('hidden') });
     });
   }
 
-  // ── Random events — fire at unpredictable times ───────────────────────────
+  // ── Random events ─────────────────────────────────────────────────────────
   _scheduleRandomEvent() {
-    // Random delay between 8 and 20 seconds — truly unpredictable
-    const delay = Phaser.Math.Between(8000, 20000);
-    this.time.delayedCall(delay, () => {
-      if (!this._ended) {
-        this._fireRandomEvent();
-        this._scheduleRandomEvent(); // schedule next one
-      }
+    this.time.delayedCall(Phaser.Math.Between(9000, 22000), () => {
+      if (!this._ended) { this._fireRandomEvent(); this._scheduleRandomEvent(); }
     });
   }
 
   _fireRandomEvent() {
-    const event = Phaser.Utils.Array.GetRandom(RANDOM_EVENTS);
-    this.agent.onRandomEvent(event.type);
-    this._log(event.label, event.desc);
+    const ev = Phaser.Utils.Array.GetRandom(RANDOM_EVENTS);
+    this.agent.onRandomEvent(ev.type);
+    this._log(ev.label, ev.desc);
 
-    // Show random event banner
     const { width, height } = this.scale;
-    const banner = this.add.container(width / 2, height / 2 - 80).setDepth(25);
-    const bg = this.add.rectangle(0, 0, 420, 60, 0x000000, 0.85)
-      .setStrokeStyle(2, parseInt(event.color.replace('#', '0x')), 1);
-    const title = this.add.text(0, -10, event.label, {
-      fontSize: '14px', color: event.color
-    }).setOrigin(0.5);
-    const desc = this.add.text(0, 12, event.desc, {
-      fontSize: '10px', color: '#cccccc'
-    }).setOrigin(0.5);
-    banner.add([bg, title, desc]);
+    const banner = this.add.container(width / 2, 80).setDepth(25);
 
-    gsap.fromTo(banner, { alpha: 0, y: height / 2 - 100 }, { alpha: 1, y: height / 2 - 80, duration: 0.4 });
-    this.time.delayedCall(3000, () => {
-      gsap.to(banner, { alpha: 0, duration: 0.4, onComplete: () => banner.destroy() });
+    const bg = this.add.rectangle(0, 0, 480, 58, 0xffffff, 0.97);
+    bg.setStrokeStyle(3, ev.color, 1);
+    const titleT = this.add.text(0, -10, ev.label, {
+      fontFamily: 'Sora, Inter, sans-serif', fontSize: '16px', fontStyle: 'bold', color: ev.hex
+    }).setOrigin(0.5);
+    const descT = this.add.text(0, 12, ev.desc, {
+      fontFamily: 'Sora, Inter, sans-serif', fontSize: '12px', color: '#475569'
+    }).setOrigin(0.5);
+    banner.add([bg, titleT, descT]);
+
+    gsap.fromTo(banner, { alpha: 0, y: 60 }, { alpha: 1, y: 80, duration: 0.4, ease: 'back.out(1.3)' });
+    this.time.delayedCall(3200, () => {
+      gsap.to(banner, { alpha: 0, y: 60, duration: 0.35, onComplete: () => banner.destroy() });
     });
   }
 
-  // ── Decision node — player can influence the agent ────────────────────────
+  // ── Decision node ─────────────────────────────────────────────────────────
   _showDecisionNode(prompt, yesLabel, noLabel) {
     if (this._decisionPending) return;
     this._decisionPending = true;
 
+    const panel   = document.getElementById('decision-panel');
     const promptEl = document.getElementById('decision-prompt');
-    const btnEngage = document.getElementById('btn-engage');
-    const btnResist = document.getElementById('btn-resist');
-    const panel = document.getElementById('decision-panel');
+    const btnE    = document.getElementById('btn-engage');
+    const btnR    = document.getElementById('btn-resist');
     if (!panel) return;
 
     if (promptEl) promptEl.textContent = prompt;
-    if (btnEngage) btnEngage.textContent = yesLabel;
-    if (btnResist) btnResist.textContent = noLabel;
+    if (btnE) btnE.textContent = yesLabel;
+    if (btnR) btnR.textContent = noLabel;
 
     panel.classList.remove('hidden');
-    gsap.fromTo(panel, { opacity: 0, scale: 0.9 }, { opacity: 1, scale: 1, duration: 0.35 });
+    gsap.fromTo(panel, { opacity: 0, scale: 0.88 }, { opacity: 1, scale: 1, duration: 0.35, ease: 'back.out(1.4)' });
 
-    // Auto-dismiss after 6 seconds if player doesn't choose
-    this.time.delayedCall(6000, () => {
+    this.time.delayedCall(7000, () => {
       if (this._decisionPending) {
         this._decisionPending = false;
         panel.classList.add('hidden');
-        this._log('⏱ No choice made', 'agent decided on its own');
+        this._log('⏱ No choice', 'Kai decided on his own');
       }
     });
   }
 
-  _buildChoiceButtons(width, height) {
-    // Buttons are in HTML overlay — wire them up
-    const btnEngage = document.getElementById('btn-engage');
-    const btnResist = document.getElementById('btn-resist');
-    const panel     = document.getElementById('decision-panel');
+  _buildChoiceButtons() {
+    const panel = document.getElementById('decision-panel');
+    const btnE  = document.getElementById('btn-engage');
+    const btnR  = document.getElementById('btn-resist');
 
-    if (btnEngage) {
-      btnEngage.addEventListener('click', () => {
-        if (!this._decisionPending) return;
-        this._decisionPending = false;
-        panel.classList.add('hidden');
-        this.agent.onPlayerChoice('PLAYER_ENGAGE');
-        this._log('🎮 Player', 'chose to Engage');
-      });
-    }
-    if (btnResist) {
-      btnResist.addEventListener('click', () => {
-        if (!this._decisionPending) return;
-        this._decisionPending = false;
-        panel.classList.add('hidden');
-        this.agent.onPlayerChoice('PLAYER_RESIST');
-        this._log('🎮 Player', 'chose to Resist');
-      });
-    }
+    btnE?.addEventListener('click', () => {
+      if (!this._decisionPending) return;
+      this._decisionPending = false;
+      panel.classList.add('hidden');
+      this.agent.onPlayerChoice('PLAYER_ENGAGE');
+      this._log('🎮 Player', 'chose to Engage');
+    });
+
+    btnR?.addEventListener('click', () => {
+      if (!this._decisionPending) return;
+      this._decisionPending = false;
+      panel.classList.add('hidden');
+      this.agent.onPlayerChoice('PLAYER_RESIST');
+      this._log('🎮 Player', 'chose to Resist');
+    });
   }
 
   // ── Event log ─────────────────────────────────────────────────────────────
-  _buildEventLog(width, height) {
-    this._logContainer = this.add.container(10, height - 10).setDepth(15);
-  }
-
   _log(label, detail = '') {
-    const { height } = this.scene.scene.sys.scale;
-    const line = `${label}${detail ? ' — ' + detail : ''}`;
+    const line = `${label}${detail ? '  —  ' + detail : ''}`;
     this._logLines.push(line);
-    if (this._logLines.length > 6) this._logLines.shift();
+    if (this._logLines.length > 5) this._logLines.shift();
 
-    // Rebuild log text
     this._logContainer.removeAll(true);
     this._logLines.forEach((l, i) => {
-      const t = this.add.text(0, -(this._logLines.length - i) * 16, l, {
-        fontSize: '9px',
-        color: '#888888',
-        backgroundColor: '#00000066',
-        padding: { x: 3, y: 1 }
+      const t = this.add.text(0, -(this._logLines.length - i) * 18, l, {
+        fontFamily: 'Inter, sans-serif', fontSize: '11px', color: '#475569',
+        backgroundColor: '#ffffffcc',
+        padding: { x: 6, y: 2 }
       });
       this._logContainer.add(t);
     });
@@ -378,88 +329,68 @@ export default class AttractionScene extends Phaser.Scene {
     popup.classList.remove('hidden');
     gsap.fromTo(popup, { x: 60, opacity: 0 }, { x: 0, opacity: 1, duration: 0.35 });
     setTimeout(() => {
-      gsap.to(popup, {
-        x: 60, opacity: 0, duration: 0.3,
-        onComplete: () => popup.classList.add('hidden')
-      });
-    }, 2500);
+      gsap.to(popup, { x: 60, opacity: 0, duration: 0.3, onComplete: () => popup.classList.add('hidden') });
+    }, 2800);
   }
 
-  // ── Background ambient orbs — subtle, professional ───────────────────────
-  _spawnBackgroundOrbs(width, height) {
-    const colours = [0x7b2fff, 0x4a00e0, 0x00b4d8, 0x6a0dad];
-    for (let i = 0; i < 6; i++) {
-      const orb = this.add.circle(
-        Phaser.Math.Between(0, width),
-        Phaser.Math.Between(0, height),
-        Phaser.Math.Between(60, 140),
-        Phaser.Utils.Array.GetRandom(colours), 0.04
-      ).setDepth(0);
-      this.tweens.add({
-        targets: orb,
-        y: orb.y - Phaser.Math.Between(15, 40),
-        alpha: 0.07,
-        duration: Phaser.Math.Between(4000, 8000),
-        yoyo: true, repeat: -1, ease: 'Sine.easeInOut'
-      });
-    }
-  }
-
-  // ── Scene end — show outcome ──────────────────────────────────────────────
+  // ── Scene end ─────────────────────────────────────────────────────────────
   _endScene(outcome, reason) {
     if (this._ended) return;
     this._ended = true;
 
     const { width, height } = this.scale;
 
-    const overlayColour = {
-      LOOPING:       0x110000,
-      RECOVERED:     0x001100,
-      PARTIAL:       0x111100,
-      LOST:          0x000000,
-    }[outcome] || 0x000000;
+    const cfg = {
+      LOOPING:        { bg: 0xfff7ed, title: '🔁 The Loop Begins',      sub: 'Kai is hooked. The habit is forming.',          tc: '#c2410c', bc: 0xfed7aa },
+      RECOVERED:      { bg: 0xf0fdf4, title: '✅ Kai Resisted!',         sub: 'He stepped back before it was too late.',        tc: '#15803d', bc: 0xbbf7d0 },
+      PARTIAL:        { bg: 0xfefce8, title: '🔶 Mixed Signals',         sub: 'Kai is torn between both worlds.',               tc: '#a16207', bc: 0xfef08a },
+      LOST:           { bg: 0xf8fafc, title: '❌ Lost in the Feed',      sub: 'Kai is completely absorbed.',                    tc: '#dc2626', bc: 0xfecaca },
+    }[outcome] || { bg: 0xffffff, title: outcome, sub: reason, tc: '#000000', bc: 0xeeeeee };
 
-    const messages = {
-      LOOPING:   { title: '🔁 The Loop Begins', sub: 'Hana is hooked. The habit is forming.', color: '#ff6600' },
-      RECOVERED: { title: '✅ Resisted!', sub: 'Hana stepped back before it was too late.', color: '#00ff88' },
-      PARTIAL:   { title: '🔶 Mixed Signals', sub: 'Hana is torn between both worlds.', color: '#ffcc00' },
-      LOST:      { title: '❌ Lost in the Feed', sub: 'Hana is completely absorbed.', color: '#ff4444' },
-    };
+    // Fade to outcome colour
+    const overlay = this.add.rectangle(width / 2, height / 2, width, height, cfg.bg, 0).setDepth(30);
+    this.tweens.add({ targets: overlay, fillAlpha: 0.92, duration: 1000 });
 
-    const m = messages[outcome] || { title: outcome, sub: reason, color: '#ffffff' };
+    this.time.delayedCall(700, () => {
+      // Outcome card
+      const card = this.add.container(width / 2, height / 2).setDepth(31);
 
-    // Fade overlay
-    const overlay = this.add.rectangle(width / 2, height / 2, width, height, overlayColour, 0)
-      .setDepth(30);
-    this.tweens.add({ targets: overlay, fillAlpha: 0.75, duration: 1200 });
+      const cardBg = this.add.rectangle(0, 0, 560, 260, 0xffffff, 1);
+      cardBg.setStrokeStyle(3, parseInt(cfg.tc.replace('#', '0x')), 1);
 
-    this.time.delayedCall(800, () => {
-      this.add.text(width / 2, height / 2 - 30, m.title, {
-        fontSize: '28px', color: m.color, stroke: '#000000', strokeThickness: 3
-      }).setOrigin(0.5).setDepth(31);
+      const accent = this.add.rectangle(0, -130, 560, 8, parseInt(cfg.tc.replace('#', '0x')), 1);
 
-      this.add.text(width / 2, height / 2 + 20, m.sub, {
-        fontSize: '14px', color: '#cccccc'
-      }).setOrigin(0.5).setDepth(31);
+      const titleT = this.add.text(0, -70, cfg.title, {
+        fontFamily: 'Sora, Inter, sans-serif', fontSize: '32px', fontStyle: 'bold', color: cfg.tc
+      }).setOrigin(0.5);
 
-      this.add.text(width / 2, height / 2 + 60, `Reason: ${reason}`, {
-        fontSize: '10px', color: '#666666'
-      }).setOrigin(0.5).setDepth(31);
+      const subT = this.add.text(0, -20, cfg.sub, {
+        fontFamily: 'Sora, Inter, sans-serif', fontSize: '16px', color: '#475569'
+      }).setOrigin(0.5);
 
-      // Stats
       const fsm = this.agent.fsm;
-      this.add.text(width / 2, height / 2 + 90,
-        `Engaged: ${fsm.engageCount}  |  Resisted: ${fsm.resistCount}  |  Friends ignored: ${fsm.ignoredFriends}`,
-        { fontSize: '10px', color: '#888888' }
-      ).setOrigin(0.5).setDepth(31);
+      const statsT = this.add.text(0, 20,
+        `Engaged: ${fsm.engageCount}   ·   Resisted: ${fsm.resistCount}   ·   Friends ignored: ${fsm.ignoredFriends}`,
+        { fontFamily: 'Inter, sans-serif', fontSize: '13px', color: '#94a3b8' }
+      ).setOrigin(0.5);
 
-      this.add.text(width / 2, height / 2 + 120, 'Click to continue →', {
-        fontSize: '11px', color: '#555555'
-      }).setOrigin(0.5).setDepth(31);
+      const reasonT = this.add.text(0, 55, `Reason: ${reason}`, {
+        fontFamily: 'Inter, sans-serif', fontSize: '11px', color: '#cbd5e1'
+      }).setOrigin(0.5);
+
+      const hintT = this.add.text(0, 95, 'Click anywhere to continue →', {
+        fontFamily: 'Sora, Inter, sans-serif', fontSize: '13px', color: '#94a3b8'
+      }).setOrigin(0.5);
+
+      // Blink hint
+      this.tweens.add({ targets: hintT, alpha: 0.3, duration: 700, yoyo: true, repeat: -1 });
+
+      card.add([cardBg, accent, titleT, subT, statsT, reasonT, hintT]);
+
+      gsap.fromTo(card, { alpha: 0, scale: 0.85 }, { alpha: 1, scale: 1, duration: 0.5, ease: 'back.out(1.3)' });
 
       this.input.once('pointerdown', () => {
-        // Scenario 2 scene will be started here
-        console.log('[Scene] Scenario 1 ended with:', outcome);
+        console.log('[Scene] Scenario 1 ended:', outcome);
       });
     });
   }

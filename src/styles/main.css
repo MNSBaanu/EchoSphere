@@ -2,15 +2,32 @@
 @tailwind components;
 @tailwind utilities;
 
-* { box-sizing: border-box; }
-
-body {
+* {
+  box-sizing: border-box;
   margin: 0;
   padding: 0;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
   overflow: hidden;
-  background: #0d0d2b;
+  background: #1e1b4b;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+#game-container {
+  width: 100%;
+  height: 100%;
 }
 
 #game-container canvas {
   display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* HUD text uses Sora */
+#hud, #dialogue-box, #notification-popup, #decision-panel {
+  font-family: 'Sora', 'Inter', sans-serif;
 }
