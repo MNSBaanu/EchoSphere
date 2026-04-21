@@ -1,7 +1,6 @@
 import Phaser from 'phaser';
 import BootScene from './scenes/BootScene.js';
-import DigitalWorldScene from './scenes/DigitalWorldScene.js';
-import RealWorldScene from './scenes/RealWorldScene.js';
+import AttractionScene from './scenes/AttractionScene.js';
 
 const config = {
   type: Phaser.AUTO,
@@ -13,7 +12,7 @@ const config = {
     default: 'arcade',
     arcade: { gravity: { y: 0 }, debug: false }
   },
-  scene: [BootScene, DigitalWorldScene, RealWorldScene]
+  scene: [BootScene, AttractionScene]
 };
 
 const game = new Phaser.Game(config);
