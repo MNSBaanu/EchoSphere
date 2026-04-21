@@ -6,7 +6,7 @@
 
 | Status | Task |
 |---|---|
-| 🔲 | Set up the project and get it running |
+| ✅ | Set up the project and get it running |
 | 🔲 | Design the main teen character (anime style) |
 | 🔲 | Design the friend, parent, and bot characters |
 | 🔲 | Build the digital world environment |
