@@ -4,10 +4,14 @@ import AttractionScene from './scenes/AttractionScene.js';
 
 const config = {
   type: Phaser.AUTO,
-  width: 1280,
-  height: 720,
+  width: window.innerWidth,
+  height: window.innerHeight,
   parent: 'game-container',
-  backgroundColor: '#0d0d2b',
+  backgroundColor: '#f0f4ff',
+  scale: {
+    mode: Phaser.Scale.RESIZE,
+    autoCenter: Phaser.Scale.CENTER_BOTH,
+  },
   physics: {
     default: 'arcade',
     arcade: { gravity: { y: 0 }, debug: false }

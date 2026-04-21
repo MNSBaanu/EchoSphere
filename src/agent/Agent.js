@@ -2,25 +2,10 @@ import FSM from './FSM.js';
 import EmotionSystem from './EmotionSystem.js';
 
 /**
- * Agent — "Hana", the anime-styled teen character
- * Drawn entirely with Phaser Graphics — no external sprite needed.
- *
- * Character anatomy:
- *   - Hair (layered, anime-style)
- *   - Head + face (eyes, blush, expression)
- *   - Body (school uniform top)
- *   - Arms
- *   - Legs + shoes
- *   - Phone prop (visible when in ATTRACTED/LOOPING state)
- *
- * Visual state changes:
- *   IDLE           → neutral expression, slow walk
- *   ATTRACTED      → wide eyes, phone out, faster
- *   LOOPING        → hunched, phone glow, orange tint
- *   DISTORTED      → glitch effect, red tint
- *   BREAKING_POINT → shaking, dark
- *   RECOVERED      → upright, bright, phone away
- *   LOST           → slumped, grey
+ * Agent — "Kai", teen boy character
+ * Drawn with Phaser Graphics at 3× scale for crisp visuals.
+ * Movement: keyboard arrow keys / WASD — player controlled.
+ * FSM still reacts to events (notifications walked into, random events, etc.)
  */
 export default class Agent {
   constructor(scene, x, y) {
@@ -32,230 +17,326 @@ export default class Agent {
     this.fsm      = new FSM(this);
 
     this._perceptionCooldown = 0;
-    this.vx = (Math.random() - 0.5) * 1.2;
-    this.vy = (Math.random() - 0.5) * 1.2;
-    this._targetX = null;
-    this._targetY = null;
+    this.vx = 0;
+    this.vy = 0;
     this._facingRight = true;
-    this._walkCycle = 0;
+    this._walkCycle   = 0;
     this._glitchOffset = 0;
+    this._moving = false;
 
-    // Container holds all character parts — move the container to move the character
+    // Keyboard input
+    this._keys = scene.input.keyboard.createCursorKeys();
+    this._wasd = scene.input.keyboard.addKeys({
+      up:    Phaser.Input.Keyboard.KeyCodes.W,
+      down:  Phaser.Input.Keyboard.KeyCodes.S,
+      left:  Phaser.Input.Keyboard.KeyCodes.A,
+      right: Phaser.Input.Keyboard.KeyCodes.D,
+    });
+
+    // Shadow
+    this._shadow = scene.add.ellipse(x, y + 52, 44, 10, 0x000000, 0.18).setDepth(9);
+
+    // Main graphics container
     this.container = scene.add.container(x, y).setDepth(10);
+    this._gfx = scene.add.graphics();
+    this.container.add(this._gfx);
 
-    this._buildCharacter();
+    // Glow layer behind character (state-based colour)
+    this._glow = scene.add.circle(x, y, 38, 0x7b2fff, 0.0).setDepth(9);
 
-    // Name tag above character
-    this.nameTag = scene.add.text(x, y - 58, 'Hana', {
-      fontSize: '11px',
+    // Name tag
+    this.nameTag = scene.add.text(x, y - 80, 'Kai', {
+      fontSize: '15px',
+      fontStyle: 'bold',
+      color: '#1a1a2e',
+      backgroundColor: '#ffffffcc',
+      padding: { x: 8, y: 4 }
+    }).setOrigin(0.5).setDepth(12);
+
+    // State badge under character
+    this.stateLabel = scene.add.text(x, y + 68, 'IDLE', {
+      fontSize: '12px',
+      fontStyle: 'bold',
       color: '#ffffff',
-      backgroundColor: '#00000099',
-      padding: { x: 5, y: 2 }
-    }).setOrigin(0.5).setDepth(11);
+      backgroundColor: '#1a1a2ecc',
+      padding: { x: 8, y: 3 }
+    }).setOrigin(0.5).setDepth(12);
 
-    // State label below character
-    this.stateLabel = scene.add.text(x, y + 52, 'IDLE', {
-      fontSize: '9px',
-      color: '#00f5ff',
-      backgroundColor: '#00000099',
-      padding: { x: 4, y: 1 }
-    }).setOrigin(0.5).setDepth(11);
-
-    // Perception ring (faint, around character)
-    this.perceptionRing = scene.add.circle(x, y, 85)
-      .setStrokeStyle(1, 0x00f5ff, 0.15)
+    // Perception ring
+    this.perceptionRing = scene.add.circle(x, y, 90)
+      .setStrokeStyle(2, 0x7b2fff, 0.2)
       .setFillStyle(0x000000, 0)
       .setDepth(5);
-  }
 
-  // ── Build character graphics ──────────────────────────────────────────────
-  _buildCharacter() {
-    const g = this.scene.add.graphics();
-    this._gfx = g;
-    this.container.add(g);
+    // Controls hint (shown briefly)
+    this._controlsHint = scene.add.text(x, y + 95, '← → ↑ ↓  or  WASD to move', {
+      fontSize: '11px', color: '#888888',
+      backgroundColor: '#ffffff99',
+      padding: { x: 6, y: 3 }
+    }).setOrigin(0.5).setDepth(12).setAlpha(1);
+
+    scene.tweens.add({
+      targets: this._controlsHint,
+      alpha: 0,
+      delay: 4000,
+      duration: 1000
+    });
+
     this._drawCharacter('IDLE');
   }
 
+  // ── Draw teen boy character ───────────────────────────────────────────────
   _drawCharacter(state) {
     const g = this._gfx;
     g.clear();
 
-    const walkOffset = Math.sin(this._walkCycle) * 3;
-    const glitch = this._glitchOffset;
+    const S = 2.8; // scale multiplier — bigger character
+    const w = this._walkCycle;
+    const gl = this._glitchOffset;
+    const legSwing = Math.sin(w) * (this._moving ? 8 : 0);
+    const armSwing = Math.sin(w) * (this._moving ? 6 : 0);
 
-    // ── Colour palette per state ──────────────────────────────────────────
-    const palette = {
-      IDLE:           { skin: 0xfcd5b0, hair: 0x2c1810, shirt: 0x4a90d9, pants: 0x2c3e6b, shoe: 0x1a1a2e, eye: 0x3d2b1f, blush: 0xffb3ba, phone: null },
-      ATTRACTED:      { skin: 0xfcd5b0, hair: 0x2c1810, shirt: 0x4a90d9, pants: 0x2c3e6b, shoe: 0x1a1a2e, eye: 0x6a3de8, blush: 0xff8fa3, phone: 0x1a1a2e },
-      LOOPING:        { skin: 0xf5c49a, hair: 0x2c1810, shirt: 0x3a7bc8, pants: 0x1e2d5a, shoe: 0x111122, eye: 0xff6600, blush: 0xff6b6b, phone: 0x0d0d1a },
-      DISTORTED:      { skin: 0xe8b090, hair: 0x1a0f0a, shirt: 0x2a5a9a, pants: 0x141e3a, shoe: 0x0a0a15, eye: 0xff0000, blush: 0xff4444, phone: 0x0a0a0a },
-      BREAKING_POINT: { skin: 0xd4956e, hair: 0x150a05, shirt: 0x1a3a6a, pants: 0x0e1428, shoe: 0x050510, eye: 0x880000, blush: 0xcc2222, phone: 0x050505 },
-      RECOVERED:      { skin: 0xfcd5b0, hair: 0x2c1810, shirt: 0x5ba85b, pants: 0x2d5a2d, shoe: 0x1a2e1a, eye: 0x2ecc71, blush: 0xffb3ba, phone: null },
-      PARTIAL:        { skin: 0xf0c8a0, hair: 0x2c1810, shirt: 0x9a8a3a, pants: 0x3a3a1e, shoe: 0x1a1a0a, eye: 0xccaa00, blush: 0xffcc44, phone: 0x1a1a0a },
-      LOST:           { skin: 0xb8a090, hair: 0x1a1a1a, shirt: 0x2a2a2a, pants: 0x1a1a1a, shoe: 0x0a0a0a, eye: 0x444444, blush: 0x666666, phone: 0x050505 },
-    };
+    // ── Palette ───────────────────────────────────────────────────────────
+    const P = {
+      IDLE:           { skin: 0xf5c5a3, hair: 0x3d2314, shirt: 0x2563eb, pants: 0x1e3a5f, shoe: 0x111827, eye: 0x1e3a5f, phone: null,   glow: 0x000000, glowA: 0 },
+      ATTRACTED:      { skin: 0xf5c5a3, hair: 0x3d2314, shirt: 0x2563eb, pants: 0x1e3a5f, shoe: 0x111827, eye: 0x7c3aed, phone: 0x111827, glow: 0x7c3aed, glowA: 0.12 },
+      LOOPING:        { skin: 0xedb48a, hair: 0x2c1a0e, shirt: 0x1d4ed8, pants: 0x172554, shoe: 0x0f172a, eye: 0xea580c, phone: 0x0f172a, glow: 0xea580c, glowA: 0.18 },
+      DISTORTED:      { skin: 0xd4956e, hair: 0x1a0f08, shirt: 0x1e40af, pants: 0x0f1f3d, shoe: 0x080f1e, eye: 0xdc2626, phone: 0x080f1e, glow: 0xdc2626, glowA: 0.25 },
+      BREAKING_POINT: { skin: 0xb87a55, hair: 0x0f0805, shirt: 0x1e3a8a, pants: 0x0a1628, shoe: 0x050a14, eye: 0x7f1d1d, phone: 0x050a14, glow: 0x7f1d1d, glowA: 0.3 },
+      RECOVERED:      { skin: 0xf5c5a3, hair: 0x3d2314, shirt: 0x16a34a, pants: 0x14532d, shoe: 0x052e16, eye: 0x16a34a, phone: null,   glow: 0x16a34a, glowA: 0.15 },
+      PARTIAL:        { skin: 0xefc090, hair: 0x2c1a0e, shirt: 0xca8a04, pants: 0x3f2d00, shoe: 0x1c1300, eye: 0xca8a04, phone: 0x1c1300, glow: 0xca8a04, glowA: 0.12 },
+      LOST:           { skin: 0x9a8070, hair: 0x111111, shirt: 0x1f2937, pants: 0x111827, shoe: 0x030712, eye: 0x374151, phone: 0x030712, glow: 0x000000, glowA: 0 },
+    }[state] || { skin: 0xf5c5a3, hair: 0x3d2314, shirt: 0x2563eb, pants: 0x1e3a5f, shoe: 0x111827, eye: 0x1e3a5f, phone: null, glow: 0x000000, glowA: 0 };
 
-    const c = palette[state] || palette.IDLE;
-    const showPhone = c.phone !== null;
+    const showPhone = P.phone !== null;
 
-    // ── Shadow ────────────────────────────────────────────────────────────
-    g.fillStyle(0x000000, 0.15);
-    g.fillEllipse(glitch, 46, 28, 8);
+    // Update glow
+    this._glow.setFillStyle(P.glow, P.glowA);
 
-    // ── Legs ──────────────────────────────────────────────────────────────
-    g.fillStyle(c.pants, 1);
-    // Left leg
-    g.fillRect(-9 + glitch, 18, 8, 20 + walkOffset);
-    // Right leg
-    g.fillRect(1 + glitch, 18, 8, 20 - walkOffset);
+    // ── Right shoe ────────────────────────────────────────────────────────
+    g.fillStyle(P.shoe, 1);
+    g.fillRoundedRect(gl + 4*S, (28 - legSwing)*S, 9*S, 5*S, 2);
 
-    // ── Shoes ─────────────────────────────────────────────────────────────
-    g.fillStyle(c.shoe, 1);
-    g.fillRect(-11 + glitch, 36 + walkOffset, 11, 5);
-    g.fillRect(1 + glitch,   36 - walkOffset, 11, 5);
+    // ── Left shoe ─────────────────────────────────────────────────────────
+    g.fillStyle(P.shoe, 1);
+    g.fillRoundedRect(gl + -13*S, (28 + legSwing)*S, 9*S, 5*S, 2);
 
-    // ── Body / shirt ──────────────────────────────────────────────────────
-    g.fillStyle(c.shirt, 1);
-    g.fillRoundedRect(-12 + glitch, -4, 24, 24, 4);
+    // ── Right leg ─────────────────────────────────────────────────────────
+    g.fillStyle(P.pants, 1);
+    g.fillRoundedRect(gl + 5*S, (10)*S, 7*S, (18 - legSwing)*S, 2);
 
-    // Collar detail
-    g.fillStyle(0xffffff, 0.3);
-    g.fillTriangle(-3 + glitch, -4, 3 + glitch, -4, 0 + glitch, 4);
+    // ── Left leg ──────────────────────────────────────────────────────────
+    g.fillStyle(P.pants, 1);
+    g.fillRoundedRect(gl + -12*S, (10)*S, 7*S, (18 + legSwing)*S, 2);
 
-    // ── Arms ──────────────────────────────────────────────────────────────
-    g.fillStyle(c.shirt, 1);
+    // ── Body ──────────────────────────────────────────────────────────────
+    g.fillStyle(P.shirt, 1);
+    g.fillRoundedRect(gl + -13*S, -8*S, 26*S, 20*S, 4);
+
+    // Shirt collar V
+    g.fillStyle(P.skin, 1);
+    g.fillTriangle(
+      gl + -3*S, -8*S,
+      gl +  3*S, -8*S,
+      gl +  0,   -2*S
+    );
+
+    // Shirt pocket detail
+    g.fillStyle(0xffffff, 0.15);
+    g.fillRoundedRect(gl + 4*S, -4*S, 5*S, 4*S, 1);
+
+    // ── Right arm ─────────────────────────────────────────────────────────
+    g.fillStyle(P.shirt, 1);
     if (showPhone) {
-      // Right arm raised holding phone
-      g.fillRect(12 + glitch, -4, 7, 14);
-      g.fillRect(-19 + glitch, -4, 7, 18);
+      // Arm raised holding phone
+      g.fillRoundedRect(gl + 13*S, -10*S, 6*S, 14*S, 2);
     } else {
-      // Arms at sides, slight swing
-      g.fillRect(12 + glitch, -4, 7, 18 + walkOffset);
-      g.fillRect(-19 + glitch, -4, 7, 18 - walkOffset);
+      g.fillRoundedRect(gl + 13*S, -6*S, 6*S, (16 + armSwing)*S, 2);
     }
 
-    // Hands (skin)
-    g.fillStyle(c.skin, 1);
-    g.fillCircle(15 + glitch, 14 + (showPhone ? 0 : walkOffset), 4);
-    g.fillCircle(-15 + glitch, 14 + (showPhone ? 0 : -walkOffset), 4);
+    // ── Left arm ──────────────────────────────────────────────────────────
+    g.fillStyle(P.shirt, 1);
+    g.fillRoundedRect(gl + -19*S, -6*S, 6*S, (16 - armSwing)*S, 2);
 
-    // ── Phone prop ────────────────────────────────────────────────────────
+    // ── Right hand ────────────────────────────────────────────────────────
+    g.fillStyle(P.skin, 1);
+    g.fillCircle(gl + 16*S, showPhone ? 4*S : (10 + armSwing)*S, 4*S);
+
+    // ── Left hand ─────────────────────────────────────────────────────────
+    g.fillStyle(P.skin, 1);
+    g.fillCircle(gl + -16*S, (10 - armSwing)*S, 4*S);
+
+    // ── Phone ─────────────────────────────────────────────────────────────
     if (showPhone) {
-      // Phone body
-      g.fillStyle(c.phone, 1);
-      g.fillRoundedRect(14 + glitch, -2, 10, 16, 2);
-      // Screen glow
-      const glowAlpha = 0.5 + Math.sin(this._walkCycle * 2) * 0.3;
-      g.fillStyle(0x00f5ff, glowAlpha);
-      g.fillRoundedRect(15 + glitch, -1, 8, 12, 1);
-      // Screen content lines
-      g.fillStyle(0xffffff, 0.4);
-      g.fillRect(16 + glitch, 1, 6, 1);
-      g.fillRect(16 + glitch, 4, 4, 1);
-      g.fillRect(16 + glitch, 7, 5, 1);
+      g.fillStyle(P.phone, 1);
+      g.fillRoundedRect(gl + 18*S, -12*S, 8*S, 14*S, 2);
+      // Screen glow pulse
+      const pulse = 0.55 + Math.sin(w * 3) * 0.25;
+      g.fillStyle(0x38bdf8, pulse);
+      g.fillRoundedRect(gl + 19*S, -11*S, 6*S, 10*S, 1);
+      // Content lines on screen
+      g.fillStyle(0xffffff, 0.5);
+      g.fillRect(gl + 20*S, -9*S, 4*S, 1*S);
+      g.fillRect(gl + 20*S, -7*S, 3*S, 1*S);
+      g.fillRect(gl + 20*S, -5*S, 4*S, 1*S);
+      g.fillRect(gl + 20*S, -3*S, 2*S, 1*S);
     }
 
     // ── Neck ──────────────────────────────────────────────────────────────
-    g.fillStyle(c.skin, 1);
-    g.fillRect(-4 + glitch, -10, 8, 8);
+    g.fillStyle(P.skin, 1);
+    g.fillRect(gl + -3*S, -14*S, 6*S, 8*S);
 
     // ── Head ──────────────────────────────────────────────────────────────
-    g.fillStyle(c.skin, 1);
-    g.fillEllipse(0 + glitch, -22, 26, 28);
+    g.fillStyle(P.skin, 1);
+    g.fillEllipse(gl + 0, -26*S, 24*S, 26*S);
 
-    // ── Hair — back layer ─────────────────────────────────────────────────
-    g.fillStyle(c.hair, 1);
-    // Long hair behind (anime style)
-    g.fillRect(-13 + glitch, -32, 26, 30);
-    g.fillEllipse(-14 + glitch, -10, 10, 24); // left side hair
-    g.fillEllipse(14 + glitch, -10, 10, 24);  // right side hair
+    // ── Ear left ──────────────────────────────────────────────────────────
+    g.fillStyle(P.skin, 1);
+    g.fillEllipse(gl + -12*S, -24*S, 5*S, 7*S);
 
-    // ── Hair — top/front ──────────────────────────────────────────────────
-    g.fillStyle(c.hair, 1);
-    g.fillEllipse(0 + glitch, -34, 28, 16);   // top of head
-    // Anime bangs
-    g.fillTriangle(-13 + glitch, -28, -5 + glitch, -28, -10 + glitch, -18);
-    g.fillTriangle(-6 + glitch,  -30, 2 + glitch,  -30, -2 + glitch,  -20);
-    g.fillTriangle(2 + glitch,   -30, 10 + glitch,  -30, 6 + glitch,  -20);
-    g.fillTriangle(8 + glitch,   -28, 14 + glitch,  -26, 10 + glitch, -18);
+    // ── Ear right ─────────────────────────────────────────────────────────
+    g.fillStyle(P.skin, 1);
+    g.fillEllipse(gl + 12*S, -24*S, 5*S, 7*S);
 
-    // ── Eyes ──────────────────────────────────────────────────────────────
-    // Eye whites
-    g.fillStyle(0xffffff, 1);
-    g.fillEllipse(-6 + glitch, -22, 8, 7);
-    g.fillEllipse(6 + glitch,  -22, 8, 7);
+    // ── Hair back ─────────────────────────────────────────────────────────
+    g.fillStyle(P.hair, 1);
+    g.fillEllipse(gl + 0, -40*S, 26*S, 14*S);
+    g.fillRect(gl + -12*S, -44*S, 24*S, 16*S);
 
-    // Iris
-    g.fillStyle(c.eye, 1);
-    const eyeSize = state === 'ATTRACTED' ? 5 : state === 'LOST' ? 2 : 4;
-    g.fillCircle(-6 + glitch, -22, eyeSize);
-    g.fillCircle(6 + glitch,  -22, eyeSize);
-
-    // Pupil
-    g.fillStyle(0x000000, 1);
-    g.fillCircle(-6 + glitch, -22, eyeSize * 0.45);
-    g.fillCircle(6 + glitch,  -22, eyeSize * 0.45);
-
-    // Eye shine
-    g.fillStyle(0xffffff, 0.9);
-    g.fillCircle(-5 + glitch, -23, 1.2);
-    g.fillCircle(7 + glitch,  -23, 1.2);
-
-    // Eyelashes (top line)
-    g.lineStyle(1.5, c.hair, 1);
-    g.strokeEllipse(-6 + glitch, -22, 8, 7);
-    g.strokeEllipse(6 + glitch,  -22, 8, 7);
+    // ── Hair front / spiky teen style ─────────────────────────────────────
+    g.fillStyle(P.hair, 1);
+    // Main top
+    g.fillEllipse(gl + 0, -43*S, 22*S, 10*S);
+    // Spiky bangs — teen boy style
+    g.fillTriangle(gl + -10*S, -40*S, gl + -5*S, -40*S, gl + -8*S, -48*S);
+    g.fillTriangle(gl + -5*S,  -41*S, gl +  1*S, -41*S, gl + -2*S, -50*S);
+    g.fillTriangle(gl +  1*S,  -41*S, gl +  7*S, -41*S, gl +  4*S, -49*S);
+    g.fillTriangle(gl +  6*S,  -40*S, gl + 11*S, -40*S, gl +  9*S, -47*S);
+    // Side hair
+    g.fillEllipse(gl + -13*S, -34*S, 6*S, 12*S);
+    g.fillEllipse(gl +  13*S, -34*S, 6*S, 12*S);
 
     // ── Eyebrows ──────────────────────────────────────────────────────────
-    g.lineStyle(1.5, c.hair, 1);
+    g.lineStyle(2.5*S * 0.4, P.hair, 1);
     if (state === 'BREAKING_POINT' || state === 'DISTORTED') {
-      // Furrowed brows
-      g.beginPath(); g.moveTo(-10 + glitch, -28); g.lineTo(-3 + glitch, -26); g.strokePath();
-      g.beginPath(); g.moveTo(10 + glitch,  -28); g.lineTo(3 + glitch,  -26); g.strokePath();
+      g.beginPath(); g.moveTo(gl + -10*S, -30*S); g.lineTo(gl + -4*S, -28*S); g.strokePath();
+      g.beginPath(); g.moveTo(gl +  10*S, -30*S); g.lineTo(gl +  4*S, -28*S); g.strokePath();
     } else if (state === 'RECOVERED') {
-      // Raised happy brows
-      g.beginPath(); g.moveTo(-10 + glitch, -27); g.lineTo(-3 + glitch, -29); g.strokePath();
-      g.beginPath(); g.moveTo(10 + glitch,  -27); g.lineTo(3 + glitch,  -29); g.strokePath();
+      g.beginPath(); g.moveTo(gl + -10*S, -29*S); g.lineTo(gl + -4*S, -31*S); g.strokePath();
+      g.beginPath(); g.moveTo(gl +  10*S, -29*S); g.lineTo(gl +  4*S, -31*S); g.strokePath();
     } else {
-      // Neutral brows
-      g.beginPath(); g.moveTo(-10 + glitch, -27); g.lineTo(-3 + glitch, -27); g.strokePath();
-      g.beginPath(); g.moveTo(10 + glitch,  -27); g.lineTo(3 + glitch,  -27); g.strokePath();
+      g.beginPath(); g.moveTo(gl + -10*S, -30*S); g.lineTo(gl + -4*S, -30*S); g.strokePath();
+      g.beginPath(); g.moveTo(gl +  10*S, -30*S); g.lineTo(gl +  4*S, -30*S); g.strokePath();
     }
 
-    // ── Mouth ─────────────────────────────────────────────────────────────
-    g.lineStyle(1.2, 0x8b4513, 1);
-    if (state === 'RECOVERED') {
-      // Smile
-      g.beginPath(); g.moveTo(-4 + glitch, -14); g.quadraticBezierTo(0 + glitch, -11, 4 + glitch, -14); g.strokePath();
-    } else if (state === 'LOST' || state === 'BREAKING_POINT') {
-      // Frown
-      g.beginPath(); g.moveTo(-4 + glitch, -12); g.quadraticBezierTo(0 + glitch, -15, 4 + glitch, -12); g.strokePath();
-    } else {
-      // Neutral / slight open
-      g.beginPath(); g.moveTo(-3 + glitch, -13); g.lineTo(3 + glitch, -13); g.strokePath();
-    }
+    // ── Eye whites ────────────────────────────────────────────────────────
+    g.fillStyle(0xffffff, 1);
+    g.fillEllipse(gl + -6*S, -25*S, 8*S, 7*S);
+    g.fillEllipse(gl +  6*S, -25*S, 8*S, 7*S);
 
-    // ── Blush ─────────────────────────────────────────────────────────────
-    if (state !== 'LOST' && state !== 'BREAKING_POINT') {
-      g.fillStyle(c.blush, 0.35);
-      g.fillEllipse(-9 + glitch, -19, 8, 4);
-      g.fillEllipse(9 + glitch,  -19, 8, 4);
-    }
+    // ── Iris ──────────────────────────────────────────────────────────────
+    g.fillStyle(P.eye, 1);
+    const irisR = state === 'ATTRACTED' ? 3.2*S : state === 'LOST' ? 1.8*S : 2.6*S;
+    g.fillCircle(gl + -6*S, -25*S, irisR);
+    g.fillCircle(gl +  6*S, -25*S, irisR);
+
+    // ── Pupil ─────────────────────────────────────────────────────────────
+    g.fillStyle(0x000000, 1);
+    g.fillCircle(gl + -6*S, -25*S, irisR * 0.5);
+    g.fillCircle(gl +  6*S, -25*S, irisR * 0.5);
+
+    // ── Eye shine ─────────────────────────────────────────────────────────
+    g.fillStyle(0xffffff, 0.95);
+    g.fillCircle(gl + -5*S, -26*S, 1.2*S);
+    g.fillCircle(gl +  7*S, -26*S, 1.2*S);
+
+    // ── Eye outline ───────────────────────────────────────────────────────
+    g.lineStyle(1.2*S * 0.4, P.hair, 0.8);
+    g.strokeEllipse(gl + -6*S, -25*S, 8*S, 7*S);
+    g.strokeEllipse(gl +  6*S, -25*S, 8*S, 7*S);
 
     // ── Nose ──────────────────────────────────────────────────────────────
-    g.fillStyle(c.skin - 0x101010, 0.5);
-    g.fillCircle(0 + glitch, -17, 1.5);
+    g.fillStyle(P.skin, 1);
+    g.lineStyle(1.2, 0xc8845a, 0.6);
+    g.beginPath();
+    g.moveTo(gl + -1.5*S, -20*S);
+    g.lineTo(gl + -2.5*S, -17*S);
+    g.lineTo(gl +  2.5*S, -17*S);
+    g.strokePath();
+
+    // ── Mouth ─────────────────────────────────────────────────────────────
+    g.lineStyle(1.8*S * 0.4, 0x8b4513, 1);
+    if (state === 'RECOVERED') {
+      // Smile — arc curving downward
+      g.beginPath(); g.arc(gl, -12*S, 4*S, Phaser.Math.DegToRad(20), Phaser.Math.DegToRad(160), false); g.strokePath();
+    } else if (state === 'LOST' || state === 'BREAKING_POINT') {
+      // Frown — arc curving upward
+      g.beginPath(); g.arc(gl, -16*S, 4*S, Phaser.Math.DegToRad(200), Phaser.Math.DegToRad(340), false); g.strokePath();
+    } else if (state === 'ATTRACTED') {
+      // Slight smile
+      g.beginPath(); g.arc(gl, -12.5*S, 3.5*S, Phaser.Math.DegToRad(25), Phaser.Math.DegToRad(155), false); g.strokePath();
+    } else {
+      // Neutral line
+      g.beginPath(); g.moveTo(gl + -3*S, -13*S); g.lineTo(gl + 3*S, -13*S); g.strokePath();
+    }
+
+    // ── Subtle cheek blush ────────────────────────────────────────────────
+    if (state === 'ATTRACTED' || state === 'RECOVERED') {
+      g.fillStyle(0xfca5a5, 0.25);
+      g.fillEllipse(gl + -9*S, -21*S, 7*S, 4*S);
+      g.fillEllipse(gl +  9*S, -21*S, 7*S, 4*S);
+    }
   }
 
-  // ── Update loop ───────────────────────────────────────────────────────────
+  // ── Update ────────────────────────────────────────────────────────────────
   update() {
     this.fsm.update();
     this.emotions.update();
+    this._handleInput();
     this._perceive();
-    this._move();
     this._updateVisuals();
     this._syncHUD();
     if (this._perceptionCooldown > 0) this._perceptionCooldown--;
+  }
+
+  // ── Keyboard input ────────────────────────────────────────────────────────
+  _handleInput() {
+    const { width, height } = this.scene.scale;
+    const speed = 3.5;
+    const k = this._keys;
+    const w = this._wasd;
+
+    this.vx = 0;
+    this.vy = 0;
+
+    if (k.left.isDown  || w.left.isDown)  this.vx = -speed;
+    if (k.right.isDown || w.right.isDown) this.vx =  speed;
+    if (k.up.isDown    || w.up.isDown)    this.vy = -speed;
+    if (k.down.isDown  || w.down.isDown)  this.vy =  speed;
+
+    // Diagonal normalise
+    if (this.vx !== 0 && this.vy !== 0) {
+      this.vx *= 0.707;
+      this.vy *= 0.707;
+    }
+
+    this._moving = this.vx !== 0 || this.vy !== 0;
+    if (this._moving) this._walkCycle += 0.18;
+
+    if (this.vx > 0) this._facingRight = true;
+    if (this.vx < 0) this._facingRight = false;
+
+    this.x += this.vx;
+    this.y += this.vy;
+
+    this.container.setPosition(this.x, this.y);
+    this.container.setScale(this._facingRight ? 1 : -1, 1);
+    this._shadow.setPosition(this.x, this.y + 52);
+    this._glow.setPosition(this.x, this.y);
+    this.nameTag.setPosition(this.x, this.y - 80);
+    this.stateLabel.setPosition(this.x, this.y + 68);
+    this.perceptionRing.setPosition(this.x, this.y);
+    if (this._controlsHint) this._controlsHint.setPosition(this.x, this.y + 95);
   }
 
   // ── Perception ────────────────────────────────────────────────────────────
@@ -263,25 +344,15 @@ export default class Agent {
     if (!this.scene.notifications) return;
     if (this._perceptionCooldown > 0) return;
 
-    let closest = null;
-    let closestDist = Infinity;
-
     this.scene.notifications.forEach(n => {
-      if (!n.active) return;
+      if (!n.active || n._seen) return;
       const dist = Phaser.Math.Distance.Between(this.x, this.y, n.x, n.y);
-      if (dist < 85 && dist < closestDist) {
-        closest = n;
-        closestDist = dist;
+      if (dist < 90) {
+        this.fsm.handleEvent('NOTIFICATION_SEEN');
+        this._perceptionCooldown = 50;
+        n._seen = true;
       }
     });
-
-    if (closest) {
-      this.fsm.handleEvent('NOTIFICATION_SEEN');
-      this._perceptionCooldown = 60;
-      this._targetX = closest.x;
-      this._targetY = closest.y;
-      closest._seen = true;
-    }
   }
 
   onNotificationIgnored() { this.fsm.handleEvent('NOTIFICATION_IGNORED'); }
@@ -290,78 +361,45 @@ export default class Agent {
   onRandomEvent(type)      { this.fsm.handleEvent(type); }
   onPlayerChoice(choice)   { this.fsm.handleEvent(choice); }
 
-  // ── Movement ──────────────────────────────────────────────────────────────
-  _move() {
-    const { width, height } = this.scene.scale;
-    this._walkCycle += 0.12;
-
-    if (this._targetX !== null) {
-      const angle = Phaser.Math.Angle.Between(this.x, this.y, this._targetX, this._targetY);
-      const dist  = Phaser.Math.Distance.Between(this.x, this.y, this._targetX, this._targetY);
-      const speed = this._speedForState();
-      this.vx = Math.cos(angle) * speed;
-      this.vy = Math.sin(angle) * speed;
-      this._facingRight = this.vx >= 0;
-      if (dist < 10) this._targetX = this._targetY = null;
-    } else {
-      this.vx += (Math.random() - 0.5) * 0.08;
-      this.vy += (Math.random() - 0.5) * 0.08;
-      if (Math.abs(this.vx) > 0.2) this._facingRight = this.vx > 0;
-    }
-
-    const spd = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
-    const max = this._speedForState();
-    if (spd > max) { this.vx = (this.vx / spd) * max; this.vy = (this.vy / spd) * max; }
-
-    this.x += this.vx;
-    this.y += this.vy;
-
-    if (this.x < 40 || this.x > width - 40)  this.vx *= -1;
-    if (this.y < 70 || this.y > height - 60) this.vy *= -1;
-
-    this.container.setPosition(this.x, this.y);
-    this.container.setScale(this._facingRight ? 1 : -1, 1);
-    this.nameTag.setPosition(this.x, this.y - 58);
-    this.stateLabel.setPosition(this.x, this.y + 52);
-    this.perceptionRing.setPosition(this.x, this.y);
-  }
-
-  _speedForState() {
-    const stress = this.emotions.stress;
-    if (stress > 70) return 2.8;
-    if (stress > 40) return 2.0;
-    return 1.4;
-  }
-
-  // ── Visuals update every frame ────────────────────────────────────────────
+  // ── Visuals ───────────────────────────────────────────────────────────────
   _updateVisuals() {
     const state = this.fsm.state;
     this.stateLabel.setText(state);
 
-    // Glitch effect in DISTORTED state
-    if (state === 'DISTORTED' || state === 'BREAKING_POINT') {
-      this._glitchOffset = Math.random() < 0.08 ? Phaser.Math.Between(-3, 3) : 0;
-    } else {
-      this._glitchOffset = 0;
-    }
+    // State badge colour
+    const badgeColors = {
+      IDLE: '#1a1a2e', ATTRACTED: '#4c1d95', LOOPING: '#7c2d12',
+      DISTORTED: '#7f1d1d', BREAKING_POINT: '#450a0a',
+      RECOVERED: '#14532d', PARTIAL: '#713f12', LOST: '#111827'
+    };
+    this.stateLabel.setStyle({
+      backgroundColor: (badgeColors[state] || '#1a1a2e') + 'ee'
+    });
 
-    // Redraw character every frame (walk cycle + state colour)
+    // Glitch in distorted states
+    this._glitchOffset = (state === 'DISTORTED' || state === 'BREAKING_POINT')
+      && Math.random() < 0.07 ? Phaser.Math.Between(-4, 4) : 0;
+
     this._drawCharacter(state);
 
-    // Perception ring opacity reflects stress
-    const alpha = 0.08 + (this.emotions.stress / 100) * 0.35;
-    this.perceptionRing.setStrokeStyle(1, 0x00f5ff, alpha);
+    // Perception ring
+    const ringAlpha = 0.1 + (this.emotions.stress / 100) * 0.4;
+    const ringColor = state === 'RECOVERED' ? 0x16a34a : 0x7b2fff;
+    this.perceptionRing.setStrokeStyle(2, ringColor, ringAlpha);
   }
 
   // ── HUD ───────────────────────────────────────────────────────────────────
   _syncHUD() {
-    const set = (id, val) => {
-      const el = document.getElementById(id);
-      if (el) el.style.width = `${Math.round(val)}%`;
+    const set = (barId, valId, val) => {
+      const bar = document.getElementById(barId);
+      const lbl = document.getElementById(valId);
+      const pct = Math.round(val);
+      if (bar) bar.style.width = `${pct}%`;
+      if (lbl) lbl.textContent = `${pct}%`;
     };
-    set('meter-stress',     this.emotions.stress);
-    set('meter-happiness',  this.emotions.happiness);
-    set('meter-loneliness', this.emotions.loneliness);
+    set('meter-stress',     'val-stress',     this.emotions.stress);
+    set('meter-happiness',  'val-happiness',  this.emotions.happiness);
+    set('meter-loneliness', 'val-loneliness', this.emotions.loneliness);
 
     const badge = document.getElementById('state-badge');
     if (badge) badge.textContent = `STATE: ${this.fsm.state}`;
