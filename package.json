@@ -1,0 +1,20 @@
+{
+  "name": "echosphere",
+  "version": "1.0.0",
+  "description": "EchoSphere: The World You Shape — agent-based simulation game",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "gsap": "^3.12.5",
+    "p5": "^1.9.4",
+    "phaser": "^3.80.1"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.3",
+    "vite": "^5.2.11"
+  }
+}
