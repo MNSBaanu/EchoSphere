@@ -4,42 +4,40 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>EchoSphere: The World You Shape</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/src/styles/main.css" />
 </head>
 <body class="m-0 p-0 overflow-hidden bg-black">
 
-  <!-- Game canvas container -->
+  <!-- Phaser canvas -->
   <div id="game-container"></div>
 
-  <!-- HUD overlay (Tailwind-powered) -->
+  <!-- HUD overlay -->
   <div id="hud" class="fixed top-0 left-0 w-full h-full pointer-events-none z-10">
 
     <!-- Emotion meters -->
-    <div id="emotion-meters" class="absolute top-4 left-4 flex flex-col gap-2 pointer-events-none">
+    <div class="absolute top-4 left-4 flex flex-col gap-2">
       <div class="flex items-center gap-2">
-        <span class="text-xs text-white font-ui w-20">Stress</span>
+        <span class="text-xs text-white w-20">Stress</span>
         <div class="w-32 h-3 bg-gray-700 rounded-full overflow-hidden">
-          <div id="meter-stress" class="h-full bg-red-500 rounded-full transition-all duration-500" style="width: 20%"></div>
+          <div id="meter-stress" class="h-full bg-red-500 rounded-full transition-all duration-300" style="width:10%"></div>
         </div>
       </div>
       <div class="flex items-center gap-2">
-        <span class="text-xs text-white font-ui w-20">Happiness</span>
+        <span class="text-xs text-white w-20">Happiness</span>
         <div class="w-32 h-3 bg-gray-700 rounded-full overflow-hidden">
-          <div id="meter-happiness" class="h-full bg-yellow-400 rounded-full transition-all duration-500" style="width: 70%"></div>
+          <div id="meter-happiness" class="h-full bg-yellow-400 rounded-full transition-all duration-300" style="width:60%"></div>
         </div>
       </div>
       <div class="flex items-center gap-2">
-        <span class="text-xs text-white font-ui w-20">Loneliness</span>
+        <span class="text-xs text-white w-20">Loneliness</span>
         <div class="w-32 h-3 bg-gray-700 rounded-full overflow-hidden">
-          <div id="meter-loneliness" class="h-full bg-blue-400 rounded-full transition-all duration-500" style="width: 30%"></div>
+          <div id="meter-loneliness" class="h-full bg-blue-400 rounded-full transition-all duration-300" style="width:20%"></div>
         </div>
       </div>
     </div>
 
-    <!-- Agent state badge -->
-    <div id="state-badge" class="absolute top-4 right-4 bg-black bg-opacity-60 border border-cyan-400 text-cyan-400 text-xs font-pixel px-3 py-2 rounded">
+    <!-- State badge -->
+    <div id="state-badge" class="absolute top-4 right-4 bg-black bg-opacity-60 border border-cyan-400 text-cyan-400 text-xs px-3 py-2 rounded">
       STATE: IDLE
     </div>
 
@@ -47,19 +45,35 @@
 
   <!-- Notification popup -->
   <div id="notification-popup" class="fixed bottom-8 right-4 hidden z-20 pointer-events-none">
-    <div class="bg-gray-900 border border-purple-500 text-white text-sm font-ui px-4 py-3 rounded-lg shadow-lg max-w-xs">
-      <div class="flex items-center gap-2 mb-1">
-        <span class="text-purple-400 text-xs font-pixel">🔔 NOTIFICATION</span>
-      </div>
-      <p id="notification-text" class="text-gray-200"></p>
+    <div class="bg-gray-900 border border-purple-500 text-white text-sm px-4 py-3 rounded-lg shadow-lg max-w-xs">
+      <div class="text-purple-400 text-xs mb-1">🔔 NOTIFICATION</div>
+      <p id="notification-text" class="text-gray-200 text-xs"></p>
     </div>
   </div>
 
-  <!-- Dialogue box -->
-  <div id="dialogue-box" class="fixed bottom-4 left-1/2 -translate-x-1/2 hidden z-20 w-2/3 max-w-xl pointer-events-auto">
-    <div class="bg-gray-900 bg-opacity-90 border border-cyan-500 text-white font-ui px-5 py-4 rounded-xl shadow-xl">
-      <p id="dialogue-speaker" class="text-cyan-400 text-xs font-pixel mb-1"></p>
+  <!-- Dialogue box (friend messages) -->
+  <div id="dialogue-box" class="fixed bottom-4 left-1/2 -translate-x-1/2 hidden z-20 w-2/3 max-w-xl pointer-events-none">
+    <div class="bg-gray-900 bg-opacity-90 border border-cyan-500 text-white px-5 py-4 rounded-xl shadow-xl">
+      <p id="dialogue-speaker" class="text-cyan-400 text-xs mb-1"></p>
       <p id="dialogue-text" class="text-sm text-gray-100"></p>
+    </div>
+  </div>
+
+  <!-- Decision node panel — player can influence the agent -->
+  <div id="decision-panel" class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 hidden z-30 pointer-events-auto">
+    <div class="bg-gray-950 border-2 border-cyan-500 text-white px-8 py-6 rounded-2xl shadow-2xl text-center min-w-72">
+      <p class="text-cyan-400 text-xs mb-2 uppercase tracking-widest">Decision Node</p>
+      <p id="decision-prompt" class="text-sm text-gray-100 mb-5">What does Hana do?</p>
+      <div class="flex gap-4 justify-center">
+        <button id="btn-engage"
+          class="bg-purple-700 hover:bg-purple-500 text-white text-sm px-5 py-2 rounded-lg transition-colors">
+          Engage
+        </button>
+        <button id="btn-resist"
+          class="bg-gray-700 hover:bg-gray-500 text-white text-sm px-5 py-2 rounded-lg transition-colors">
+          Resist
+        </button>
+      </div>
     </div>
   </div>
 
