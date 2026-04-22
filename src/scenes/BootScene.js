@@ -38,8 +38,8 @@ export default class BootScene extends Phaser.Scene {
 
     // Main title
     this.add.text(width / 2, height / 2 - 55, 'EchoSphere', {
-      fontFamily: 'Sora, Inter, sans-serif',
-      fontSize: '58px',
+      fontFamily: 'Inter, sans-serif',
+      fontSize: '72px',
       fontStyle: 'bold',
       color: '#ffffff',
       stroke: '#4f46e5',
@@ -49,8 +49,8 @@ export default class BootScene extends Phaser.Scene {
 
     // Subtitle
     this.add.text(width / 2, height / 2 + 18, 'The World You Shape', {
-      fontFamily: 'Sora, Inter, sans-serif',
-      fontSize: '22px',
+      fontFamily: 'Inter, sans-serif',
+      fontSize: '26px',
       fontStyle: '600',
       color: '#a5b4fc',
       letterSpacing: 3
@@ -64,15 +64,15 @@ export default class BootScene extends Phaser.Scene {
     // Tagline
     this.add.text(width / 2, height / 2 + 72, 'An intelligent agent simulation', {
       fontFamily: 'Inter, sans-serif',
-      fontSize: '14px',
+      fontSize: '16px',
       color: '#6366f1',
       letterSpacing: 1
     }).setOrigin(0.5);
 
     // ── Click to begin ────────────────────────────────────────────────────
     const hint = this.add.text(width / 2, height / 2 + 130, '▶  Click anywhere to begin', {
-      fontFamily: 'Sora, Inter, sans-serif',
-      fontSize: '16px',
+      fontFamily: 'Inter, sans-serif',
+      fontSize: '18px',
       color: '#e0e7ff',
       backgroundColor: '#4f46e520',
       padding: { x: 20, y: 10 }
@@ -91,7 +91,7 @@ export default class BootScene extends Phaser.Scene {
     // ── Version / credit ──────────────────────────────────────────────────
     this.add.text(width / 2, height - 24, 'EchoSphere v1.0  ·  Built with Phaser.js', {
       fontFamily: 'Inter, sans-serif',
-      fontSize: '11px',
+      fontSize: '13px',
       color: '#3730a3',
     }).setOrigin(0.5);
 
