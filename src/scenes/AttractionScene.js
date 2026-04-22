@@ -75,8 +75,8 @@ export default class AttractionScene extends Phaser.Scene {
 
     // ── Agent starts centre-left ──────────────────────────────────────────
     this.agent = new Agent(this, width * 0.35, height * 0.62);
-    // Keyboard locked until decision is made
-    this._lockAgentKeys(true);
+    // Agent can move freely from the start
+    this._lockAgentKeys(false);
 
     this.agent.fsm.onTransition((newState, reason) => {
       this._onStateChange(newState, reason);
