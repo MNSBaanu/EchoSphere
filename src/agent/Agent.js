@@ -23,6 +23,10 @@ export default class Agent {
     this._walkCycle   = 0;
     this._glitchOffset = 0;
     this._moving = false;
+    this.hasPhone = false;
+    this._bouncing = false;
+    this.rubberBand = false;
+    this.hunchLevel = 0; // 0 = upright, 4 = fully hunched
 
     // Keyboard input
     this._keys = scene.input.keyboard.createCursorKeys();
@@ -108,7 +112,15 @@ export default class Agent {
       LOST:           { skin: 0x9a8070, hair: 0x111111, shirt: 0x1f2937, pants: 0x111827, shoe: 0x030712, eye: 0x374151, phone: 0x030712, glow: 0x000000, glowA: 0 },
     }[state] || { skin: 0xf5c5a3, hair: 0x3d2314, shirt: 0x2563eb, pants: 0x1e3a5f, shoe: 0x111827, eye: 0x1e3a5f, phone: null, glow: 0x000000, glowA: 0 };
 
-    const showPhone = P.phone !== null;
+    const showPhone = this.hasPhone && P.phone !== null;
+
+    // ── Hunch transform — tilt container forward, compress posture ────────
+    const hunch = this.hunchLevel; // 0–4
+    const hunchTilt   = hunch * 0.12;   // radians — leans forward
+    const hunchScaleY = 1 - hunch * 0.06; // body compresses vertically
+    const hunchOffsetY = hunch * 6;     // sinks slightly downward
+    this.container.setRotation(hunchTilt);
+    this.container.setScale(this._facingRight ? 1 : -1, hunchScaleY);
 
     // Update glow
     this._glow.setFillStyle(P.glow, P.glowA);
@@ -329,8 +341,47 @@ export default class Agent {
     this.x += this.vx;
     this.y += this.vy;
 
-    this.container.setPosition(this.x, this.y);
-    this.container.setScale(this._facingRight ? 1 : -1, 1);
+    // ── Rubber-band boundary (Scene 2) ────────────────────────────────────
+    if (this.rubberBand) {
+      const margin = 60;
+      const snapZone = 30; // how far past margin before snap triggers
+
+      const overLeft   = this.x < margin;
+      const overRight  = this.x > width - margin;
+      const overTop    = this.y < 80 + margin;
+      const overBottom = this.y > height - 70 - margin;
+
+      if (overLeft || overRight || overTop || overBottom) {
+        if (!this._snapping) {
+          this._snapping = true;
+          // Notify scene so it can show a visual cue
+          if (this.scene._onRubberBandSnap) this.scene._onRubberBandSnap();
+
+          // Snap back to center with a spring tween
+          const targetX = width / 2;
+          const targetY = height / 2;
+
+          this.scene.tweens.add({
+            targets: this,
+            x: targetX, y: targetY,
+            duration: 500,
+            ease: 'Back.easeOut',
+            onUpdate: () => {
+              this.container.setPosition(this.x, this._bouncing ? this.container.y : this.y);
+              this._shadow.setPosition(this.x, this.y + 52);
+              this._glow.setPosition(this.x, this.y);
+              this.nameTag.setPosition(this.x, this.y - 80);
+              this.stateLabel.setPosition(this.x, this.y + 68);
+              this.perceptionRing.setPosition(this.x, this.y);
+            },
+            onComplete: () => { this._snapping = false; }
+          });
+        }
+      }
+    }
+
+    this.container.setPosition(this.x, this._bouncing ? this.container.y : this.y);
+    this.container.setScale(this._facingRight ? 1 : -1, 1 - this.hunchLevel * 0.06);
     this._shadow.setPosition(this.x, this.y + 52);
     this._glow.setPosition(this.x, this.y);
     this.nameTag.setPosition(this.x, this.y - 80);
@@ -360,6 +411,58 @@ export default class Agent {
   onFriendIgnored()        { this.fsm.handleEvent('FRIEND_IGNORED'); }
   onRandomEvent(type)      { this.fsm.handleEvent(type); }
   onPlayerChoice(choice)   { this.fsm.handleEvent(choice); }
+
+  // ── Bounce / victory hop ──────────────────────────────────────────────────
+  bounce() {
+    if (this._bouncing) return;
+    this._bouncing = true;
+
+    const baseY = this.y;
+
+    // Three quick hops, each smaller — like a happy jump
+    this.scene.tweens.add({
+      targets: this.container,
+      y: this.container.y - 28,
+      duration: 160,
+      ease: 'Sine.easeOut',
+      yoyo: false,
+      onComplete: () => {
+        this.scene.tweens.add({
+          targets: this.container,
+          y: this.container.y + 28,
+          duration: 140,
+          ease: 'Bounce.easeOut',
+          onComplete: () => {
+            // Second smaller hop
+            this.scene.tweens.add({
+              targets: this.container,
+              y: this.container.y - 14,
+              duration: 110,
+              ease: 'Sine.easeOut',
+              yoyo: false,
+              onComplete: () => {
+                this.scene.tweens.add({
+                  targets: this.container,
+                  y: this.container.y + 14,
+                  duration: 100,
+                  ease: 'Bounce.easeOut',
+                  onComplete: () => { this._bouncing = false; }
+                });
+              }
+            });
+          }
+        });
+      }
+    });
+
+    // Squash & stretch on the shadow during bounce
+    this.scene.tweens.add({
+      targets: this._shadow,
+      scaleX: 0.5, scaleY: 0.5, alpha: 0.05,
+      duration: 160, yoyo: true,
+      onComplete: () => { this._shadow.setScale(1); this._shadow.setAlpha(0.18); }
+    });
+  }
 
   // ── Visuals ───────────────────────────────────────────────────────────────
   _updateVisuals() {

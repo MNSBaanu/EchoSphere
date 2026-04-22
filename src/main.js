@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import BootScene from './scenes/BootScene.js';
 import AttractionScene from './scenes/AttractionScene.js';
+import TheLoopScene from './scenes/TheLoopScene.js';
 
 const config = {
   type: Phaser.AUTO,
@@ -16,7 +17,7 @@ const config = {
     default: 'arcade',
     arcade: { gravity: { y: 0 }, debug: false }
   },
-  scene: [BootScene, AttractionScene]
+  scene: [BootScene, AttractionScene, TheLoopScene]
 };
 
 const game = new Phaser.Game(config);
