@@ -2,7 +2,7 @@
 import Agent from '../agent/Agent.js';
 import { gsap } from 'gsap';
 
-const FONT      = 'Sora, Inter, sans-serif';
+const FONT      = 'Inter, sans-serif';
 const FONT_BODY = 'Inter, sans-serif';
 
 const FRIEND_MESSAGES = [
@@ -38,6 +38,7 @@ export default class AttractionScene extends Phaser.Scene {
     this._phonePickedUp    = false;
     this._doorReached      = false;
     this._pickupPromptShown = false;
+    this._doorPromptShown   = false;
     this._mobileScreenOpen  = false;
     this._scrollOffset     = 0;
     this._autoScrollEnabled = false;
@@ -59,13 +60,13 @@ export default class AttractionScene extends Phaser.Scene {
     topBar.fillStyle(0x1e1b4b, 1);
     topBar.fillRect(0, 0, width, 52);
     this.add.text(24, 14, '🌐  EchoSphere', {
-      fontFamily: FONT, fontSize: '20px', fontStyle: 'bold', color: '#ffffff'
+      fontFamily: FONT, fontSize: '22px', fontStyle: 'bold', color: '#ffffff'
     }).setDepth(21);
     this.add.text(width / 2, 14, 'SCENARIO 1 — THE ATTRACTION', {
-      fontFamily: FONT, fontSize: '14px', color: '#a5b4fc', fontStyle: 'bold'
+      fontFamily: FONT, fontSize: '16px', color: '#a5b4fc', fontStyle: 'bold'
     }).setOrigin(0.5, 0).setDepth(21);
     this.add.text(width - 24, 14, 'Real World  ·  [N] skip', {
-      fontFamily: FONT, fontSize: '13px', color: '#818cf8'
+      fontFamily: FONT, fontSize: '15px', color: '#818cf8'
     }).setOrigin(1, 0).setDepth(21);
 
     // ── Phone on table ────────────────────────────────────────────────────
@@ -113,6 +114,18 @@ export default class AttractionScene extends Phaser.Scene {
         this._showPickupPrompt();
       } else if (dist >= 60 && this._pickupPromptShown) {
         this._hidePickupPrompt();
+      }
+    }
+
+    // Check proximity to door and show open-door prompt
+    if (!this._doorReached && this._doorPos && this.agent) {
+      const ddx = this._doorPos.x - this.agent.x;
+      const ddy = this._doorPos.y - this.agent.y;
+      const ddist = Math.sqrt(ddx * ddx + ddy * ddy);
+      if (ddist < 70 && !this._doorPromptShown) {
+        this._showDoorPrompt();
+      } else if (ddist >= 70 && this._doorPromptShown) {
+        this._hideDoorPrompt();
       }
     }
 
@@ -363,7 +376,7 @@ export default class AttractionScene extends Phaser.Scene {
 
     // Label
     this.add.text(px, py + 30, 'Phone', {
-      fontFamily: FONT_BODY, fontSize: '10px', color: '#94a3b8'
+      fontFamily: FONT_BODY, fontSize: '12px', color: '#94a3b8'
     }).setOrigin(0.5).setDepth(7);
   }
 
@@ -401,7 +414,7 @@ export default class AttractionScene extends Phaser.Scene {
 
     // Label
     this.add.text(dx + dw / 2, dy + dh + 14, 'Go Outside', {
-      fontFamily: FONT_BODY, fontSize: '11px', color: '#78716c'
+      fontFamily: FONT_BODY, fontSize: '13px', color: '#78716c'
     }).setOrigin(0.5).setDepth(4);
 
     // Subtle glow around door
@@ -439,7 +452,7 @@ export default class AttractionScene extends Phaser.Scene {
     bg.setStrokeStyle(2, 0x6366f1, 1);
     const strip = this.add.rectangle(-78, 0, 4, 36, 0x6366f1, 1);
     const txt = this.add.text(6, 0, '🔔 New notification!', {
-      fontFamily: FONT_BODY, fontSize: '11px', color: '#1e1b4b'
+      fontFamily: FONT_BODY, fontSize: '13px', color: '#1e1b4b'
     }).setOrigin(0, 0.5);
     bubble.add([bg, strip, txt]);
 
@@ -536,12 +549,12 @@ export default class AttractionScene extends Phaser.Scene {
     
     // Text
     const txt = this.add.text(0, 0, '📱 Pick Up Phone', {
-      fontFamily: FONT, fontSize: '13px', color: '#ffffff', fontStyle: 'bold'
+      fontFamily: FONT, fontSize: '15px', color: '#ffffff', fontStyle: 'bold'
     }).setOrigin(0.5);
     
     // Hint text
     const hint = this.add.text(0, 16, 'Press [E]', {
-      fontFamily: FONT_BODY, fontSize: '10px', color: '#a5b4fc'
+      fontFamily: FONT_BODY, fontSize: '12px', color: '#a5b4fc'
     }).setOrigin(0.5);
     
     this._pickupPrompt.add([bg, txt, hint]);
@@ -613,16 +626,16 @@ export default class AttractionScene extends Phaser.Scene {
     // Status bar
     const statusBar = this.add.rectangle(0, -screenH / 2 + 20, screenW, 40, 0x1e1b4b, 1);
     const statusTime = this.add.text(-screenW / 2 + 15, -screenH / 2 + 20, '9:41', {
-      fontFamily: FONT, fontSize: '14px', color: '#ffffff', fontStyle: 'bold'
+      fontFamily: FONT, fontSize: '16px', color: '#ffffff', fontStyle: 'bold'
     }).setOrigin(0, 0.5);
     const statusIcons = this.add.text(screenW / 2 - 15, -screenH / 2 + 20, '📶 🔋', {
-      fontFamily: FONT, fontSize: '14px', color: '#ffffff'
+      fontFamily: FONT, fontSize: '16px', color: '#ffffff'
     }).setOrigin(1, 0.5);
     
     // App header
     const appHeader = this.add.rectangle(0, -screenH / 2 + 60, screenW, 50, 0x6366f1, 1);
     const appTitle = this.add.text(0, -screenH / 2 + 60, '🌐 EchoSphere', {
-      fontFamily: FONT, fontSize: '18px', color: '#ffffff', fontStyle: 'bold'
+      fontFamily: FONT, fontSize: '20px', color: '#ffffff', fontStyle: 'bold'
     }).setOrigin(0.5);
     
     // ── ADDICTION PROGRESS BAR ────────────────────────────────────────────
@@ -635,7 +648,7 @@ export default class AttractionScene extends Phaser.Scene {
     this._progressBarMaxWidth = screenW - 30;
     
     this._progressLabel = this.add.text(0, progressY - 15, 'Addiction: 0%', {
-      fontFamily: FONT_BODY, fontSize: '10px', color: '#64748b', fontStyle: 'bold'
+      fontFamily: FONT_BODY, fontSize: '12px', color: '#64748b', fontStyle: 'bold'
     }).setOrigin(0.5);
     
     // ── EMOTION BARS (AI VISIBILITY) ──────────────────────────────────────
@@ -644,7 +657,7 @@ export default class AttractionScene extends Phaser.Scene {
     
     // Awareness bar
     const awarenessLabel = this.add.text(-screenW / 2 + 20, emotionY, '👁️', {
-      fontSize: '12px'
+      fontSize: '14px'
     }).setOrigin(0, 0.5);
     const awarenessBg = this.add.rectangle(-screenW / 2 + 35, emotionY, emotionBarW - 20, 6, 0x1e293b, 1);
     awarenessBg.setOrigin(0, 0.5);
@@ -653,7 +666,7 @@ export default class AttractionScene extends Phaser.Scene {
     
     // Stress bar
     const stressLabel = this.add.text(-screenW / 2 + 20 + emotionBarW, emotionY, '😰', {
-      fontSize: '12px'
+      fontSize: '14px'
     }).setOrigin(0, 0.5);
     const stressBg = this.add.rectangle(-screenW / 2 + 35 + emotionBarW, emotionY, emotionBarW - 20, 6, 0x1e293b, 1);
     stressBg.setOrigin(0, 0.5);
@@ -662,7 +675,7 @@ export default class AttractionScene extends Phaser.Scene {
     
     // Relationship bar
     const relationLabel = this.add.text(-screenW / 2 + 20 + emotionBarW * 2, emotionY, '💬', {
-      fontSize: '12px'
+      fontSize: '14px'
     }).setOrigin(0, 0.5);
     const relationBg = this.add.rectangle(-screenW / 2 + 35 + emotionBarW * 2, emotionY, emotionBarW - 20, 6, 0x1e293b, 1);
     relationBg.setOrigin(0, 0.5);
@@ -721,14 +734,14 @@ export default class AttractionScene extends Phaser.Scene {
       
       // Text
       const text = this.add.text(-screenW / 2 + 60, notifY, item.text, {
-        fontFamily: FONT_BODY, fontSize: '13px', color: '#e2e8f0',
+        fontFamily: FONT_BODY, fontSize: '14px', color: '#e2e8f0',
         wordWrap: { width: screenW - 100 }
       }).setOrigin(0, 0.5);
       
       // Time
       const timeTexts = ['now', '2m ago', '5m ago', '10m ago', '15m ago', '30m ago', '1h ago'];
       const time = this.add.text(screenW / 2 - 25, notifY - 20, timeTexts[i % timeTexts.length], {
-        fontFamily: FONT_BODY, fontSize: '10px', color: '#64748b'
+        fontFamily: FONT_BODY, fontSize: '11px', color: '#64748b'
       }).setOrigin(1, 0.5);
       
       notifications.push(card, icon, text, time);
@@ -739,7 +752,7 @@ export default class AttractionScene extends Phaser.Scene {
     
     // Scroll indicators
     const scrollHint = this.add.text(0, contentY + contentHeight / 2 + 20, '↕ Scroll with Mouse Wheel', {
-      fontFamily: FONT_BODY, fontSize: '11px', color: '#475569'
+      fontFamily: FONT_BODY, fontSize: '13px', color: '#475569'
     }).setOrigin(0.5);
     
     // Enable mouse wheel scrolling
@@ -762,7 +775,7 @@ export default class AttractionScene extends Phaser.Scene {
     closeBtn.setInteractive({ useHandCursor: true });
     
     const closeTxt = this.add.text(0, screenH / 2 - 40, '✕ Close Phone', {
-      fontFamily: FONT, fontSize: '16px', color: '#ffffff', fontStyle: 'bold'
+      fontFamily: FONT, fontSize: '18px', color: '#ffffff', fontStyle: 'bold'
     }).setOrigin(0.5);
     
     closeBtn.on('pointerdown', () => {
@@ -1053,6 +1066,33 @@ export default class AttractionScene extends Phaser.Scene {
     });
   }
 
+  _transitionToRealWorld() {
+    if (this._ended) return;
+    this._ended = true;
+
+    this._log('🌿 Real World', 'Kai steps outside...');
+
+    if (this._emotionUpdateTimer) this._emotionUpdateTimer.remove();
+
+    // Warm flash — sunlight
+    this.cameras.main.flash(400, 255, 220, 150, false);
+
+    this.time.delayedCall(400, () => {
+      this.cameras.main.fadeOut(800, 255, 240, 200);
+    });
+
+    this.cameras.main.once('camerafadeoutcomplete', () => {
+      // Pass agent state to real world scene
+      this.scene.start('RealWorldScene', {
+        addictionLevel:    this.agent ? this.agent.addictionLevel    : 0,
+        awareness:         this.agent ? this.agent.awareness         : 70,
+        relationshipLevel: this.agent ? this.agent.relationshipLevel : 50,
+        hasPhone:          this.agent ? this.agent.hasPhone          : false,
+        memory:            this.agent ? [...this.agent.memory]       : [],
+      });
+    });
+  }
+
   // ── CONFLICT TRIGGER: Message Interruption ────────────────────────────────
   _triggerConflict() {
     if (this._conflictTriggered || !this._mobileScreenOpen) return;
@@ -1101,12 +1141,12 @@ export default class AttractionScene extends Phaser.Scene {
     
     // From label
     const fromLabel = this.add.text(0, -40, from, {
-      fontFamily: FONT, fontSize: '16px', color: '#ffffff', fontStyle: 'bold'
+      fontFamily: FONT, fontSize: '18px', color: '#ffffff', fontStyle: 'bold'
     }).setOrigin(0.5);
     
     // Message text
     const msgText = this.add.text(0, -10, text, {
-      fontFamily: FONT_BODY, fontSize: '13px', color: '#e2e8f0',
+      fontFamily: FONT_BODY, fontSize: '14px', color: '#e2e8f0',
       wordWrap: { width: cardW - 40 }, align: 'center'
     }).setOrigin(0.5);
     
@@ -1116,7 +1156,7 @@ export default class AttractionScene extends Phaser.Scene {
     replyBtn.setInteractive({ useHandCursor: true });
     
     const replyTxt = this.add.text(-70, 50, '✓ Reply', {
-      fontFamily: FONT, fontSize: '14px', color: '#ffffff', fontStyle: 'bold'
+      fontFamily: FONT, fontSize: '16px', color: '#ffffff', fontStyle: 'bold'
     }).setOrigin(0.5);
     
     // Ignore button
@@ -1125,7 +1165,7 @@ export default class AttractionScene extends Phaser.Scene {
     ignoreBtn.setInteractive({ useHandCursor: true });
     
     const ignoreTxt = this.add.text(70, 50, '✕ Ignore', {
-      fontFamily: FONT, fontSize: '14px', color: '#ffffff', fontStyle: 'bold'
+      fontFamily: FONT, fontSize: '16px', color: '#ffffff', fontStyle: 'bold'
     }).setOrigin(0.5);
     
     // Button interactions
@@ -1217,8 +1257,109 @@ export default class AttractionScene extends Phaser.Scene {
 
   _reachDoor() {
     this._doorReached = true;
-    this._log('🚪 Door', 'reached!');
-    // TODO: Implement door reach logic
+    this._hideDoorPrompt();
+    this._log('🚪 Door', 'reached — entering real world');
+    this._transitionToRealWorld();
+  }
+
+  _showDoorPrompt() {
+    if (this._doorPromptShown) return;
+    this._doorPromptShown = true;
+
+    this._doorPrompt = this.add.container(this._doorPos.x + 50, this._doorPos.y - 60).setDepth(30);
+
+    const bg = this.add.rectangle(0, 0, 160, 44, 0x1e1b4b, 0.95);
+    bg.setStrokeStyle(2, 0xfbbf24, 1);
+
+    const txt = this.add.text(0, -6, '🚪 Open Door', {
+      fontFamily: FONT, fontSize: '15px', color: '#ffffff', fontStyle: 'bold'
+    }).setOrigin(0.5);
+
+    const hint = this.add.text(0, 12, 'Press [F]', {
+      fontFamily: FONT_BODY, fontSize: '12px', color: '#fbbf24'
+    }).setOrigin(0.5);
+
+    this._doorPrompt.add([bg, txt, hint]);
+
+    gsap.fromTo(this._doorPrompt,
+      { alpha: 0, y: this._doorPos.y - 50 },
+      { alpha: 1, y: this._doorPos.y - 60, duration: 0.3, ease: 'back.out(1.5)' }
+    );
+
+    // [F] key opens door
+    this._doorKey = this.input.keyboard.once('keydown-F', () => {
+      this._reachDoor();
+    });
+
+    // If agent has phone, also show a pull-back warning
+    if (this.agent && this.agent.hasPhone) {
+      this._showPhonePullBack();
+    }
+  }
+
+  _hideDoorPrompt() {
+    if (!this._doorPromptShown) return;
+    this._doorPromptShown = false;
+
+    if (this._doorPrompt) {
+      gsap.to(this._doorPrompt, {
+        alpha: 0, duration: 0.2,
+        onComplete: () => {
+          if (this._doorPrompt) { this._doorPrompt.destroy(); this._doorPrompt = null; }
+        }
+      });
+    }
+
+    if (this._doorKey) {
+      this.input.keyboard.off('keydown-F', this._doorKey);
+      this._doorKey = null;
+    }
+
+    if (this._pullBackBubble) {
+      this._pullBackBubble.destroy();
+      this._pullBackBubble = null;
+    }
+  }
+
+  // Phone in hand creates a pull-back speech bubble when near door
+  _showPhonePullBack() {
+    if (this._pullBackBubble) return;
+
+    const msgs = [
+      '📱 "Just one more scroll..."',
+      '📱 "You have 3 new likes!"',
+      '📱 "Mia is waiting for a reply..."',
+      '📱 "Don\'t miss the trend!"',
+    ];
+    const msg = Phaser.Utils.Array.GetRandom(msgs);
+
+    const bx = this.agent.x + 60;
+    const by = this.agent.y - 80;
+
+    this._pullBackBubble = this.add.container(bx, by).setDepth(35);
+
+    const bg = this.add.rectangle(0, 0, 200, 38, 0x6366f1, 0.95);
+    bg.setStrokeStyle(2, 0x818cf8, 1);
+
+    const txt = this.add.text(0, 0, msg, {
+      fontFamily: FONT_BODY, fontSize: '12px', color: '#ffffff',
+      wordWrap: { width: 185 }
+    }).setOrigin(0.5);
+
+    this._pullBackBubble.add([bg, txt]);
+
+    // Shake to grab attention
+    this.tweens.add({
+      targets: this._pullBackBubble,
+      x: bx + 4, duration: 80,
+      yoyo: true, repeat: 5, ease: 'Sine.easeInOut'
+    });
+
+    // Increase addiction slightly — phone is pulling back
+    if (this.agent) {
+      this.agent.addictionLevel = Math.min(100, this.agent.addictionLevel + 5);
+      this.agent.emotions.applyEvent({ stress: 5 });
+    }
   }
 
   _transitionToLoop() {
