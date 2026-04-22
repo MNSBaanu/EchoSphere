@@ -45,6 +45,7 @@ export default class AttractionScene extends Phaser.Scene {
     this._conflictTriggered = false;
     this._messageQueue      = [];
     this._lastMessageTime   = 0;
+    this._continuousScrollMode = false;
   }
 
   create() {
@@ -124,12 +125,14 @@ export default class AttractionScene extends Phaser.Scene {
       this._updateProgressBar();
 
       // ── AUTO-SCROLL: Agent loses control as addiction increases ────────
-      if (this.agent.addictionLevel > 50 && !this._autoScrollEnabled) {
+      // But prevent auto-scroll when in continuous scroll mode (after clicking "later")
+      if (!this._continuousScrollMode && this.agent.addictionLevel > 50 && !this._autoScrollEnabled) {
         this._autoScrollEnabled = true;
         this._log('🤖 AI', 'Agent losing control - auto-scroll enabled');
       }
 
-      if (this._autoScrollEnabled) {
+      // Only execute auto-scroll if not in continuous scroll mode
+      if (this._autoScrollEnabled && !this._continuousScrollMode) {
         // Auto-scroll speed increases with addiction
         this._autoScrollSpeed = ((this.agent.addictionLevel - 50) / 50) * 2;
         this._scrollOffset += this._autoScrollSpeed;
@@ -152,9 +155,11 @@ export default class AttractionScene extends Phaser.Scene {
 
       // ── BEHAVIOR-BASED TRANSITION ──────────────────────────────────────
       // Not just 100% - multiple conditions for intelligent transition
-      if (this.agent.addictionLevel >= 100 || 
+      // But prevent transition if in continuous scroll mode (after clicking "later")
+      if (!this._continuousScrollMode && (
+          this.agent.addictionLevel >= 100 || 
           (this.agent.addictionLevel > 85 && this.agent.ignoredMessages >= 2) ||
-          (this.agent.awareness < 20 && this.agent.addictionLevel > 80)) {
+          (this.agent.awareness < 20 && this.agent.addictionLevel > 80))) {
         
         this._log('🌀 Transition', `Addiction: ${this.agent.addictionLevel.toFixed(0)}%, Ignored: ${this.agent.ignoredMessages}, Awareness: ${this.agent.awareness.toFixed(0)}%`);
         
@@ -739,7 +744,7 @@ export default class AttractionScene extends Phaser.Scene {
     
     // Enable mouse wheel scrolling
     this.input.on('wheel', (pointer, gameObjects, deltaX, deltaY) => {
-      if (this._mobileScreenOpen && !this._autoScrollEnabled) {
+      if (this._mobileScreenOpen) {
         this._scrollOffset += deltaY * 0.3;
         this._scrollOffset = Phaser.Math.Clamp(this._scrollOffset, 0, this._maxScrollOffset);
         this._scrollContent.y = contentY - this._scrollOffset;
@@ -823,6 +828,13 @@ export default class AttractionScene extends Phaser.Scene {
       callbackScope: this,
       loop: true
     });
+
+    // ── Educational notification fires after 8s of scrolling ─────────────
+    this.time.delayedCall(8000, () => {
+      if (this._mobileScreenOpen && !this._ended) {
+        this._showEducationalNotification();
+      }
+    });
     
     this._log('📱 Phone', 'screen opened - AI tracking started');
   }
@@ -868,6 +880,111 @@ export default class AttractionScene extends Phaser.Scene {
     if (this._progressLabel) {
       this._progressLabel.setText(`Addiction: ${Math.round(progress)}%`);
     }
+  }
+
+  _showEducationalNotification() {
+    if (!this._mobileScreen || !this._mobileScreenOpen) return;
+
+    const { width, height } = this.scale;
+
+    const notifications = [
+      { icon: '📚', title: 'Class Reminder', body: 'Your Python class starts in 10 minutes!', cta: 'Join Class' },
+      { icon: '🧠', title: 'Study Streak',   body: 'You have a quiz due today. Ready to study?', cta: 'Start Studying' },
+      { icon: '🎓', title: 'New Lesson',     body: 'A new lesson on Maths is available for you.', cta: 'Open Lesson' },
+    ];
+    const notif = Phaser.Utils.Array.GetRandom(notifications);
+
+    // Popup sits inside the phone screen area
+    const popup = this.add.container(width / 2, height / 2 - 60).setDepth(120).setAlpha(0);
+
+    // Dim overlay over the feed
+    const dim = this.add.rectangle(0, 0, 320, 600, 0x000000, 0.55);
+
+    // Notification card
+    const cardW = 270, cardH = 170;
+    const card = this.add.rectangle(0, -30, cardW, cardH, 0xffffff, 1);
+    card.setStrokeStyle(3, 0x16a34a, 1);
+
+    // Green top accent
+    const accent = this.add.rectangle(0, -30 - cardH / 2, cardW, 6, 0x16a34a, 1);
+
+    // Icon circle
+    const iconBg = this.add.circle(-cardW / 2 + 36, -30 - 30, 22, 0xd1fae5, 1);
+    const iconT  = this.add.text(-cardW / 2 + 36, -30 - 30, notif.icon, { fontSize: '20px' }).setOrigin(0.5);
+
+    // Title
+    const titleT = this.add.text(-cardW / 2 + 66, -30 - 32, notif.title, {
+      fontFamily: FONT, fontSize: '13px', fontStyle: 'bold', color: '#16a34a'
+    }).setOrigin(0, 0.5);
+
+    // Body
+    const bodyT = this.add.text(-cardW / 2 + 16, -30 - 4, notif.body, {
+      fontFamily: FONT_BODY, fontSize: '12px', color: '#374151',
+      wordWrap: { width: cardW - 32 }
+    }).setOrigin(0, 0.5);
+
+    // Accept button
+    const acceptBtn = this.add.rectangle(-50, -30 + 52, 110, 38, 0x16a34a, 1);
+    acceptBtn.setStrokeStyle(2, 0x15803d, 1);
+    acceptBtn.setInteractive({ useHandCursor: true });
+    const acceptTxt = this.add.text(-50, -30 + 52, `✓ ${notif.cta}`, {
+      fontFamily: FONT, fontSize: '12px', color: '#ffffff', fontStyle: 'bold'
+    }).setOrigin(0.5);
+
+    // Decline button
+    const declineBtn = this.add.rectangle(80, -30 + 52, 90, 38, 0xf1f5f9, 1);
+    declineBtn.setStrokeStyle(2, 0xcbd5e1, 1);
+    declineBtn.setInteractive({ useHandCursor: true });
+    const declineTxt = this.add.text(80, -30 + 52, '✕ Later', {
+      fontFamily: FONT, fontSize: '12px', color: '#64748b', fontStyle: 'bold'
+    }).setOrigin(0.5);
+
+    popup.add([dim, card, accent, iconBg, iconT, titleT, bodyT, acceptBtn, acceptTxt, declineBtn, declineTxt]);
+
+    // Animate in
+    gsap.fromTo(popup,
+      { alpha: 0, scale: 0.85 },
+      { alpha: 1, scale: 1, duration: 0.4, ease: 'back.out(1.8)' }
+    );
+
+    // Hover effects
+    acceptBtn.on('pointerover',  () => acceptBtn.setFillStyle(0x15803d));
+    acceptBtn.on('pointerout',   () => acceptBtn.setFillStyle(0x16a34a));
+    declineBtn.on('pointerover', () => declineBtn.setFillStyle(0xe2e8f0));
+    declineBtn.on('pointerout',  () => declineBtn.setFillStyle(0xf1f5f9));
+
+    // Accept — go to learning scene
+    acceptBtn.on('pointerdown', () => {
+      this._ended = true;
+      gsap.to(popup, { alpha: 0, scale: 0.8, duration: 0.3 });
+      this._closeMobileScreen();
+      this.time.delayedCall(400, () => {
+        this.cameras.main.fadeOut(600, 0, 0, 0);
+        this.cameras.main.once('camerafadeoutcomplete', () => {
+          this.scene.start('LearningScene');
+        });
+      });
+    });
+
+    // Decline — dismiss and keep scrolling
+    declineBtn.on('pointerdown', () => {
+      gsap.to(popup, {
+        alpha: 0, y: height / 2 - 90, duration: 0.3,
+        onComplete: () => popup.destroy()
+      });
+      this._log('Notif', 'Kai dismissed the class reminder');
+      
+      // Set continuous scroll mode flag to prevent distortion transition
+      this._continuousScrollMode = true;
+      
+      // Start continuous scrolling mode
+      this._startContinuousScrolling();
+      
+      // Show "results failed" notification after delay
+      this.time.delayedCall(8000, () => {
+        this._showResultsFailedNotification();
+      });
+    });
   }
 
   _closeMobileScreen() {
@@ -1107,5 +1224,109 @@ export default class AttractionScene extends Phaser.Scene {
   _transitionToLoop() {
     this._ended = true;
     this.scene.start('TheLoopScene');
+  }
+
+  // Start manual scrolling mode (no auto-scroll)
+  _startContinuousScrolling() {
+    if (!this._mobileScreenOpen) return;
+    
+    this._log('Manual scrolling mode', 'Agent can scroll manually with mouse');
+    
+    // Keep auto-scroll disabled - user controls with mouse wheel
+    // The existing wheel listener in _openMobileScreen will handle manual scrolling
+    
+    // Manual scrolling is already handled by the wheel listener:
+    // this.input.on('wheel', (pointer, gameObjects, deltaX, deltaY) => {
+    //   if (this._mobileScreenOpen && !this._autoScrollEnabled) {
+    //     this._scrollOffset += deltaY * 0.3;
+    //     this._scrollContent.y = contentY - this._scrollOffset;
+    //     if (this.agent && Math.abs(deltaY) > 0) {
+    //       this.agent.onScroll();
+    //     }
+    //   }
+    // });
+  }
+
+  // Show results failed notification
+  _showResultsFailedNotification() {
+    if (!this._mobileScreen || !this._mobileScreenOpen) return;
+    
+    this._log('Results Failed', 'Agent missed the class and feels sad');
+    
+    const { width, height } = this.scale;
+    
+    // Create sad notification popup
+    const popup = this.add.container(width / 2, height / 2 - 60).setDepth(130).setAlpha(0);
+    
+    // Dim overlay
+    const dim = this.add.rectangle(0, 0, 320, 600, 0x000000, 0.7);
+    
+    // Notification card with red accent
+    const cardW = 280, cardH = 150;
+    const card = this.add.rectangle(0, 0, cardW, cardH, 0xffffff, 1);
+    card.setStrokeStyle(3, 0xef4444, 1);
+    
+    // Red top accent
+    const accent = this.add.rectangle(0, -cardH / 2, cardW, 6, 0xef4444, 1);
+    
+    // Sad icon
+    const iconBg = this.add.circle(0, -30, 25, 0xfee2e2, 1);
+    const iconT = this.add.text(0, -30, 'Failed', {
+      fontFamily: FONT, fontSize: '16px', color: '#ef4444', fontStyle: 'bold'
+    }).setOrigin(0.5);
+    
+    // Title
+    const titleT = this.add.text(0, 5, 'Results Failed', {
+      fontFamily: FONT, fontSize: '18px', color: '#ef4444', fontStyle: 'bold'
+    }).setOrigin(0.5);
+    
+    // Body text
+    const bodyT = this.add.text(0, 30, 'You didn\'t attend the class.\nYour addiction level has increased.', {
+      fontFamily: FONT_BODY, fontSize: '13px', color: '#374151',
+      wordWrap: { width: cardW - 40 }, align: 'center'
+    }).setOrigin(0.5);
+    
+    // OK button
+    const okBtn = this.add.rectangle(0, 55, 70, 30, 0xef4444, 1);
+    okBtn.setStrokeStyle(2, 0xdc2626, 1);
+    okBtn.setInteractive({ useHandCursor: true });
+    
+    const okTxt = this.add.text(0, 55, 'OK', {
+      fontFamily: FONT, fontSize: '14px', color: '#ffffff', fontStyle: 'bold'
+    }).setOrigin(0.5);
+    
+    popup.add([dim, card, accent, iconBg, iconT, titleT, bodyT, okBtn, okTxt]);
+    
+    // Animate in
+    gsap.fromTo(popup,
+      { alpha: 0, scale: 0.8 },
+      { alpha: 1, scale: 1, duration: 0.4, ease: 'back.out(1.5)' }
+    );
+    
+    // Button interaction
+    okBtn.on('pointerdown', () => {
+      gsap.to(popup, {
+        alpha: 0, scale: 0.8, duration: 0.3,
+        onComplete: () => {
+          popup.destroy();
+          // Continue scrolling after notification
+        }
+      });
+    });
+    
+    okBtn.on('pointerover', () => {
+      okBtn.setFillStyle(0xdc2626);
+    });
+    
+    okBtn.on('pointerout', () => {
+      okBtn.setFillStyle(0xef4444);
+    });
+    
+    // Make agent sad (affect emotions)
+    if (this.agent) {
+      this.agent.emotions.happiness -= 20;
+      this.agent.emotions.stress += 15;
+      this.agent.addictionLevel += 10;
+    }
   }
 }
