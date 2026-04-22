@@ -16,6 +16,16 @@ export default class Agent {
     this.emotions = new EmotionSystem();
     this.fsm      = new FSM(this);
 
+    // ── AI Core Variables (CRITICAL FOR VIVA) ────────────────────────────
+    this.addictionLevel = 0;      // 0-100: drives behavior & transitions
+    this.awareness = 70;           // 0-100: decreases with phone use
+    this.curiosity = 60;           // 0-100: drives initial attraction
+    this.relationshipLevel = 50;   // 0-100: affected by message responses
+    this.memory = [];              // Learning system: stores behavioral patterns
+    this.ignoredMessages = 0;      // Tracks social neglect
+    this.scrollCount = 0;          // Interaction frequency metric
+    this.timeOnPhone = 0;          // Total time spent (frames)
+
     this._perceptionCooldown = 0;
     this.vx = 0;
     this.vy = 0;
@@ -27,6 +37,7 @@ export default class Agent {
     this._bouncing = false;
     this.rubberBand = false;
     this.hunchLevel = 0; // 0 = upright, 4 = fully hunched
+    this.keysLocked = false; // Can lock keyboard control
 
     // Keyboard input
     this._keys = scene.input.keyboard.createCursorKeys();
@@ -308,11 +319,86 @@ export default class Agent {
     this._perceive();
     this._updateVisuals();
     this._syncHUD();
+    this._updateAIVariables();
     if (this._perceptionCooldown > 0) this._perceptionCooldown--;
+  }
+
+  // ── AI Variable Updates (CORE INTELLIGENCE) ───────────────────────────────
+  _updateAIVariables() {
+    // Addiction naturally decays slowly when not using phone
+    if (!this.hasPhone || !this.scene._mobileScreenOpen) {
+      this.addictionLevel = Math.max(0, this.addictionLevel - 0.02);
+    }
+
+    // Awareness naturally recovers when not distracted
+    if (!this.scene._mobileScreenOpen) {
+      this.awareness = Math.min(100, this.awareness + 0.05);
+    }
+
+    // Update hunch level based on addiction
+    if (this.addictionLevel > 80) {
+      this.hunchLevel = 4;
+    } else if (this.addictionLevel > 60) {
+      this.hunchLevel = 3;
+    } else if (this.addictionLevel > 40) {
+      this.hunchLevel = 2;
+    } else if (this.addictionLevel > 20) {
+      this.hunchLevel = 1;
+    } else {
+      this.hunchLevel = 0;
+    }
+
+    // Learning: Store behavioral patterns
+    if (this.addictionLevel > 80 && !this.memory.includes('high_addiction')) {
+      this.memory.push('high_addiction');
+      console.log('🧠 Agent learned: high_addiction pattern');
+    }
+    if (this.ignoredMessages >= 2 && !this.memory.includes('social_neglect')) {
+      this.memory.push('social_neglect');
+      console.log('🧠 Agent learned: social_neglect pattern');
+    }
+    if (this.scrollCount > 50 && !this.memory.includes('compulsive_scrolling')) {
+      this.memory.push('compulsive_scrolling');
+      console.log('🧠 Agent learned: compulsive_scrolling pattern');
+    }
+  }
+
+  // ── Phone Usage Impact ────────────────────────────────────────────────────
+  usePhone(deltaTime = 1) {
+    this.timeOnPhone += deltaTime;
+    this.addictionLevel = Math.min(100, this.addictionLevel + 0.15);
+    this.awareness = Math.max(0, this.awareness - 0.12);
+    this.emotions.applyEvent({ stress: 0.08, happiness: -0.05 });
+  }
+
+  // ── Scroll Action ─────────────────────────────────────────────────────────
+  onScroll() {
+    this.scrollCount++;
+    this.addictionLevel = Math.min(100, this.addictionLevel + 0.3);
+    this.awareness = Math.max(0, this.awareness - 0.2);
+    this.emotions.applyEvent({ stress: 0.1 });
+  }
+
+  // ── Message Response ──────────────────────────────────────────────────────
+  respondToMessage(action) {
+    if (action === 'reply') {
+      this.relationshipLevel = Math.min(100, this.relationshipLevel + 10);
+      this.awareness = Math.min(100, this.awareness + 5);
+      this.emotions.applyEvent({ happiness: 5, loneliness: -5 });
+      console.log('💬 Agent replied to message - relationship improved');
+    } else if (action === 'ignore') {
+      this.ignoredMessages++;
+      this.relationshipLevel = Math.max(0, this.relationshipLevel - 5);
+      this.addictionLevel = Math.min(100, this.addictionLevel + 2);
+      this.emotions.applyEvent({ loneliness: 3 });
+      console.log('🚫 Agent ignored message - relationship damaged');
+    }
   }
 
   // ── Keyboard input ────────────────────────────────────────────────────────
   _handleInput() {
+    if (this.keysLocked) return; // Allow locking keyboard control
+    
     const { width, height } = this.scene.scale;
     const speed = 3.5;
     const k = this._keys;
