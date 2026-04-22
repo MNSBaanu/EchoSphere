@@ -35,6 +35,12 @@ export default class FSM {
     this._listeners.push(fn);
   }
 
+  // Force the FSM into a specific state (used when a scene starts mid-story)
+  forceState(state) {
+    this.state = state;
+    this._timer = 0;
+  }
+
   // Main per-frame tick — only handles timeout-based fallbacks
   update() {
     this._timer++;
