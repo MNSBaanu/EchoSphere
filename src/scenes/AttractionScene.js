@@ -39,8 +39,12 @@ export default class AttractionScene extends Phaser.Scene {
     this._doorReached      = false;
     this._pickupPromptShown = false;
     this._mobileScreenOpen  = false;
-    this._phoneProgress    = 0;
     this._scrollOffset     = 0;
+    this._autoScrollEnabled = false;
+    this._autoScrollSpeed   = 0;
+    this._conflictTriggered = false;
+    this._messageQueue      = [];
+    this._lastMessageTime   = 0;
   }
 
   create() {
@@ -111,20 +115,53 @@ export default class AttractionScene extends Phaser.Scene {
       }
     }
 
-    // Update phone progress when mobile screen is open
-    if (this._mobileScreenOpen && !this._ended) {
-      this._phoneProgress += 0.15; // Increase progress (adjust speed here)
+    // ── AI-DRIVEN PHONE USAGE ────────────────────────────────────────────
+    if (this._mobileScreenOpen && !this._ended && this.agent) {
+      // Agent uses phone - updates addiction & awareness
+      this.agent.usePhone();
       
-      if (this._phoneProgress >= 100) {
-        this._phoneProgress = 100;
-        this._updateProgressBar();
+      // Update progress bar based on addiction level
+      this._updateProgressBar();
+
+      // ── AUTO-SCROLL: Agent loses control as addiction increases ────────
+      if (this.agent.addictionLevel > 50 && !this._autoScrollEnabled) {
+        this._autoScrollEnabled = true;
+        this._log('🤖 AI', 'Agent losing control - auto-scroll enabled');
+      }
+
+      if (this._autoScrollEnabled) {
+        // Auto-scroll speed increases with addiction
+        this._autoScrollSpeed = ((this.agent.addictionLevel - 50) / 50) * 2;
+        this._scrollOffset += this._autoScrollSpeed;
+        this._scrollOffset = Phaser.Math.Clamp(this._scrollOffset, 0, this._maxScrollOffset);
+        if (this._scrollContent) {
+          this._scrollContent.y = this._contentStartY - this._scrollOffset;
+        }
+      }
+
+      // ── CONFLICT TRIGGER: Message interruption ─────────────────────────
+      if (this.agent.addictionLevel > 70 && !this._conflictTriggered) {
+        const now = this.time.now;
+        if (now - this._lastMessageTime > 3000) { // Random event every 3s
+          if (Math.random() < 0.3) { // 30% chance
+            this._triggerConflict();
+          }
+          this._lastMessageTime = now;
+        }
+      }
+
+      // ── BEHAVIOR-BASED TRANSITION ──────────────────────────────────────
+      // Not just 100% - multiple conditions for intelligent transition
+      if (this.agent.addictionLevel >= 100 || 
+          (this.agent.addictionLevel > 85 && this.agent.ignoredMessages >= 2) ||
+          (this.agent.awareness < 20 && this.agent.addictionLevel > 80)) {
         
-        // Redirect to Scenario 2 after a short delay
-        this.time.delayedCall(500, () => {
+        this._log('🌀 Transition', `Addiction: ${this.agent.addictionLevel.toFixed(0)}%, Ignored: ${this.agent.ignoredMessages}, Awareness: ${this.agent.awareness.toFixed(0)}%`);
+        
+        // Delay transition slightly for dramatic effect
+        this.time.delayedCall(800, () => {
           this._transitionToDistortion();
         });
-      } else {
-        this._updateProgressBar();
       }
     }
 
@@ -543,8 +580,10 @@ export default class AttractionScene extends Phaser.Scene {
   _showMobileScreen() {
     if (this._mobileScreenOpen) return;
     this._mobileScreenOpen = true;
-    this._phoneProgress = 0;
     this._scrollOffset = 0;
+    this._autoScrollEnabled = false;
+    this._autoScrollSpeed = 0;
+    this._lastMessageTime = this.time.now;
 
     const { width, height } = this.scale;
     
@@ -581,22 +620,54 @@ export default class AttractionScene extends Phaser.Scene {
       fontFamily: FONT, fontSize: '18px', color: '#ffffff', fontStyle: 'bold'
     }).setOrigin(0.5);
     
-    // Progress bar container (below header)
-    const progressY = -screenH / 2 + 90;
+    // ── ADDICTION PROGRESS BAR ────────────────────────────────────────────
+    const progressY = -screenH / 2 + 95;
     const progressBg = this.add.rectangle(0, progressY, screenW - 30, 8, 0x1e293b, 1);
     progressBg.setStrokeStyle(1, 0x334155, 1);
     
-    this._progressBar = this.add.rectangle(-screenW / 2 + 15, progressY, 0, 6, 0xfbbf24, 1);
+    this._progressBar = this.add.rectangle(-screenW / 2 + 15, progressY, 0, 6, 0x10b981, 1);
     this._progressBar.setOrigin(0, 0.5);
     this._progressBarMaxWidth = screenW - 30;
     
-    const progressLabel = this.add.text(0, progressY - 15, 'Time Spent', {
-      fontFamily: FONT_BODY, fontSize: '10px', color: '#64748b'
+    this._progressLabel = this.add.text(0, progressY - 15, 'Addiction: 0%', {
+      fontFamily: FONT_BODY, fontSize: '10px', color: '#64748b', fontStyle: 'bold'
     }).setOrigin(0.5);
     
+    // ── EMOTION BARS (AI VISIBILITY) ──────────────────────────────────────
+    const emotionY = -screenH / 2 + 125;
+    const emotionBarW = (screenW - 40) / 3;
+    
+    // Awareness bar
+    const awarenessLabel = this.add.text(-screenW / 2 + 20, emotionY, '👁️', {
+      fontSize: '12px'
+    }).setOrigin(0, 0.5);
+    const awarenessBg = this.add.rectangle(-screenW / 2 + 35, emotionY, emotionBarW - 20, 6, 0x1e293b, 1);
+    awarenessBg.setOrigin(0, 0.5);
+    this._awarenessBar = this.add.rectangle(-screenW / 2 + 35, emotionY, 0, 4, 0x3b82f6, 1);
+    this._awarenessBar.setOrigin(0, 0.5);
+    
+    // Stress bar
+    const stressLabel = this.add.text(-screenW / 2 + 20 + emotionBarW, emotionY, '😰', {
+      fontSize: '12px'
+    }).setOrigin(0, 0.5);
+    const stressBg = this.add.rectangle(-screenW / 2 + 35 + emotionBarW, emotionY, emotionBarW - 20, 6, 0x1e293b, 1);
+    stressBg.setOrigin(0, 0.5);
+    this._stressBar = this.add.rectangle(-screenW / 2 + 35 + emotionBarW, emotionY, 0, 4, 0xef4444, 1);
+    this._stressBar.setOrigin(0, 0.5);
+    
+    // Relationship bar
+    const relationLabel = this.add.text(-screenW / 2 + 20 + emotionBarW * 2, emotionY, '💬', {
+      fontSize: '12px'
+    }).setOrigin(0, 0.5);
+    const relationBg = this.add.rectangle(-screenW / 2 + 35 + emotionBarW * 2, emotionY, emotionBarW - 20, 6, 0x1e293b, 1);
+    relationBg.setOrigin(0, 0.5);
+    this._relationBar = this.add.rectangle(-screenW / 2 + 35 + emotionBarW * 2, emotionY, 0, 4, 0x10b981, 1);
+    this._relationBar.setOrigin(0, 0.5);
+    
     // Create scrollable content container
-    const contentY = -screenH / 2 + 130;
-    const contentHeight = screenH - 260; // Space for header, progress, and close button
+    const contentY = -screenH / 2 + 155;
+    const contentHeight = screenH - 285;
+    this._contentStartY = contentY;
     
     // Mask for scrollable area
     const maskShape = this.make.graphics();
@@ -668,10 +739,15 @@ export default class AttractionScene extends Phaser.Scene {
     
     // Enable mouse wheel scrolling
     this.input.on('wheel', (pointer, gameObjects, deltaX, deltaY) => {
-      if (this._mobileScreenOpen) {
+      if (this._mobileScreenOpen && !this._autoScrollEnabled) {
         this._scrollOffset += deltaY * 0.3;
         this._scrollOffset = Phaser.Math.Clamp(this._scrollOffset, 0, this._maxScrollOffset);
         this._scrollContent.y = contentY - this._scrollOffset;
+        
+        // Track scrolling for AI
+        if (this.agent && Math.abs(deltaY) > 0) {
+          this.agent.onScroll();
+        }
       }
     });
     
@@ -708,7 +784,10 @@ export default class AttractionScene extends Phaser.Scene {
       appTitle,
       progressBg,
       this._progressBar,
-      progressLabel,
+      this._progressLabel,
+      awarenessLabel, awarenessBg, this._awarenessBar,
+      stressLabel, stressBg, this._stressBar,
+      relationLabel, relationBg, this._relationBar,
       maskShape,
       this._scrollContent,
       scrollHint,
@@ -737,29 +816,66 @@ export default class AttractionScene extends Phaser.Scene {
       this._closeMobileScreen();
     });
     
-    this._log('📱 Phone', 'screen opened - time tracking started');
+    // Start emotion bar update loop
+    this._emotionUpdateTimer = this.time.addEvent({
+      delay: 100,
+      callback: this._updateEmotionBars,
+      callbackScope: this,
+      loop: true
+    });
+    
+    this._log('📱 Phone', 'screen opened - AI tracking started');
+  }
+
+  _updateEmotionBars() {
+    if (!this.agent || !this._mobileScreenOpen) return;
+    
+    const barMaxW = (320 - 40) / 3 - 20;
+    
+    // Update awareness bar
+    if (this._awarenessBar) {
+      this._awarenessBar.width = (this.agent.awareness / 100) * barMaxW;
+    }
+    
+    // Update stress bar
+    if (this._stressBar) {
+      this._stressBar.width = (this.agent.emotions.stress / 100) * barMaxW;
+    }
+    
+    // Update relationship bar
+    if (this._relationBar) {
+      this._relationBar.width = (this.agent.relationshipLevel / 100) * barMaxW;
+    }
   }
 
   _updateProgressBar() {
-    if (!this._progressBar || !this._progressBarMaxWidth) return;
+    if (!this._progressBar || !this._progressBarMaxWidth || !this.agent) return;
     
-    const newWidth = (this._phoneProgress / 100) * this._progressBarMaxWidth;
+    const progress = this.agent.addictionLevel;
+    const newWidth = (progress / 100) * this._progressBarMaxWidth;
     this._progressBar.width = newWidth;
     
-    // Change color as progress increases
-    if (this._phoneProgress < 33) {
-      this._progressBar.setFillStyle(0x10b981); // Green
-    } else if (this._phoneProgress < 66) {
-      this._progressBar.setFillStyle(0xfbbf24); // Yellow
+    // Change color as addiction increases
+    if (progress < 33) {
+      this._progressBar.setFillStyle(0x10b981); // Green - safe
+    } else if (progress < 66) {
+      this._progressBar.setFillStyle(0xfbbf24); // Yellow - warning
     } else {
-      this._progressBar.setFillStyle(0xef4444); // Red
+      this._progressBar.setFillStyle(0xef4444); // Red - danger
+    }
+
+    // Update label text
+    if (this._progressLabel) {
+      this._progressLabel.setText(`Addiction: ${Math.round(progress)}%`);
     }
   }
 
   _closeMobileScreen() {
     if (!this._mobileScreenOpen) return;
     
-    this._log('📱 Phone', `closed at ${this._phoneProgress.toFixed(0)}% progress`);
+    if (this.agent) {
+      this._log('📱 Phone', `closed - Addiction: ${this.agent.addictionLevel.toFixed(0)}%, Awareness: ${this.agent.awareness.toFixed(0)}%`);
+    }
     
     gsap.to(this._mobileScreen, {
       alpha: 0,
@@ -775,6 +891,9 @@ export default class AttractionScene extends Phaser.Scene {
         this._mobileScreenOpen = false;
         this._scrollContent = null;
         this._progressBar = null;
+        this._progressLabel = null;
+        this._autoScrollEnabled = false;
+        this._autoScrollSpeed = 0;
       }
     });
     
@@ -794,11 +913,188 @@ export default class AttractionScene extends Phaser.Scene {
     
     this._log('🌀 Transition', 'Moving to Scenario 2 - Distortion');
     
+    // Stop emotion update timer
+    if (this._emotionUpdateTimer) {
+      this._emotionUpdateTimer.remove();
+    }
+    
+    // Visual glitch effects before transition
+    this.cameras.main.shake(500, 0.01);
+    
+    // Screen distortion
+    this.time.delayedCall(200, () => {
+      this.cameras.main.flash(300, 100, 0, 100);
+    });
+    
     // Fade out
-    this.cameras.main.fadeOut(1000, 0, 0, 0);
+    this.time.delayedCall(600, () => {
+      this.cameras.main.fadeOut(1000, 0, 0, 0);
+    });
     
     this.cameras.main.once('camerafadeoutcomplete', () => {
       this.scene.start('DistortionScene');
+    });
+  }
+
+  // ── CONFLICT TRIGGER: Message Interruption ────────────────────────────────
+  _triggerConflict() {
+    if (this._conflictTriggered || !this._mobileScreenOpen) return;
+    this._conflictTriggered = true;
+    
+    const messages = [
+      { from: 'Mom', text: 'Where are you? We need you at dinner.' },
+      { from: 'Best Friend', text: 'Hey, you okay? You\'ve been quiet...' },
+      { from: 'Dad', text: 'Can you help me with something?' },
+      { from: 'Mia', text: 'Are you ignoring me? 😢' },
+    ];
+    
+    const msg = Phaser.Utils.Array.GetRandom(messages);
+    
+    this._log('💬 Conflict', `Message from ${msg.from}`);
+    
+    // Show message popup
+    this._showMessageChoice(msg.from, msg.text);
+    
+    // Play notification sound (if available)
+    // this.sound.play('notification');
+  }
+
+  _showMessageChoice(from, text) {
+    if (!this._mobileScreen) return;
+    
+    const { width, height } = this.scale;
+    
+    // Create message popup
+    this._messagePopup = this.add.container(0, 0).setDepth(110);
+    
+    // Semi-transparent overlay
+    const popupOverlay = this.add.rectangle(0, 0, width, height, 0x000000, 0.6);
+    popupOverlay.setInteractive();
+    
+    // Message card
+    const cardW = 300;
+    const cardH = 200;
+    const card = this.add.rectangle(0, 0, cardW, cardH, 0x1e1b4b, 1);
+    card.setStrokeStyle(3, 0x6366f1, 1);
+    
+    // Notification icon
+    const icon = this.add.text(0, -70, '📱', {
+      fontSize: '32px'
+    }).setOrigin(0.5);
+    
+    // From label
+    const fromLabel = this.add.text(0, -40, from, {
+      fontFamily: FONT, fontSize: '16px', color: '#ffffff', fontStyle: 'bold'
+    }).setOrigin(0.5);
+    
+    // Message text
+    const msgText = this.add.text(0, -10, text, {
+      fontFamily: FONT_BODY, fontSize: '13px', color: '#e2e8f0',
+      wordWrap: { width: cardW - 40 }, align: 'center'
+    }).setOrigin(0.5);
+    
+    // Reply button
+    const replyBtn = this.add.rectangle(-70, 50, 120, 40, 0x10b981, 1);
+    replyBtn.setStrokeStyle(2, 0x059669, 1);
+    replyBtn.setInteractive({ useHandCursor: true });
+    
+    const replyTxt = this.add.text(-70, 50, '✓ Reply', {
+      fontFamily: FONT, fontSize: '14px', color: '#ffffff', fontStyle: 'bold'
+    }).setOrigin(0.5);
+    
+    // Ignore button
+    const ignoreBtn = this.add.rectangle(70, 50, 120, 40, 0x64748b, 1);
+    ignoreBtn.setStrokeStyle(2, 0x475569, 1);
+    ignoreBtn.setInteractive({ useHandCursor: true });
+    
+    const ignoreTxt = this.add.text(70, 50, '✕ Ignore', {
+      fontFamily: FONT, fontSize: '14px', color: '#ffffff', fontStyle: 'bold'
+    }).setOrigin(0.5);
+    
+    // Button interactions
+    replyBtn.on('pointerdown', () => {
+      if (this.agent) {
+        this.agent.respondToMessage('reply');
+      }
+      this._closeMessagePopup();
+      this._log('💬 Choice', 'Replied to message - relationship improved');
+    });
+    
+    replyBtn.on('pointerover', () => {
+      replyBtn.setFillStyle(0x059669);
+    });
+    
+    replyBtn.on('pointerout', () => {
+      replyBtn.setFillStyle(0x10b981);
+    });
+    
+    ignoreBtn.on('pointerdown', () => {
+      if (this.agent) {
+        this.agent.respondToMessage('ignore');
+      }
+      this._closeMessagePopup();
+      this._log('💬 Choice', 'Ignored message - relationship damaged');
+      
+      // Allow another conflict trigger
+      this.time.delayedCall(5000, () => {
+        this._conflictTriggered = false;
+      });
+    });
+    
+    ignoreBtn.on('pointerover', () => {
+      ignoreBtn.setFillStyle(0x475569);
+    });
+    
+    ignoreBtn.on('pointerout', () => {
+      ignoreBtn.setFillStyle(0x64748b);
+    });
+    
+    this._messagePopup.add([
+      popupOverlay,
+      card,
+      icon,
+      fromLabel,
+      msgText,
+      replyBtn,
+      replyTxt,
+      ignoreBtn,
+      ignoreTxt
+    ]);
+    
+    this._messagePopup.setPosition(width / 2, height / 2);
+    this._messagePopup.setAlpha(0);
+    
+    // Animate in
+    gsap.to(this._messagePopup, {
+      alpha: 1,
+      duration: 0.3,
+      ease: 'power2.out'
+    });
+    
+    this._messagePopup.setScale(0.8);
+    gsap.to(this._messagePopup, {
+      scaleX: 1,
+      scaleY: 1,
+      duration: 0.3,
+      ease: 'back.out(1.5)'
+    });
+  }
+
+  _closeMessagePopup() {
+    if (!this._messagePopup) return;
+    
+    gsap.to(this._messagePopup, {
+      alpha: 0,
+      scaleX: 0.8,
+      scaleY: 0.8,
+      duration: 0.2,
+      ease: 'power2.in',
+      onComplete: () => {
+        if (this._messagePopup) {
+          this._messagePopup.destroy();
+          this._messagePopup = null;
+        }
+      }
     });
   }
 
