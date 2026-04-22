@@ -29,6 +29,11 @@ export default class FSM {
     this.ignoredFriends = 0; // how many friend messages went unanswered
 
     this._listeners = []; // transition callbacks
+
+    // Scenario 1 specific vars
+    this.addictionLevel    = 10;
+    this.awarenessLevel    = 80;
+    this.relationshipLevel = 70;
   }
 
   onTransition(fn) {
