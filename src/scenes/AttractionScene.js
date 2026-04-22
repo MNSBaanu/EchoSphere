@@ -38,6 +38,7 @@ export default class AttractionScene extends Phaser.Scene {
     this._phonePickedUp    = false;
     this._doorReached      = false;
     this._pickupPromptShown = false;
+    this._doorPromptShown   = false;
     this._mobileScreenOpen  = false;
     this._scrollOffset     = 0;
     this._autoScrollEnabled = false;
@@ -112,6 +113,18 @@ export default class AttractionScene extends Phaser.Scene {
         this._showPickupPrompt();
       } else if (dist >= 60 && this._pickupPromptShown) {
         this._hidePickupPrompt();
+      }
+    }
+
+    // Check proximity to door and show open-door prompt
+    if (!this._doorReached && this._doorPos && this.agent) {
+      const ddx = this._doorPos.x - this.agent.x;
+      const ddy = this._doorPos.y - this.agent.y;
+      const ddist = Math.sqrt(ddx * ddx + ddy * ddy);
+      if (ddist < 70 && !this._doorPromptShown) {
+        this._showDoorPrompt();
+      } else if (ddist >= 70 && this._doorPromptShown) {
+        this._hideDoorPrompt();
       }
     }
 
@@ -936,6 +949,33 @@ export default class AttractionScene extends Phaser.Scene {
     });
   }
 
+  _transitionToRealWorld() {
+    if (this._ended) return;
+    this._ended = true;
+
+    this._log('🌿 Real World', 'Kai steps outside...');
+
+    if (this._emotionUpdateTimer) this._emotionUpdateTimer.remove();
+
+    // Warm flash — sunlight
+    this.cameras.main.flash(400, 255, 220, 150, false);
+
+    this.time.delayedCall(400, () => {
+      this.cameras.main.fadeOut(800, 255, 240, 200);
+    });
+
+    this.cameras.main.once('camerafadeoutcomplete', () => {
+      // Pass agent state to real world scene
+      this.scene.start('RealWorldScene', {
+        addictionLevel:    this.agent ? this.agent.addictionLevel    : 0,
+        awareness:         this.agent ? this.agent.awareness         : 70,
+        relationshipLevel: this.agent ? this.agent.relationshipLevel : 50,
+        hasPhone:          this.agent ? this.agent.hasPhone          : false,
+        memory:            this.agent ? [...this.agent.memory]       : [],
+      });
+    });
+  }
+
   // ── CONFLICT TRIGGER: Message Interruption ────────────────────────────────
   _triggerConflict() {
     if (this._conflictTriggered || !this._mobileScreenOpen) return;
@@ -1100,8 +1140,109 @@ export default class AttractionScene extends Phaser.Scene {
 
   _reachDoor() {
     this._doorReached = true;
-    this._log('🚪 Door', 'reached!');
-    // TODO: Implement door reach logic
+    this._hideDoorPrompt();
+    this._log('🚪 Door', 'reached — entering real world');
+    this._transitionToRealWorld();
+  }
+
+  _showDoorPrompt() {
+    if (this._doorPromptShown) return;
+    this._doorPromptShown = true;
+
+    this._doorPrompt = this.add.container(this._doorPos.x + 50, this._doorPos.y - 60).setDepth(30);
+
+    const bg = this.add.rectangle(0, 0, 160, 44, 0x1e1b4b, 0.95);
+    bg.setStrokeStyle(2, 0xfbbf24, 1);
+
+    const txt = this.add.text(0, -6, '🚪 Open Door', {
+      fontFamily: FONT, fontSize: '15px', color: '#ffffff', fontStyle: 'bold'
+    }).setOrigin(0.5);
+
+    const hint = this.add.text(0, 12, 'Press [F]', {
+      fontFamily: FONT_BODY, fontSize: '12px', color: '#fbbf24'
+    }).setOrigin(0.5);
+
+    this._doorPrompt.add([bg, txt, hint]);
+
+    gsap.fromTo(this._doorPrompt,
+      { alpha: 0, y: this._doorPos.y - 50 },
+      { alpha: 1, y: this._doorPos.y - 60, duration: 0.3, ease: 'back.out(1.5)' }
+    );
+
+    // [F] key opens door
+    this._doorKey = this.input.keyboard.once('keydown-F', () => {
+      this._reachDoor();
+    });
+
+    // If agent has phone, also show a pull-back warning
+    if (this.agent && this.agent.hasPhone) {
+      this._showPhonePullBack();
+    }
+  }
+
+  _hideDoorPrompt() {
+    if (!this._doorPromptShown) return;
+    this._doorPromptShown = false;
+
+    if (this._doorPrompt) {
+      gsap.to(this._doorPrompt, {
+        alpha: 0, duration: 0.2,
+        onComplete: () => {
+          if (this._doorPrompt) { this._doorPrompt.destroy(); this._doorPrompt = null; }
+        }
+      });
+    }
+
+    if (this._doorKey) {
+      this.input.keyboard.off('keydown-F', this._doorKey);
+      this._doorKey = null;
+    }
+
+    if (this._pullBackBubble) {
+      this._pullBackBubble.destroy();
+      this._pullBackBubble = null;
+    }
+  }
+
+  // Phone in hand creates a pull-back speech bubble when near door
+  _showPhonePullBack() {
+    if (this._pullBackBubble) return;
+
+    const msgs = [
+      '📱 "Just one more scroll..."',
+      '📱 "You have 3 new likes!"',
+      '📱 "Mia is waiting for a reply..."',
+      '📱 "Don\'t miss the trend!"',
+    ];
+    const msg = Phaser.Utils.Array.GetRandom(msgs);
+
+    const bx = this.agent.x + 60;
+    const by = this.agent.y - 80;
+
+    this._pullBackBubble = this.add.container(bx, by).setDepth(35);
+
+    const bg = this.add.rectangle(0, 0, 200, 38, 0x6366f1, 0.95);
+    bg.setStrokeStyle(2, 0x818cf8, 1);
+
+    const txt = this.add.text(0, 0, msg, {
+      fontFamily: FONT_BODY, fontSize: '12px', color: '#ffffff',
+      wordWrap: { width: 185 }
+    }).setOrigin(0.5);
+
+    this._pullBackBubble.add([bg, txt]);
+
+    // Shake to grab attention
+    this.tweens.add({
+      targets: this._pullBackBubble,
+      x: bx + 4, duration: 80,
+      yoyo: true, repeat: 5, ease: 'Sine.easeInOut'
+    });
+
+    // Increase addiction slightly — phone is pulling back
+    if (this.agent) {
+      this.agent.addictionLevel = Math.min(100, this.agent.addictionLevel + 5);
+      this.agent.emotions.applyEvent({ stress: 5 });
+    }
   }
 
   _transitionToLoop() {
