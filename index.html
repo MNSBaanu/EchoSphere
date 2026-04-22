@@ -5,61 +5,86 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>EchoSphere: The World You Shape</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/src/styles/main.css" />
 </head>
-<body class="m-0 p-0 overflow-hidden bg-black">
+<body>
 
-  <!-- Game canvas container -->
   <div id="game-container"></div>
 
-  <!-- HUD overlay (Tailwind-powered) -->
-  <div id="hud" class="fixed top-0 left-0 w-full h-full pointer-events-none z-10">
+  <!-- HUD overlay -->
+  <div id="hud" class="fixed top-0 left-0 w-full pointer-events-none z-10" style="top:52px">
 
-    <!-- Emotion meters -->
-    <div id="emotion-meters" class="absolute top-4 left-4 flex flex-col gap-2 pointer-events-none">
-      <div class="flex items-center gap-2">
-        <span class="text-xs text-white font-ui w-20">Stress</span>
-        <div class="w-32 h-3 bg-gray-700 rounded-full overflow-hidden">
-          <div id="meter-stress" class="h-full bg-red-500 rounded-full transition-all duration-500" style="width: 20%"></div>
+    <!-- Emotion meters — top left -->
+    <div class="absolute top-3 left-4 flex flex-col gap-2 bg-white bg-opacity-80 backdrop-blur px-4 py-3 rounded-xl shadow-md border border-slate-200">
+      <p class="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-1">Emotion Meters</p>
+
+      <div class="flex items-center gap-3">
+        <span class="text-sm font-medium text-slate-600 w-24">😰 Stress</span>
+        <div class="w-36 h-3 bg-slate-200 rounded-full overflow-hidden">
+          <div id="meter-stress" class="h-full bg-red-500 rounded-full transition-all duration-300" style="width:10%"></div>
         </div>
+        <span id="val-stress" class="text-xs text-slate-400 w-8">10%</span>
       </div>
-      <div class="flex items-center gap-2">
-        <span class="text-xs text-white font-ui w-20">Happiness</span>
-        <div class="w-32 h-3 bg-gray-700 rounded-full overflow-hidden">
-          <div id="meter-happiness" class="h-full bg-yellow-400 rounded-full transition-all duration-500" style="width: 70%"></div>
+
+      <div class="flex items-center gap-3">
+        <span class="text-sm font-medium text-slate-600 w-24">😊 Happiness</span>
+        <div class="w-36 h-3 bg-slate-200 rounded-full overflow-hidden">
+          <div id="meter-happiness" class="h-full bg-amber-400 rounded-full transition-all duration-300" style="width:60%"></div>
         </div>
+        <span id="val-happiness" class="text-xs text-slate-400 w-8">60%</span>
       </div>
-      <div class="flex items-center gap-2">
-        <span class="text-xs text-white font-ui w-20">Loneliness</span>
-        <div class="w-32 h-3 bg-gray-700 rounded-full overflow-hidden">
-          <div id="meter-loneliness" class="h-full bg-blue-400 rounded-full transition-all duration-500" style="width: 30%"></div>
+
+      <div class="flex items-center gap-3">
+        <span class="text-sm font-medium text-slate-600 w-24">😔 Loneliness</span>
+        <div class="w-36 h-3 bg-slate-200 rounded-full overflow-hidden">
+          <div id="meter-loneliness" class="h-full bg-blue-400 rounded-full transition-all duration-300" style="width:20%"></div>
         </div>
+        <span id="val-loneliness" class="text-xs text-slate-400 w-8">20%</span>
       </div>
     </div>
 
-    <!-- Agent state badge -->
-    <div id="state-badge" class="absolute top-4 right-4 bg-black bg-opacity-60 border border-cyan-400 text-cyan-400 text-xs font-pixel px-3 py-2 rounded">
+    <!-- State badge — top right -->
+    <div id="state-badge"
+      class="absolute top-3 right-4 bg-indigo-900 text-white text-sm font-bold px-5 py-2 rounded-xl shadow-md tracking-widest">
       STATE: IDLE
     </div>
 
   </div>
 
-  <!-- Notification popup -->
-  <div id="notification-popup" class="fixed bottom-8 right-4 hidden z-20 pointer-events-none">
-    <div class="bg-gray-900 border border-purple-500 text-white text-sm font-ui px-4 py-3 rounded-lg shadow-lg max-w-xs">
-      <div class="flex items-center gap-2 mb-1">
-        <span class="text-purple-400 text-xs font-pixel">🔔 NOTIFICATION</span>
-      </div>
-      <p id="notification-text" class="text-gray-200"></p>
+  <!-- Notification popup — bottom right -->
+  <div id="notification-popup" class="fixed bottom-6 right-5 hidden z-20 pointer-events-none">
+    <div class="bg-white border-l-4 border-indigo-500 text-slate-800 px-5 py-3 rounded-xl shadow-xl max-w-xs">
+      <div class="text-indigo-500 text-xs font-bold mb-1 uppercase tracking-widest">🔔 Notification</div>
+      <p id="notification-text" class="text-sm text-slate-700"></p>
     </div>
   </div>
 
-  <!-- Dialogue box -->
-  <div id="dialogue-box" class="fixed bottom-4 left-1/2 -translate-x-1/2 hidden z-20 w-2/3 max-w-xl pointer-events-auto">
-    <div class="bg-gray-900 bg-opacity-90 border border-cyan-500 text-white font-ui px-5 py-4 rounded-xl shadow-xl">
-      <p id="dialogue-speaker" class="text-cyan-400 text-xs font-pixel mb-1"></p>
-      <p id="dialogue-text" class="text-sm text-gray-100"></p>
+  <!-- Dialogue box — bottom centre -->
+  <div id="dialogue-box" class="fixed bottom-5 left-1/2 -translate-x-1/2 hidden z-20 pointer-events-none" style="min-width:420px">
+    <div class="bg-white border border-indigo-300 shadow-xl px-6 py-4 rounded-2xl">
+      <p id="dialogue-speaker" class="text-indigo-600 text-sm font-bold mb-1"></p>
+      <p id="dialogue-text" class="text-base text-slate-700"></p>
+    </div>
+  </div>
+
+  <!-- Decision panel — centre -->
+  <div id="decision-panel" class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 hidden z-30 pointer-events-auto">
+    <div class="bg-white border-2 border-indigo-400 shadow-2xl px-10 py-8 rounded-2xl text-center" style="min-width:340px">
+      <p class="text-indigo-400 text-xs font-bold uppercase tracking-widest mb-2">⚡ Decision Node</p>
+      <p id="decision-prompt" class="text-lg font-semibold text-slate-800 mb-6">What does Kai do?</p>
+      <div class="flex gap-4 justify-center">
+        <button id="btn-engage"
+          class="bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white font-semibold text-base px-7 py-3 rounded-xl transition-all shadow-md">
+          Engage
+        </button>
+        <button id="btn-resist"
+          class="bg-slate-200 hover:bg-slate-300 active:scale-95 text-slate-700 font-semibold text-base px-7 py-3 rounded-xl transition-all shadow-md">
+          Resist
+        </button>
+      </div>
+      <p class="text-xs text-slate-400 mt-4">Auto-dismisses in 7 seconds</p>
     </div>
   </div>
 
