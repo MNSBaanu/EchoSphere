@@ -51,7 +51,7 @@ export default class TheLoopScene extends Phaser.Scene {
       fontFamily: 'Sora, Inter, sans-serif', fontSize: '14px', color: '#f59e0b', fontStyle: 'bold'
     }).setOrigin(0.5, 0).setDepth(4);
 
-    this.add.text(width - 24, 14, 'Digital World  ·  [N] skip  ·  [H] hunch', {
+    this.add.text(width - 24, 14, '[N] skip  ·  [H] hunch  ·  [L] loop', {
       fontFamily: 'Sora, Inter, sans-serif', fontSize: '13px', color: '#818cf8'
     }).setOrigin(1, 0).setDepth(4);
 
@@ -86,10 +86,14 @@ export default class TheLoopScene extends Phaser.Scene {
         this._ended = true;
         this.cameras.main.fadeOut(400, 0, 0, 0);
         this.cameras.main.once('camerafadeoutcomplete', () => {
-          // Scene 3 will be wired here
           console.log('[Dev] Scene 3 not built yet — press N skipped to end');
         });
       }
+    });
+
+    // ── L key — trigger spiral + transition to Scene 3 ────────────────────
+    this.input.keyboard.once('keydown-L', () => {
+      if (!this._ended && !this._spiraling) this._startSpiral();
     });
 
     // ── Event log ─────────────────────────────────────────────────────────
@@ -109,6 +113,7 @@ export default class TheLoopScene extends Phaser.Scene {
     if (this.agent) this.agent.update();
     this._updateFeed();
     this._updateClock();
+    this._updateSpiral();
   }
 
   _updateFeed() {
@@ -537,10 +542,129 @@ export default class TheLoopScene extends Phaser.Scene {
     });
   }
 
+  // ── Spiral transition ─────────────────────────────────────────────────────
+  _startSpiral() {
+    if (this._spiraling) return;
+    this._spiraling = true;
+
+    const { width, height } = this.scale;
+
+    // Disable keyboard and rubber-band — agent is no longer in control
+    this.agent.rubberBand = false;
+    this.agent._keys.left.enabled  = false;
+    this.agent._keys.right.enabled = false;
+    this.agent._keys.up.enabled    = false;
+    this.agent._keys.down.enabled  = false;
+    this.agent._wasd.left.enabled  = false;
+    this.agent._wasd.right.enabled = false;
+    this.agent._wasd.up.enabled    = false;
+    this.agent._wasd.down.enabled  = false;
+
+    // Spiral state
+    this._spiralAngle  = 0;
+    this._spiralRadius = 180;   // starts wide
+    this._spiralCx     = width / 2;
+    this._spiralCy     = height / 2;
+    this._spiralSpeed  = 0.04;  // angular speed — increases over time
+    this._spiralScale  = 1;     // agent scale — shrinks to 0
+
+    // Show warning text
+    this._showSpiralWarning();
+  }
+
+  _updateSpiral() {
+    if (!this._spiraling || this._ended) return;
+
+    // Accelerate spin and shrink radius
+    this._spiralSpeed  = Math.min(0.18, this._spiralSpeed + 0.0003);
+    this._spiralRadius = Math.max(0, this._spiralRadius - 0.4);
+    this._spiralAngle += this._spiralSpeed;
+    this._spiralScale  = Math.max(0, this._spiralRadius / 180);
+
+    // Move agent along spiral path
+    this.agent.x = this._spiralCx + Math.cos(this._spiralAngle) * this._spiralRadius;
+    this.agent.y = this._spiralCy + Math.sin(this._spiralAngle) * this._spiralRadius;
+
+    // Shrink the agent container
+    const s = this._spiralScale;
+    this.agent.container.setPosition(this.agent.x, this.agent.y);
+    this.agent.container.setScale(s * (this.agent._facingRight ? 1 : -1), s * (1 - this.agent.hunchLevel * 0.06));
+    this.agent._shadow.setPosition(this.agent.x, this.agent.y + 52 * s);
+    this.agent._shadow.setScale(s);
+    this.agent._glow.setPosition(this.agent.x, this.agent.y);
+    this.agent.nameTag.setAlpha(s);
+    this.agent.stateLabel.setAlpha(s);
+    this.agent.perceptionRing.setAlpha(s * 0.4);
+
+    // Feed speeds up during spiral
+    this._feedSpeed = Math.min(10, this._feedSpeed + 0.01);
+
+    // When fully shrunk — transition
+    if (this._spiralRadius <= 2) {
+      this._spiraling = false;
+      this._transitionToScene3();
+    }
+  }
+
+  _showSpiralWarning() {
+    const { width, height } = this.scale;
+
+    const msg = this.add.container(width / 2, height / 2 - 100).setDepth(32);
+    const bg  = this.add.rectangle(0, 0, 480, 56, 0x000000, 0.9);
+    bg.setStrokeStyle(2, 0xf97316, 1);
+    const txt = this.add.text(0, 0, '⚠️  Kai is losing himself in the loop...', {
+      fontFamily: 'Sora, Inter, sans-serif', fontSize: '17px', fontStyle: 'bold', color: '#f97316'
+    }).setOrigin(0.5);
+    msg.add([bg, txt]);
+
+    gsap.fromTo(msg, { alpha: 0, scale: 0.85 }, { alpha: 1, scale: 1, duration: 0.5, ease: 'back.out(1.5)' });
+
+    // Pulse it while spiraling
+    this.tweens.add({
+      targets: msg, alpha: 0.4, duration: 600, yoyo: true, repeat: -1, ease: 'Sine.easeInOut'
+    });
+  }
+
+  _transitionToScene3() {
+    if (this._ended) return;
+    this._ended = true;
+
+    const { width, height } = this.scale;
+
+    // Vortex flash
+    this.cameras.main.flash(500, 100, 0, 200);
+    this.cameras.main.shake(300, 0.015);
+
+    // Title card
+    this.time.delayedCall(400, () => {
+      const card = this.add.container(width / 2, height / 2).setDepth(36);
+      const cardBg = this.add.rectangle(0, 0, 520, 130, 0x000000, 0.92);
+      cardBg.setStrokeStyle(3, 0xf97316, 1);
+      const title = this.add.text(0, -22, '⚠️ The Distortion', {
+        fontFamily: 'Sora, Inter, sans-serif', fontSize: '34px', fontStyle: 'bold', color: '#f97316'
+      }).setOrigin(0.5);
+      const sub = this.add.text(0, 22, 'Reality is starting to blur.', {
+        fontFamily: 'Inter, sans-serif', fontSize: '15px', color: '#94a3b8'
+      }).setOrigin(0.5);
+      card.add([cardBg, title, sub]);
+
+      gsap.fromTo(card, { alpha: 0, scale: 0.8 }, { alpha: 1, scale: 1, duration: 0.5, ease: 'back.out(1.5)' });
+
+      this.time.delayedCall(2500, () => {
+        this.cameras.main.fadeOut(800, 0, 0, 0);
+        this.cameras.main.once('camerafadeoutcomplete', () => {
+          this.scene.start('DistortionScene');
+        });
+      });
+    });
+  }
+
   // ── State change ──────────────────────────────────────────────────────────
   _onStateChange(newState, reason) {
     this._log(`→ ${newState}`, reason);
-    if (['DISTORTED', 'RECOVERED', 'PARTIAL', 'LOST'].includes(newState)) {
+    if (newState === 'DISTORTED') {
+      this._startSpiral();
+    } else if (['RECOVERED', 'PARTIAL', 'LOST'].includes(newState)) {
       this._endScene(newState, reason);
     }
   }
