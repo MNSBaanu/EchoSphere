@@ -1114,7 +1114,7 @@ export default class RealWorldScene extends Phaser.Scene {
     this.time.delayedCall(4000, () => {
       this.cameras.main.fadeOut(800, 0, 0, 0);
       this.cameras.main.once("camerafadeoutcomplete", () => {
-        this.scene.start("DistortionScene");
+        this.scene.start("BootScene");
       });
     });
   }

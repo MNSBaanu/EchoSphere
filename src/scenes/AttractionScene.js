@@ -96,7 +96,7 @@ export default class AttractionScene extends Phaser.Scene {
 
     // ── Skip key ──────────────────────────────────────────────────────────
     this.input.keyboard.once('keydown-N', () => {
-      if (!this._ended) this._transitionToLoop();
+      if (!this._ended) this._transitionToRealWorld();
     });
   }
 
@@ -178,7 +178,7 @@ export default class AttractionScene extends Phaser.Scene {
         
         // Delay transition slightly for dramatic effect
         this.time.delayedCall(800, () => {
-          this._transitionToDistortion();
+          this._transitionToRealWorld();
         });
       }
     }
@@ -1037,35 +1037,6 @@ export default class AttractionScene extends Phaser.Scene {
     this.input.off('wheel');
   }
 
-  _transitionToDistortion() {
-    if (this._ended) return;
-    this._ended = true;
-    
-    this._log('🌀 Transition', 'Moving to Scenario 2 - Distortion');
-    
-    // Stop emotion update timer
-    if (this._emotionUpdateTimer) {
-      this._emotionUpdateTimer.remove();
-    }
-    
-    // Visual glitch effects before transition
-    this.cameras.main.shake(500, 0.01);
-    
-    // Screen distortion
-    this.time.delayedCall(200, () => {
-      this.cameras.main.flash(300, 100, 0, 100);
-    });
-    
-    // Fade out
-    this.time.delayedCall(600, () => {
-      this.cameras.main.fadeOut(1000, 0, 0, 0);
-    });
-    
-    this.cameras.main.once('camerafadeoutcomplete', () => {
-      this.scene.start('DistortionScene');
-    });
-  }
-
   _transitionToRealWorld() {
     if (this._ended) return;
     this._ended = true;
@@ -1360,11 +1331,6 @@ export default class AttractionScene extends Phaser.Scene {
       this.agent.addictionLevel = Math.min(100, this.agent.addictionLevel + 5);
       this.agent.emotions.applyEvent({ stress: 5 });
     }
-  }
-
-  _transitionToLoop() {
-    this._ended = true;
-    this.scene.start('TheLoopScene');
   }
 
   // Start manual scrolling mode (no auto-scroll)

@@ -2,97 +2,124 @@
 
 ---
 
-## 🎬 Scenario 1: The Attraction *(Initial Engagement Phase)*
+## 🔀 The Core Loop
 
-The simulation begins with the agent — represented as a teenage individual — entering a visually appealing digital environment filled with social media elements such as notifications, messages, and interactive content. The environment is bright, colorful, and highly engaging, designed to capture the agent's attention.
+```
+Mobile ──(distraction)──→ Addiction ──→ Results (Bad Grades)
+   ↑                           │
+   │                    [Learning] remembers failure
+   │                           ↓
+Real World ──(balancing)──→ Studies ←──────────────────┘
+                               │
+                    (distraction can pull back)
+                               │
+                          Results (Good Grades)
+```
 
-Using its **perceptual abilities**, the agent detects visual cues such as pop-up notifications and icons, as well as auditory signals like message alerts. These stimuli influence the agent's internal emotional state, increasing its level of excitement and satisfaction. Based on this, the agent demonstrates **decision-making behavior** by choosing to engage with the digital content.
-
-At this stage, the agent begins interacting with simple messages from friends through **natural language communication**, responding to casual conversations. The agent's emotional state is positively reinforced, encouraging continued engagement.
-
-> This scenario establishes how initial exposure and attractive stimuli can influence behavior, gradually drawing the agent into repeated interaction.
-
-**Intelligence traits active:** Perception · Emotional Intelligence · NLP · Decision Making
-
----
-
-## 🔁 Scenario 2: The Loop *(Habit Formation Phase)*
-
-As the simulation progresses, the agent becomes increasingly engaged in a repetitive cycle of digital interaction. The environment transforms into an infinite scrolling space where content continuously appears, reinforcing habitual behavior.
-
-The agent continues to rely on **perception** to detect incoming notifications but begins to ignore less stimulating real-world cues. Through repeated **decision making**, the agent prioritizes short-term rewards over meaningful interactions.
-
-Early **learning behavior** begins to emerge — the agent associates digital engagement with positive emotional outcomes. However, this learning is biased, reinforcing addictive patterns rather than balanced behavior.
-
-The agent's **emotional intelligence** becomes limited, as it fails to recognize the importance of real-world interactions. Time perception distorts, symbolizing prolonged engagement in digital activities.
-
-> This scenario demonstrates how repeated decisions can lead to habit formation and reduced awareness.
-
-**Intelligence traits active:** Perception · Learning · Decision Making · Emotional Intelligence
+Kai can cycle through addiction and recovery multiple times. Each cycle, the **Learning system** makes him more resilient — he resists faster and recovers quicker. The Real World acts as the anchor that keeps pulling him back toward balance.
 
 ---
 
-## ⚠️ Scenario 3: The Distortion *(Conflict Phase)*
+## 🎬 Scene 0: Boot Screen
 
-The boundary between the digital and real worlds begins to blur. The environment becomes unstable — visual distortions, glitches, and overlapping elements from both worlds appear simultaneously.
-
-The agent receives messages from friends and family via **natural language communication** (text or audio calls). Some messages express urgency or emotional distress. Using **emotional intelligence**, the agent must interpret these cues and assess their importance.
-
-Simultaneously, the agent continues to perceive digital distractions, creating a conflict between competing priorities. The agent must make critical **decisions** — whether to respond to real-world needs or continue engaging in the digital environment.
-
-To respond effectively, the agent uses **pathfinding** to navigate toward specific goals, such as reaching a family member or assisting a friend, while avoiding distractions.
-
-> This scenario highlights the internal conflict between comfort and responsibility, emphasizing the role of intelligent decision-making.
-
-**Intelligence traits active:** Perception · NLP · Emotional Intelligence · Pathfinding · Decision Making
+The entry point. Kai's story is introduced with the title "EchoSphere — The World You Shape." The player clicks to begin.
 
 ---
 
-## 🧩 Scenario 4: The Breaking Point *(Critical Decision Phase)*
+## 🎬 Scene 1: The Attraction *(Initial Fork — Mobile Path)*
 
-The consequences of the agent's previous actions become apparent. The environment reflects instability — relationships weaken, surroundings darken, and digital elements become overwhelming and chaotic.
+Kai is in his bedroom. His phone lights up with a notification. This is the **first decision point** — two paths diverge:
 
-The agent now relies heavily on **learning**, recalling past decisions and their outcomes. For example, ignoring a family member may have resulted in negative consequences, influencing the agent to reconsider similar actions.
+- **Walk to the phone** → enters the mobile/addiction loop
+- **Walk to the door** → goes outside to the Real World
 
-The agent must make a significant decision that determines its future path: continue prioritizing digital engagement, or shift focus toward meaningful real-world interactions.
+If Kai picks up the phone, the social feed opens. His `addictionLevel` rises and `awareness` falls with every scroll. After a while, a **study reminder notification** interrupts the feed — a decision node fires:
 
-Using **pathfinding**, the agent navigates toward its chosen objective — either moving deeper into the digital space or toward real-world connections. Emotional states such as stress, guilt, and awareness play a crucial role in guiding this decision.
+- **Keep Scrolling** → addiction deepens, transitions toward the Addiction state
+- **Go Study** → transitions to the Learning/Studies scene
 
-> This scenario represents the turning point where accumulated experiences influence behavior and outcomes.
-
-**Intelligence traits active:** Learning · Emotional Intelligence · Pathfinding · Decision Making
+**AI traits active:** Perception (sees and hears notification) · Decision Making
 
 ---
 
-## 🌅 Scenario 5: The Outcome *(Final State Phase)*
+## 📱 Scene 2: Addiction *(Habit Formation)*
 
-The environment evolves based on the cumulative decisions made by the agent throughout the simulation. All six intelligence traits are reflected in the agent's final behavior and the resulting world state.
+Kai stayed on the phone. His addiction level climbs, awareness drops, and his relationship with family degrades as messages get ignored. The agent's **Learning system** records behavioral patterns:
 
-### ✅ Good Ending — Balanced & Recovered
-The agent has effectively managed digital engagement while maintaining real-world relationships. The environment becomes stable, bright, and socially connected. The agent exhibits improved perception, clear decision-making, and positive emotional states.
+- `high_addiction` — addiction exceeded 80%
+- `social_neglect` — two or more messages ignored
+- `compulsive_scrolling` — scroll count exceeded threshold
 
-### ❌ Bad Ending — Lost in the Loop
-The agent has consistently prioritized digital interaction. The environment deteriorates into a dark, isolated space. Relationships weaken or disappear entirely, and the agent remains trapped in a cycle of meaningless engagement.
+Auto-scroll activates when addiction passes 50%, gradually removing Kai's control. Conflict messages from Mom, friends, and family interrupt the feed — Kai can Reply (relationship improves) or Ignore (relationship drops, addiction rises).
 
-### 🔶 Partial Ending — Inconsistent Balance
-A mixed outcome where the environment reflects both positive and negative aspects, indicating inconsistent decision-making across the simulation.
+**AI traits active:** Emotional Intelligence · Learning · Decision Making
 
-> In this final stage, all intelligence traits — perception, emotional intelligence, NLP, learning, pathfinding, and decision making — converge to produce the agent's ending.
+---
 
-**Intelligence traits active:** All six
+## 📋 Scene 3: Results *(Consequence of Addiction)*
+
+Kai receives his exam results — they are bad. A consequence card displays the outcome of his choices. The **Learning system** activates: Kai remembers this failure and stores it in memory. This drives a forced return to the Studies path. The memory of bad grades makes Kai more likely to resist distraction in the next cycle.
+
+**AI traits active:** Learning (memory of failure drives behavior change)
+
+---
+
+## 📚 Scene 4: Studies / Learning *(The Productive Path)*
+
+Kai sits at his desk and works through study tasks across five subjects — Mathematics, Science, Literature, Coding, and Geography. Progress is made by completing each task (hold SPACE to fill the progress bar). XP is earned for each completed task.
+
+However, the phone can still distract. Notifications fire randomly during study sessions. If Kai's addiction level is still elevated, there is a chance he gets pulled back toward the Addiction path — this is the **distraction loop** shown in the diagram. If he resists and completes all tasks, he moves toward Good Grades.
+
+**AI traits active:** Learning · Emotional Intelligence · Decision Making · Perception (distraction detection)
+
+---
+
+## 🌿 Scene 5: Real World *(Balancing — EI + NL Communication)*
+
+If Kai chose the door at the start, or is trying to balance both worlds, he ends up outside. Three NPCs are present — Mom, Alex (friend), and Sam (sibling) — each with their own dialogue, emotional states, and autonomous behavior.
+
+Kai interacts with NPCs using a **vision cone** (90° field of view) and **hearing range** system. NPCs outside his perception range are not noticed. Real-world interaction restores awareness and reduces addiction. This scene feeds back into Studies — healthy relationships make Kai more resilient to phone addiction in the next cycle.
+
+Random world events fire unpredictably: dusk narrows Kai's vision, rain sends NPCs to shelter, wind gusts trigger NPC comments, and NPCs may walk toward Kai if he ignores them too long.
+
+**AI traits active:** Pathfinding · Emotional Intelligence · NL Communication · Perception (vision cone + hearing)
+
+---
+
+## 🏆 Scene 6: Results *(Good Grades — Outcome)*
+
+Kai completed his studies without falling back into addiction, or successfully recovered from bad grades through the learning loop. The outcome card shows good results. The simulation reflects the cumulative effect of Kai's decisions across all cycles.
+
+**AI traits active:** All six — Perception · Emotional Intelligence · NL Communication · Learning · Pathfinding · Decision Making
 
 ---
 
 ## 🔀 State Transition Summary
 
 ```
-IDLE → ATTRACTED → LOOPING → DISTORTED → BREAKING_POINT → [RECOVERED | PARTIAL | LOST]
+IDLE → ATTRACTED → [ADDICTED | STUDYING] → RESULTS → [BAD GRADES | GOOD GRADES]
+                         ↑         |
+                         └─────────┘  (distraction loop)
 ```
 
-| Scenario | Agent State | World Tone |
+| Scene | Agent State | World Tone |
 |---|---|---|
 | 1 — The Attraction | `ATTRACTED` | Bright, colorful, rewarding |
-| 2 — The Loop | `LOOPING` | Infinite, numbing, distorted time |
-| 3 — The Distortion | `DISTORTED` | Glitchy, conflicted, unstable |
-| 4 — The Breaking Point | `BREAKING_POINT` | Dark, chaotic, high stress |
-| 5 — The Outcome | `RECOVERED / PARTIAL / LOST` | Bright / Mixed / Isolated |
+| 2 — Addiction | `LOOPING` | Numbing, distorted time, loss of control |
+| 3 — Results (Bad) | `DISTORTED` | Dark, consequence-heavy |
+| 4 — Studies | `IDLE / FOCUSED` | Warm, productive, calm |
+| 5 — Real World | `AWARE` | Natural, social, restorative |
+| 6 — Results (Good) | `RECOVERED` | Bright, balanced, connected |
+
+---
+
+## 🧠 AI Intelligence Traits — Where Each Appears
+
+| Trait | Scenes |
+|---|---|
+| **Perception** | 1, 4, 5 — detects notifications, NPCs, environmental cues |
+| **Decision Making** | 1, 2, 4 — phone vs door, scroll vs study, resist vs engage |
+| **Emotional Intelligence** | 2, 4, 5 — stress, happiness, loneliness affect behavior |
+| **Learning** | 2, 3, 4 — stores patterns, failure memory drives recovery |
+| **NL Communication** | 5 — NPC dialogue, emotional responses, advice system |
+| **Pathfinding** | 1, 5 — agent navigates to phone/door, NPCs seek Kai |
