@@ -21,7 +21,7 @@ const config = {
     arcade: { gravity: { y: 0 }, debug: false }
   },
   scene: [BootScene, AttractionScene, TheLoopScene, DistortionScene, LearningScene, RealWorldScene]
-
+};
 
 const game = new Phaser.Game(config);
 
