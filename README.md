@@ -1,84 +1,139 @@
 # 🌐 EchoSphere: The World You Shape
 
-> An interactive, agent-based simulation game about a teen navigating the pull of digital addiction — and finding their way back to the real world.
+> An interactive, agent-based simulation about a teenage student navigating the pull of digital addiction — and finding his way back to balance, real-world connections, and academic success.
 
 ---
 
 ## 🎯 Overview
 
-**EchoSphere** is a browser-based intelligent agent simulation built with Phaser.js, p5.js, and Tailwind CSS. An anime-styled teen agent moves autonomously between a vibrant Digital World and a fading Real World, making decisions driven by six AI intelligence traits. The story branches into multiple endings based on events, choices, and random happenings — no two playthroughs are the same.
+**EchoSphere** is a browser-based intelligent agent simulation built with Phaser.js, GSAP, and Tailwind CSS. The player follows **Kai**, a teenage student whose daily choices between his phone and the real world compound into outcomes that shape his academic results and relationships.
+
+The simulation is not linear — it is a **behavioral loop**. Kai can fall into addiction, recover through learning, get distracted while studying, and cycle back again. Each pass through the loop, the AI's Learning system makes Kai more resilient. The Real World acts as the anchor that keeps pulling him toward balance.
+
+---
+
+## 🗺️ The Story Flow
+
+```
+              Agent (Kai)
+             /            \
+        Mobile           Real World
+           |                  |
+      Attraction          NPC Interaction
+           |             (Balancing — EI +
+    Decision Node:        NL Communication)
+    Scroll or Study?           |
+       /        \              ↓
+  Addiction    Studies ←───────┘
+      |            |
+      |     (Distraction possible
+      |      → back to Addiction)
+      ↓            ↓
+  Bad Grades   Good Grades
+      |
+  [Learning]
+      ↓
+  Back to Studies
+```
+
+---
+
+## 🎬 The Scenes
+
+| # | Scene | Description |
+|---|---|---|
+| 0 | Boot | Title screen — Kai's story begins |
+| 1 | The Attraction | Bedroom fork — phone or door? |
+| 2 | Addiction | Social feed loop, auto-scroll, ignored messages |
+| 3 | Results (Bad) | Consequence of addiction — bad grades |
+| 4 | Studies | Desk tasks, XP system, distraction risk |
+| 5 | Real World | Outdoor NPC interactions, vision cone, balancing |
+| 6 | Results (Good) | Outcome of sustained study and balance |
+
+See **[SCENARIOS.md](./SCENARIOS.md)** for the full breakdown of each scene.
 
 ---
 
 ## 🧠 Agent Intelligence Traits
 
-| Trait | Description |
-|---|---|
-| **Perception** | Detects incoming notifications, nearby NPCs, and environmental sounds |
-| **Emotional Intelligence** | Tracks an internal emotion meter — `stress`, `happiness`, `loneliness` |
-| **NLP** | Processes and responds to text/audio messages from friend and family NPCs |
-| **Learning** | Stores past decisions in memory; prior actions influence future behavior |
-| **Pathfinding** | Navigates between Digital and Real World zones using A* pathfinding |
-| **Decision Making** | Core logic engine — every major action is a weighted, state-driven choice |
-
----
-
-## 🗺️ The 5 Scenes
-
-See **[SCENARIOS.md](./SCENARIOS.md)** for the full breakdown of each scene.
-
-| # | Scene | Phase |
+| Trait | Description | Active In |
 |---|---|---|
-| 1 | The Attraction | Initial Engagement |
-| 2 | The Loop | Habit Formation |
-| 3 | The Distortion | Conflict |
-| 4 | The Breaking Point | Critical Decision |
-| 5 | The Outcome | Final State (3 possible endings) |
+| **Perception** | Detects notifications, NPCs, environmental cues via vision cone and hearing range | Scenes 1, 4, 5 |
+| **Decision Making** | Weighted, state-driven choices — phone vs door, scroll vs study, reply vs ignore | Scenes 1, 2, 4 |
+| **Emotional Intelligence** | Tracks `stress`, `happiness`, `loneliness` — affects behavior and NPC reactions | Scenes 2, 4, 5 |
+| **Learning** | Stores behavioral patterns in memory; failure drives recovery behavior | Scenes 2, 3, 4 |
+| **NL Communication** | NPC dialogue system with emotional responses, advice, and context-aware reactions | Scene 5 |
+| **Pathfinding** | Agent navigates to phone/door; NPCs autonomously seek Kai when ignored | Scenes 1, 5 |
 
 ---
 
-## 🌍 Environment
+## 🔁 The Core Loop
+
+The simulation is built around a repeating behavioral cycle:
+
+1. Kai gets attracted to his phone (Scene 1)
+2. Addiction deepens — awareness drops, relationships suffer (Scene 2)
+3. Bad grades arrive as a consequence (Scene 3)
+4. The Learning system fires — Kai remembers the failure and returns to studying (Scene 4)
+5. While studying, distractions can pull him back to addiction (loop continues)
+6. Real-world interactions restore balance and feed back into studies (Scene 5)
+7. Sustained study leads to good grades (Scene 6)
+
+Each cycle through the loop, Kai's AI becomes more resilient. The Learning system stores patterns like `high_addiction`, `social_neglect`, and `compulsive_scrolling` — and uses them to influence future decisions.
+
+---
+
+## 🤖 How the AI Works
+
+### Addiction Variable
+- Rises by 0.15/frame during phone use, 0.3 per scroll
+- Decays at 0.02/frame when phone is put down
+- Drives visual hunch (4 levels), auto-scroll, and state transitions
+
+### Auto-Scroll (Loss of Control)
+- Activates when `addictionLevel > 50`
+- Speed scales with addiction: `((addiction - 50) / 50) * 2`
+- Demonstrates the agent losing autonomy to the system
+
+### Behavior-Based Transitions
+Transitions are **not time-based**. Multiple conditions must be met:
+```javascript
+addictionLevel >= 100
+|| (addictionLevel > 85 && ignoredMessages >= 2)
+|| (awareness < 20 && addictionLevel > 80)
+```
+
+### Learning System
+Patterns stored in `agent.memory[]`:
+- `high_addiction` — addiction exceeded 80%
+- `social_neglect` — 2+ messages ignored
+- `compulsive_scrolling` — scroll count exceeded threshold
+- `mom_advice` — received advice from Mom NPC (not repeated)
+
+### Vision Cone + Hearing (Real World)
+- 90° field of view, range shrinks at dusk and when phone is out
+- Hearing range: 150px regardless of direction
+- NPCs outside perception range are not noticed or interacted with
+
+---
+
+## 🌍 Environment Zones
 
 | Zone | Description |
 |---|---|
-| **Digital World** | Neon-lit, notification-heavy, fast-paced. Glowing UI, anime-style pixel art. |
-| **Real World** | Warm, natural tones. Degrades visually as addiction deepens. Restored on good ending. |
-
-Agents move between zones via transition portals. Each zone's visual state reflects the agent's current emotional and behavioral condition.
+| **Bedroom (Mobile)** | Warm room with phone on desk and door to outside. First decision point. |
+| **Social Feed** | Full-screen phone UI with scrollable notifications, addiction bars, emotion meters. |
+| **Study Room** | Desk with laptop, notebook, bookshelf. Task cards and XP system. |
+| **Outdoor Park** | Sunny park with NPCs, vision cone, weather events, and bench. |
 
 ---
 
 ## 👾 Characters
 
-- **Main Agent** — Anime-styled teen. FSM-driven behavior. Reacts to environment, NPCs, and emotion levels.
-- **Friend NPC** — Sends messages; can pull the agent toward reality or deeper into the loop.
-- **Parent NPC** — Calls and appears in the real world. Relationship degrades if ignored.
-- **Social Media Bot NPCs** — Hostile agents that spam notifications to keep the agent trapped.
-
----
-
-## 🔀 State-Based Behavior
-
-```
-IDLE → ATTRACTED → LOOPING → DISTORTED → BREAKING_POINT → [RECOVERED | PARTIAL | LOST]
-```
-
-State transitions are triggered by:
-- Incoming notifications (random frequency)
-- NPC interactions (friend messages, parent calls)
-- Emotion meter thresholds
-- Player-influenced choices at decision nodes
-- Random environmental events
-
----
-
-## ⚡ Random Events
-
-- 📵 Phone battery dies — forces real-world interaction
-- 🌧️ Rainstorm draws the agent outside
-- 💬 Unexpected message from a long-lost friend
-- 🔔 Viral notification spikes the addiction loop
-- 🛑 Social media platform goes down temporarily
+- **Kai** — The main agent. FSM-driven behavior. Reacts to environment, NPCs, and internal emotion levels. Hunches forward as addiction increases.
+- **Mom** — Gives advice once when addiction is high. Kai learns from her and stores it in memory.
+- **Alex (Friend)** — Casual NPC. Reacts with frustration if Kai has his phone out.
+- **Sam (Sibling)** — Younger NPC. Seeks attention and reacts emotionally to being ignored.
 
 ---
 
@@ -86,11 +141,11 @@ State transitions are triggered by:
 
 | Layer | Technology |
 |---|---|
-| **Game Engine** | [Phaser.js](https://phaser.io/) — scenes, physics, sprites, input |
-| **Creative Visuals** | [p5.js](https://p5js.org/) — generative art, emotion visualizations |
-| **Frontend / UI** | HTML5 + [Tailwind CSS](https://tailwindcss.com/) — HUD, meters, dialogue |
-| **Animations** | [GSAP](https://greensock.com/gsap/) *(optional)* — UI transitions, pop-ins |
-| **Logic** | Vanilla JavaScript (ES6 modules) — FSM, pathfinding, NLP dialogue |
+| **Game Engine** | [Phaser.js 3](https://phaser.io/) — scenes, input, tweens, graphics |
+| **Animations** | [GSAP](https://greensock.com/gsap/) — UI transitions, pop-ins, card animations |
+| **Frontend / UI** | HTML5 + [Tailwind CSS](https://tailwindcss.com/) — HUD, meters, dialogue boxes |
+| **Logic** | Vanilla JavaScript ES6 modules — FSM, learning system, emotion engine |
+| **Build Tool** | [Vite](https://vitejs.dev/) — fast dev server and bundler |
 
 ---
 
@@ -107,16 +162,23 @@ Open `http://localhost:5173` in your browser.
 
 ---
 
-## 🎮 How It Works
+## 🎮 Controls
 
-1. The simulation runs autonomously — the agent acts on its own intelligence.
-2. At **decision nodes**, you can influence the agent's choice.
-3. Watch the **emotion meters** in the HUD — they drive state transitions.
-4. Random events fire unpredictably — no two runs are identical.
-5. The story branches at **Scene 4** based on accumulated decisions and emotional state.
+| Key | Action |
+|---|---|
+| `Arrow Keys / WASD` | Move Kai |
+| `E` | Pick up phone (when nearby) |
+| `T` | Talk to NPC (when nearby and perceived) |
+| `SPACE` | Progress study task (hold to fill bar) |
+| `C` | Sit / stand at desk |
+| `N` | Skip current scene |
 
 ---
 
 ## 📄 License
 
 MIT License — see [LICENSE](LICENSE) for details.
+
+---
+
+*Implemented by Baanu & Irfa*
