@@ -65,7 +65,7 @@ export default class AttractionScene extends Phaser.Scene {
     this.add.text(width / 2, 14, 'SCENARIO 1 — THE ATTRACTION', {
       fontFamily: FONT, fontSize: '16px', color: '#a5b4fc', fontStyle: 'bold'
     }).setOrigin(0.5, 0).setDepth(21);
-    this.add.text(width - 24, 14, 'Real World  ·  [N] skip', {
+    this.add.text(width - 24, 14, 'Real World  ·  [F] or [N] skip', {
       fontFamily: FONT, fontSize: '15px', color: '#818cf8'
     }).setOrigin(1, 0).setDepth(21);
 
@@ -94,8 +94,13 @@ export default class AttractionScene extends Phaser.Scene {
     this._buildChoiceButtons();
     this._logContainer = this.add.container(16, height - 16).setDepth(25);
 
-    // ── Skip key ──────────────────────────────────────────────────────────
+    // ── Skip keys ─────────────────────────────────────────────────────────
     this.input.keyboard.once('keydown-N', () => {
+      if (!this._ended) this._transitionToRealWorld();
+    });
+    
+    // F key for quick access to Real World
+    this.input.keyboard.once('keydown-F', () => {
       if (!this._ended) this._transitionToRealWorld();
     });
   }
@@ -1041,12 +1046,8 @@ export default class AttractionScene extends Phaser.Scene {
 
     if (this._emotionUpdateTimer) this._emotionUpdateTimer.remove();
 
-    // Warm flash — sunlight
-    this.cameras.main.flash(400, 255, 220, 150, false);
-
-    this.time.delayedCall(400, () => {
-      this.cameras.main.fadeOut(800, 255, 240, 200);
-    });
+    // Smooth fade out transition (no flash/glitch)
+    this.cameras.main.fadeOut(1200, 255, 240, 200);
 
     this.cameras.main.once('camerafadeoutcomplete', () => {
       // Pass agent state to real world scene

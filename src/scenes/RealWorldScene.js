@@ -151,8 +151,8 @@ export default class RealWorldScene extends Phaser.Scene {
     // ── Weather / time-of-day overlay (drawn on top) ──────────────────────
     this._weatherOverlay = this.add.graphics().setDepth(18).setAlpha(0);
 
-    // ── Start NPC greeting sequence ───────────────────────────────────────
-    this.time.delayedCall(1200, () => this._startGreetings());
+    // ── Start NPC greeting sequence (delayed for smooth entry) ───────────
+    this.time.delayedCall(3000, () => this._startGreetings()); // Increased from 1200 to 3000ms
 
     // ── Phone pull-back loop ──────────────────────────────────────────────
     this.time.addEvent({
@@ -209,8 +209,9 @@ export default class RealWorldScene extends Phaser.Scene {
     const ax = this.agent.x;
     const ay = this.agent.y;
 
-    // Draw cone
-    g.fillStyle(0xffd700, 1);
+    // Draw cone - invisible (removed yellow vision cone)
+    // Vision cone is now hidden for cleaner visuals
+    g.fillStyle(0xffd700, 0); // Alpha set to 0 - invisible
     g.beginPath();
     g.moveTo(ax, ay);
     const steps = 16;
@@ -221,8 +222,8 @@ export default class RealWorldScene extends Phaser.Scene {
     g.closePath();
     g.fillPath();
 
-    // Hearing ring (dashed circle)
-    g.lineStyle(1, 0x38bdf8, 0.25);
+    // Hearing ring - also hidden
+    g.lineStyle(1, 0x38bdf8, 0); // Alpha set to 0 - invisible
     g.strokeCircle(ax, ay, this.HEARING_RANGE);
   }
 
@@ -662,25 +663,10 @@ export default class RealWorldScene extends Phaser.Scene {
 
     drawNPC(data.emotion);
 
-    // Name tag
-    const nameTag = this.add.text(x, y - 62 * S * 0.36 - 30, data.name, {
-      fontFamily: FONT, fontSize: "14px", fontStyle: "bold",
-      color: "#ffffff", backgroundColor: "#00000099",
-      padding: { x: 7, y: 4 }
-    }).setOrigin(0.5).setDepth(9);
-
-    // Emotion indicator
-    const emotionEmoji = { happy: "😊", neutral: "😐", angry: "😠", sad: "😢" };
-    const emotionTag = this.add.text(x + 30, y - 62 * S * 0.36 - 30, emotionEmoji[data.emotion] || "😐", {
-      fontSize: "18px"
-    }).setOrigin(0.5).setDepth(9);
-
-    // Idle float animation
-    this.tweens.add({
-      targets: [nameTag, emotionTag],
-      y: "+=6", duration: 1800 + Math.random() * 600,
-      yoyo: true, repeat: -1, ease: "Sine.easeInOut"
-    });
+    // Name tag and emotion indicator — REMOVED for cleaner Real World scene
+    // NPCs are identified through interaction and speech bubbles only
+    const nameTag = null;
+    const emotionTag = null;
 
     const npc = {
       id: data.id, name: data.name, x, y, g, nameTag, emotionTag,
@@ -719,43 +705,14 @@ export default class RealWorldScene extends Phaser.Scene {
 
   // ── HUD ───────────────────────────────────────────────────────────────────
   _buildHUD(width, height) {
-    const hud = this.add.container(width - 200, 62).setDepth(25);
-
-    const bg = this.add.rectangle(0, 0, 185, 110, 0x000000, 0.6);
-    bg.setStrokeStyle(1, 0x4ade80, 0.5);
-
-    const title = this.add.text(0, -40, "Agent State", {
-      fontFamily: FONT, fontSize: "12px", color: "#86efac", fontStyle: "bold"
-    }).setOrigin(0.5);
-
-    // Awareness bar
-    const awLabel = this.add.text(-80, -20, "👁 Awareness", {
-      fontFamily: FONT, fontSize: "11px", color: "#e2e8f0"
-    });
-    const awBg = this.add.rectangle(-10, -10, 120, 8, 0x1e293b, 1).setOrigin(0, 0.5);
-    this._awBar = this.add.rectangle(-10, -10, (this._awareness / 100) * 120, 6, 0x3b82f6, 1).setOrigin(0, 0.5);
-
-    // Addiction bar
-    const adLabel = this.add.text(-80, 5, "📱 Addiction", {
-      fontFamily: FONT, fontSize: "11px", color: "#e2e8f0"
-    });
-    const adBg = this.add.rectangle(-10, 15, 120, 8, 0x1e293b, 1).setOrigin(0, 0.5);
-    this._adBar = this.add.rectangle(-10, 15, (this._addictionLevel / 100) * 120, 6, 0xef4444, 1).setOrigin(0, 0.5);
-
-    // Relationship bar
-    const relLabel = this.add.text(-80, 30, "💬 Relations", {
-      fontFamily: FONT, fontSize: "11px", color: "#e2e8f0"
-    });
-    const relBg = this.add.rectangle(-10, 40, 120, 8, 0x1e293b, 1).setOrigin(0, 0.5);
-    this._relBar = this.add.rectangle(-10, 40, (this._relationshipLevel / 100) * 120, 6, 0x10b981, 1).setOrigin(0, 0.5);
-
-    hud.add([bg, title, awLabel, awBg, this._awBar, adLabel, adBg, this._adBar, relLabel, relBg, this._relBar]);
+    // Agent Status HUD removed for cleaner interface
+    // Metrics are still tracked internally but not displayed
+    return;
   }
 
   _updateHUD() {
-    if (this._awBar)  this._awBar.width  = (this._awareness / 100) * 120;
-    if (this._adBar)  this._adBar.width  = (this._addictionLevel / 100) * 120;
-    if (this._relBar) this._relBar.width = (this._relationshipLevel / 100) * 120;
+    // HUD removed - no updates needed
+    return;
   }
 
   // ── Player movement — delegated to Agent ─────────────────────────────────
@@ -976,15 +933,16 @@ export default class RealWorldScene extends Phaser.Scene {
 
   // ── Greeting sequence on scene start ─────────────────────────────────────
   _startGreetings() {
+    // Slower, one-by-one communication with longer delays
     this._npcs.forEach((npc, i) => {
-      this.time.delayedCall(i * 1200, () => {
+      this.time.delayedCall(i * 4000, () => { // Increased from 1200 to 4000ms
         if (this._ended) return;
         const line = npc.data.lines[0];
         const bubble = this._createSpeechBubble(npc.x, npc.y - 55, line, npc.data.color, "happy");
         npc.bubble = bubble;
         npc.emotion = "happy";
         if (npc.emotionTag) npc.emotionTag.setText("😊");
-        this.time.delayedCall(3000, () => {
+        this.time.delayedCall(5000, () => { // Increased from 3000 to 5000ms
           if (npc.bubble === bubble) {
             gsap.to(bubble, { alpha: 0, duration: 0.3, onComplete: () => bubble.destroy() });
             npc.bubble = null;
