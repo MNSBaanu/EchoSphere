@@ -104,17 +104,19 @@ export default class AttractionScene extends Phaser.Scene {
     if (this._ended) return;
     if (this.agent) this.agent.update();
 
-    // Check proximity to phone and show pickup option
-    if (!this._phonePickedUp && this._phonePos && this.agent) {
+    // Check proximity to phone — show prompt when near, hide when away or screen open
+    if (!this._mobileScreenOpen && this._phonePos && this.agent) {
       const dx = this._phonePos.x - this.agent.x;
       const dy = this._phonePos.y - this.agent.y;
       const dist = Math.sqrt(dx * dx + dy * dy);
-      
+
       if (dist < 60 && !this._pickupPromptShown) {
         this._showPickupPrompt();
-      } else if (dist >= 60 && this._pickupPromptShown) {
+      } else if ((dist >= 60 || this._mobileScreenOpen) && this._pickupPromptShown) {
         this._hidePickupPrompt();
       }
+    } else if (this._mobileScreenOpen && this._pickupPromptShown) {
+      this._hidePickupPrompt();
     }
 
     // Check proximity to door and show open-door prompt
@@ -363,20 +365,14 @@ export default class AttractionScene extends Phaser.Scene {
     const btn    = this.add.circle(0, 16, 3, 0x6b7280, 1);
     phone.add([body, screen, btn]);
 
-    // Make phone clickable
-    body.setInteractive({ useHandCursor: true });
-    body.on('pointerdown', () => {
-      if (!this._phonePickedUp && !this._mobileScreenOpen) {
-        this._pickUpPhone();
-      }
-    });
+    // ── NO click handler — pickup is proximity + [E] key only ─────────────
 
     this._phone    = phone;
     this._phoneOn  = false;
 
     // Label
     this.add.text(px, py + 30, 'Phone', {
-      fontFamily: FONT_BODY, fontSize: '12px', color: '#94a3b8'
+      fontFamily: 'Inter, sans-serif', fontSize: '12px', color: '#94a3b8'
     }).setOrigin(0.5).setDepth(7);
   }
 
@@ -526,11 +522,9 @@ export default class AttractionScene extends Phaser.Scene {
   }
 
   _pickUpPhone() {
-    this._phonePickedUp = true;
+    // Allow multiple pickups — just open the screen each time
     this._hidePickupPrompt();
     this._log('📱 Phone', 'picked up!');
-    
-    // Show large mobile screen
     this._showMobileScreen();
   }
 
@@ -565,9 +559,11 @@ export default class AttractionScene extends Phaser.Scene {
       { alpha: 1, y: this._phonePos.y - 50, duration: 0.3, ease: 'back.out(1.5)' }
     );
     
-    // Add keyboard listener for E key
-    this._pickupKey = this.input.keyboard.once('keydown-E', () => {
-      this._pickUpPhone();
+    // Add keyboard listener for E key — use 'on' so it works every visit
+    this._pickupKey = this.input.keyboard.on('keydown-E', () => {
+      if (this._pickupPromptShown && !this._mobileScreenOpen) {
+        this._pickUpPhone();
+      }
     });
   }
 
