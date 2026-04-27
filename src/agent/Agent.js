@@ -56,35 +56,25 @@ export default class Agent {
     this._gfx = scene.add.graphics();
     this.container.add(this._gfx);
 
-    // Glow layer behind character (state-based colour)
-    this._glow = scene.add.circle(x, y, 38, 0x7b2fff, 0.0).setDepth(9);
+    // Glow layer behind character — hidden (kept for state-based logic)
+    this._glow = scene.add.circle(x, y, 38, 0x7b2fff, 0.0).setDepth(9).setVisible(false);
 
-    // Name tag
-    this.nameTag = scene.add.text(x, y - 80, 'Kai', {
-      fontSize: '15px',
-      fontStyle: 'bold',
-      color: '#1a1a2e',
-      backgroundColor: '#ffffffcc',
-      padding: { x: 8, y: 4 }
-    }).setOrigin(0.5).setDepth(12);
+    // Name tag — removed
+    this.nameTag = { setPosition: () => {}, setText: () => {}, setStyle: () => {}, setAlpha: () => {} };
 
-    // State badge under character
-    this.stateLabel = scene.add.text(x, y + 68, 'IDLE', {
-      fontSize: '12px',
-      fontStyle: 'bold',
-      color: '#ffffff',
-      backgroundColor: '#1a1a2ecc',
-      padding: { x: 8, y: 3 }
-    }).setOrigin(0.5).setDepth(12);
+    // State label — removed
+    this.stateLabel = { setText: () => {}, setPosition: () => {}, setStyle: () => {}, setAlpha: () => {} };
 
-    // Perception ring
+    // Perception ring — hidden
     this.perceptionRing = scene.add.circle(x, y, 90)
-      .setStrokeStyle(2, 0x7b2fff, 0.2)
+      .setStrokeStyle(0, 0x7b2fff, 0)
       .setFillStyle(0x000000, 0)
-      .setDepth(5);
+      .setDepth(5)
+      .setVisible(false);
 
     // Controls hint (shown briefly)
     this._controlsHint = scene.add.text(x, y + 95, '← → ↑ ↓  or  WASD to move', {
+      fontFamily: 'Inter, sans-serif',
       fontSize: '11px', color: '#888888',
       backgroundColor: '#ffffff99',
       padding: { x: 6, y: 3 }
@@ -456,7 +446,7 @@ export default class Agent {
               this.container.setPosition(this.x, this._bouncing ? this.container.y : this.y);
               this._shadow.setPosition(this.x, this.y + 52);
               this._glow.setPosition(this.x, this.y);
-              this.nameTag.setPosition(this.x, this.y - 80);
+              this.nameTag.setPosition(this.x, this.y - 105);
               this.stateLabel.setPosition(this.x, this.y + 68);
               this.perceptionRing.setPosition(this.x, this.y);
             },
@@ -470,7 +460,7 @@ export default class Agent {
     this.container.setScale(this._facingRight ? 1 : -1, 1 - this.hunchLevel * 0.06);
     this._shadow.setPosition(this.x, this.y + 52);
     this._glow.setPosition(this.x, this.y);
-    this.nameTag.setPosition(this.x, this.y - 80);
+    this.nameTag.setPosition(this.x, this.y - 105);
     this.stateLabel.setPosition(this.x, this.y + 68);
     this.perceptionRing.setPosition(this.x, this.y);
     if (this._controlsHint) this._controlsHint.setPosition(this.x, this.y + 95);
