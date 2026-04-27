@@ -217,15 +217,14 @@ export default class Agent {
     g.fillEllipse(gl + 0, -40*S, 26*S, 14*S);
     g.fillRect(gl + -12*S, -44*S, 24*S, 16*S);
 
-    // ── Hair front / spiky teen style ─────────────────────────────────────
+    // ── Hair front / smooth teen style (NO SPIKES) ────────────────────────
     g.fillStyle(P.hair, 1);
     // Main top
     g.fillEllipse(gl + 0, -43*S, 22*S, 10*S);
-    // Spiky bangs — teen boy style
-    g.fillTriangle(gl + -10*S, -40*S, gl + -5*S, -40*S, gl + -8*S, -48*S);
-    g.fillTriangle(gl + -5*S,  -41*S, gl +  1*S, -41*S, gl + -2*S, -50*S);
-    g.fillTriangle(gl +  1*S,  -41*S, gl +  7*S, -41*S, gl +  4*S, -49*S);
-    g.fillTriangle(gl +  6*S,  -40*S, gl + 11*S, -40*S, gl +  9*S, -47*S);
+    // Smooth rounded bangs — teen boy style (no spikes)
+    g.fillEllipse(gl + -8*S, -40*S, 6*S, 6*S);
+    g.fillEllipse(gl + -2*S, -41*S, 6*S, 6*S);
+    g.fillEllipse(gl + 4*S, -40*S, 6*S, 6*S);
     // Side hair
     g.fillEllipse(gl + -13*S, -34*S, 6*S, 12*S);
     g.fillEllipse(gl +  13*S, -34*S, 6*S, 12*S);
@@ -282,16 +281,16 @@ export default class Agent {
     g.lineStyle(1.8*S * 0.4, 0x8b4513, 1);
     if (state === 'RECOVERED') {
       // Smile — arc curving downward
-      g.beginPath(); g.arc(gl, -12*S, 4*S, Phaser.Math.DegToRad(20), Phaser.Math.DegToRad(160), false); g.strokePath();
+      g.beginPath(); g.arc(gl, -14*S, 4*S, Phaser.Math.DegToRad(20), Phaser.Math.DegToRad(160), false); g.strokePath();
     } else if (state === 'LOST' || state === 'BREAKING_POINT') {
       // Frown — arc curving upward
-      g.beginPath(); g.arc(gl, -16*S, 4*S, Phaser.Math.DegToRad(200), Phaser.Math.DegToRad(340), false); g.strokePath();
+      g.beginPath(); g.arc(gl, -18*S, 4*S, Phaser.Math.DegToRad(200), Phaser.Math.DegToRad(340), false); g.strokePath();
     } else if (state === 'ATTRACTED') {
       // Slight smile
-      g.beginPath(); g.arc(gl, -12.5*S, 3.5*S, Phaser.Math.DegToRad(25), Phaser.Math.DegToRad(155), false); g.strokePath();
+      g.beginPath(); g.arc(gl, -14.5*S, 3.5*S, Phaser.Math.DegToRad(25), Phaser.Math.DegToRad(155), false); g.strokePath();
     } else {
       // Neutral line
-      g.beginPath(); g.moveTo(gl + -3*S, -13*S); g.lineTo(gl + 3*S, -13*S); g.strokePath();
+      g.beginPath(); g.moveTo(gl + -3*S, -15*S); g.lineTo(gl + 3*S, -15*S); g.strokePath();
     }
 
     // ── Subtle cheek blush ────────────────────────────────────────────────
