@@ -5,121 +5,242 @@
 ## 🔀 The Core Loop
 
 ```
-Mobile ──(distraction)──→ Addiction ──→ Results (Bad Grades)
-   ↑                           │
-   │                    [Learning] remembers failure
-   │                           ↓
-Real World ──(balancing)──→ Studies ←──────────────────┘
-                               │
-                    (distraction can pull back)
-                               │
-                          Results (Good Grades)
+Boot Screen
+     │
+     ▼
+Scenario 1: The Attraction (Bedroom)
+     │
+     ├──── 📱 Pick up Phone ────────────────────────────────────────────┐
+     │          │                                                        │
+     │     Social Feed opens                                             │
+     │     addictionLevel rises, awareness falls                        │
+     │     Auto-scroll activates at addiction > 50%                     │
+     │     Conflict messages fire at addiction > 70%                    │
+     │          │                                                        │
+     │     Behavior-based transition:                                    │
+     │     addiction ≥ 100 OR (>85 + ignored ≥ 2)                       │
+     │     OR (awareness < 20 + addiction > 80)                         │
+     │          │                                                        │
+     │          ▼                                                        │
+     │     Scenario 2: Distortion (DistortionScene)                     │
+     │                                                                   │
+     └──── 🚪 Open Door [F] ──────────────────────────────────────────▶ │
+                │                                                        │
+           Scenario 2: Real World (RealWorldScene)                      │
+           NPC interactions, vision cone, hearing range                 │
+           5 alternative endings based on behavior                      │
+                │                                                        │
+                ▼                                                        │
+           Scenario 3: Distortion (DistortionScene) ◀───────────────────┘
 ```
 
-Kai can cycle through addiction and recovery multiple times. Each cycle, the **Learning system** makes him more resilient — he resists faster and recovers quicker. The Real World acts as the anchor that keeps pulling him back toward balance.
+---
+
+## 🎬 Scene 0: Boot Screen (`BootScene`)
+
+The entry point. Animated loading screen showing the EchoSphere title with floating ambient orbs and a grid background. A **?** button in the top-right opens an info panel showing technologies used and how the system works.
+
+- Click anywhere, press **SPACE**, or press **ENTER** to begin
+- Credits: *Implemented by Baanu & Irfa*
 
 ---
 
-## 🎬 Scene 0: Boot Screen
+## 🎬 Scenario 1: The Attraction (`AttractionScene`)
 
-The entry point. Kai's story is introduced with the title "EchoSphere — The World You Shape." The player clicks to begin.
+Kai is in his **bedroom**. The room contains a door on the left (leading outside) and a phone on the desk to the right. After 2 seconds, the phone lights up with a notification.
 
----
+### What Happens
+1. Phone glows and a **"New notification!"** bubble appears above it
+2. FSM transitions: `IDLE → ATTRACTED`
+3. A decision node fires: **Check Phone** or **Go Outside**
 
-## 🎬 Scene 1: The Attraction *(Initial Fork — Mobile Path)*
+### Phone Path
+- Walk near the phone → **[E] Pick Up Phone** prompt appears
+- Click the phone directly OR press **[E]** to open the mobile screen
+- Social feed opens with 12+ scrollable notifications
+- **Addiction progress bar** fills (green → yellow → red)
+- **3 emotion bars** visible: 👁️ Awareness · 😰 Stress · 💬 Relationship
+- Mouse wheel scrolls the feed manually
+- At **addiction > 50%**: auto-scroll activates — agent loses control
+- At **addiction > 70%**: conflict messages interrupt (Reply / Ignore choice)
+- **Reply**: relationship +10, awareness +5
+- **Ignore**: ignoredMessages++, relationship -5, addiction +2
 
-Kai is in his bedroom. His phone lights up with a notification. This is the **first decision point** — two paths diverge:
+### Door Path
+- Walk near the door → **[F] Open Door** prompt appears
+- If phone is in hand: a pull-back bubble shakes and tempts Kai back
+- Press **[F]** → warm sunlight flash → transitions to **RealWorldScene**
 
-- **Walk to the phone** → enters the mobile/addiction loop
-- **Walk to the door** → goes outside to the Real World
-
-If Kai picks up the phone, the social feed opens. His `addictionLevel` rises and `awareness` falls with every scroll. After a while, a **study reminder notification** interrupts the feed — a decision node fires:
-
-- **Keep Scrolling** → addiction deepens, transitions toward the Addiction state
-- **Go Study** → transitions to the Learning/Studies scene
-
-**AI traits active:** Perception (sees and hears notification) · Decision Making
-
----
-
-## 📱 Scene 2: Addiction *(Habit Formation)*
-
-Kai stayed on the phone. His addiction level climbs, awareness drops, and his relationship with family degrades as messages get ignored. The agent's **Learning system** records behavioral patterns:
-
-- `high_addiction` — addiction exceeded 80%
-- `social_neglect` — two or more messages ignored
-- `compulsive_scrolling` — scroll count exceeded threshold
-
-Auto-scroll activates when addiction passes 50%, gradually removing Kai's control. Conflict messages from Mom, friends, and family interrupt the feed — Kai can Reply (relationship improves) or Ignore (relationship drops, addiction rises).
-
-**AI traits active:** Emotional Intelligence · Learning · Decision Making
-
----
-
-## 📋 Scene 3: Results *(Consequence of Addiction)*
-
-Kai receives his exam results — they are bad. A consequence card displays the outcome of his choices. The **Learning system** activates: Kai remembers this failure and stores it in memory. This drives a forced return to the Studies path. The memory of bad grades makes Kai more likely to resist distraction in the next cycle.
-
-**AI traits active:** Learning (memory of failure drives behavior change)
-
----
-
-## 📚 Scene 4: Studies / Learning *(The Productive Path)*
-
-Kai sits at his desk and works through study tasks across five subjects — Mathematics, Science, Literature, Coding, and Geography. Progress is made by completing each task (hold SPACE to fill the progress bar). XP is earned for each completed task.
-
-However, the phone can still distract. Notifications fire randomly during study sessions. If Kai's addiction level is still elevated, there is a chance he gets pulled back toward the Addiction path — this is the **distraction loop** shown in the diagram. If he resists and completes all tasks, he moves toward Good Grades.
-
-**AI traits active:** Learning · Emotional Intelligence · Decision Making · Perception (distraction detection)
-
----
-
-## 🌿 Scene 5: Real World *(Balancing — EI + NL Communication)*
-
-If Kai chose the door at the start, or is trying to balance both worlds, he ends up outside. Three NPCs are present — Mom, Alex (friend), and Sam (sibling) — each with their own dialogue, emotional states, and autonomous behavior.
-
-Kai interacts with NPCs using a **vision cone** (90° field of view) and **hearing range** system. NPCs outside his perception range are not noticed. Real-world interaction restores awareness and reduces addiction. This scene feeds back into Studies — healthy relationships make Kai more resilient to phone addiction in the next cycle.
-
-Random world events fire unpredictably: dusk narrows Kai's vision, rain sends NPCs to shelter, wind gusts trigger NPC comments, and NPCs may walk toward Kai if he ignores them too long.
-
-**AI traits active:** Pathfinding · Emotional Intelligence · NL Communication · Perception (vision cone + hearing)
-
----
-
-## 🏆 Scene 6: Results *(Good Grades — Outcome)*
-
-Kai completed his studies without falling back into addiction, or successfully recovered from bad grades through the learning loop. The outcome card shows good results. The simulation reflects the cumulative effect of Kai's decisions across all cycles.
-
-**AI traits active:** All six — Perception · Emotional Intelligence · NL Communication · Learning · Pathfinding · Decision Making
-
----
-
-## 🔀 State Transition Summary
-
+### Behavior-Based Transition (not time-based)
 ```
-IDLE → ATTRACTED → [ADDICTED | STUDYING] → RESULTS → [BAD GRADES | GOOD GRADES]
-                         ↑         |
-                         └─────────┘  (distraction loop)
+addictionLevel >= 100
+OR (addictionLevel > 85 AND ignoredMessages >= 2)
+OR (awareness < 20 AND addictionLevel > 80)
+→ transitions to DistortionScene
 ```
 
-| Scene | Agent State | World Tone |
-|---|---|---|
-| 1 — The Attraction | `ATTRACTED` | Bright, colorful, rewarding |
-| 2 — Addiction | `LOOPING` | Numbing, distorted time, loss of control |
-| 3 — Results (Bad) | `DISTORTED` | Dark, consequence-heavy |
-| 4 — Studies | `IDLE / FOCUSED` | Warm, productive, calm |
-| 5 — Real World | `AWARE` | Natural, social, restorative |
-| 6 — Results (Good) | `RECOVERED` | Bright, balanced, connected |
+### Bottom HUD (in-canvas)
+- **Stress** (red bar) · **Happy** (green bar) · **Lonely** (amber bar)
+- **STATE: [FSM state]** badge on the right
+
+**AI Traits Active:** Perception · Decision Making · Emotional Intelligence · Learning
 
 ---
 
-## 🧠 AI Intelligence Traits — Where Each Appears
+## 📱 Scenario 1 — Mobile Screen (Phone UI)
 
-| Trait | Scenes |
+A full-screen phone popup with:
+
+| Element | Description |
 |---|---|
-| **Perception** | 1, 4, 5 — detects notifications, NPCs, environmental cues |
-| **Decision Making** | 1, 2, 4 — phone vs door, scroll vs study, resist vs engage |
-| **Emotional Intelligence** | 2, 4, 5 — stress, happiness, loneliness affect behavior |
-| **Learning** | 2, 3, 4 — stores patterns, failure memory drives recovery |
-| **NL Communication** | 5 — NPC dialogue, emotional responses, advice system |
-| **Pathfinding** | 1, 5 — agent navigates to phone/door, NPCs seek Kai |
+| Status bar | Time (9:41) and signal/battery icons |
+| App header | 🌐 EchoSphere branding |
+| Addiction bar | Fills from 0–100%, color-coded green/yellow/red |
+| Emotion bars | 👁️ Awareness (blue) · 😰 Stress (red) · 💬 Relationship (green) |
+| Scrollable feed | 12+ notification cards with icons, text, timestamps |
+| Auto-scroll | Activates at addiction > 50%, speed scales with addiction |
+| Close button | ✕ Close Phone (or press ESC) |
+
+### Conflict Message Popup (at addiction > 70%)
+Random message from Mom / Best Friend / Dad / Mia interrupts the feed:
+- **✓ Reply** → relationship improves, awareness +5
+- **✕ Ignore** → ignoredMessages++, addiction +2, loneliness +3
+
+---
+
+## 🌿 Scenario 2: Real World (`RealWorldScene`)
+
+Kai steps outside into a **sunny park**. Agent state, addiction level, awareness, relationship level, and memory are all carried over from Scenario 1.
+
+### Environment
+- Warm outdoor park with trees, bench, flowers, and a path
+- **Time of day** can shift to dusk (vision range halved)
+- **Weather events** fire randomly: wind gusts, rain
+
+### Three NPCs — Full Character Rendering
+
+| NPC | Role | Shirt Color |
+|---|---|---|
+| **Mom** | Caring, gives advice once | Pink |
+| **Alex** | Friend, casual | Blue |
+| **Sam** | Sibling, seeks attention | Green |
+
+Each NPC is drawn with the same full character style as Kai (spiky hair, eyes, mouth, arms, legs, shoes).
+
+### Perception System (Real-World Physics)
+- **Vision cone**: 90° FOV, 200px range drawn as a golden wedge each frame
+  - Shrinks to 110px at **dusk**
+  - Shrinks to 66px when **phone is out** (distracted)
+- **Hearing ring**: 150px radius, independent of facing direction
+- NPCs only show **[T] to talk** prompt when perceived (in cone OR hearing range)
+
+### Natural Language Communication
+- Walk near NPC → **[T] Talk** prompt appears
+- Press **[T]** → speech bubble with emotion-colored border pops up
+  - 🟢 Green border = happy · 🔴 Red = angry · 🔵 Blue = sad
+- NPCs **wander autonomously** around their home position (new target every 4s)
+- NPCs **pathfind toward Kai** when ignored too long
+
+### Emotional Intelligence
+- If phone is visible AND addiction > 50%: NPC reacts with **angry/sad lines**
+- If addiction > 75%: NPC is **angry**
+- Angry NPC triggers **chain reaction** — other NPCs respond with "Are you okay? 😟"
+- NPC faces **redraw live** with matching eyebrows, iris color, and mouth
+
+### Learning System
+- `learnedNPCs` Set — Kai remembers who he's spoken to (different dialogue on return)
+- `avoidedNPC` — after 2 bad interactions, Kai refuses to talk to that NPC again
+- `mom_advice` — Mom gives advice once when addiction > 60 (addiction -20, awareness +15)
+- Memory stored in `agent.memory[]` and shown on outcome card
+
+### Phone Pull-Back (every 4 seconds)
+- Notification floats above Kai: *"📱 3 new notifications!"*
+- Addiction +2 per event
+- If addiction > 60: a random NPC spontaneously says *"You're on your phone again... 😔"*
+
+### Random World Events (every 8 seconds, unpredictable)
+| Event | Effect |
+|---|---|
+| 🌅 Dusk | Orange overlay, vision range halved for 12s |
+| 💨 Wind gust | White streaks, NPC comments |
+| 🌧 Rain | Blue overlay, all NPCs pathfind to bench shelter |
+| 🚶 NPC approach | Random NPC seeks Kai via steering behavior |
+| 👂 Hearing event | NPC calls out if within hearing range, awareness +8 |
+
+### HUD (top-right)
+- 👁️ Awareness · 📱 Addiction · 💬 Relationship — live bars
+
+### 5 Alternative Endings (behavior-driven, not time-based)
+
+| Condition | Ending |
+|---|---|
+| Learned advice + low addiction + high relations | 🌿 Full Recovery |
+| 3+ conversations + high relations | 💚 Real Connection Made |
+| 3+ ignored interactions | 📱 Still Distracted |
+| Avoided NPC after repeated conflict | 😔 Bridges Burned |
+| Mixed behavior | 🤔 Uncertain Path |
+
+**AI Traits Active:** Perception (vision cone + hearing) · Emotional Intelligence · NL Communication · Learning · Pathfinding · Decision Making
+
+---
+
+## � Scenario 3: Distortion (`DistortionScene`)
+
+The world splits. A jagged animated line divides the screen between the **warm real world** (left) and the **cold digital world** (right). The split position oscillates with spring physics and random glitch jumps.
+
+- Agent is in `DISTORTED` state with phone in hand
+- Split line has chromatic aberration (red/cyan offset)
+- Real-world furniture visible on the left side
+- Digital grid perspective on the right side
+- Transitions to a "Breaking Point" card after the scene ends
+
+**AI Traits Active:** Emotional Intelligence · State-based behavior
+
+---
+
+## 🔀 FSM State Transition Summary
+
+```
+IDLE → ATTRACTED → LOOPING → DISTORTED → BREAKING_POINT → RECOVERED | PARTIAL | LOST
+```
+
+| State | Trigger | Visual |
+|---|---|---|
+| `IDLE` | Scene start | Upright, neutral expression |
+| `ATTRACTED` | Notification seen | Slight smile, blush, purple glow |
+| `LOOPING` | 5+ engagements or no resistance | Orange eyes, hunched |
+| `DISTORTED` | Stress ≥ 65 | Red eyes, heavy hunch, glitch offset |
+| `BREAKING_POINT` | Stress ≥ 85 | Dark palette, frown |
+| `RECOVERED` | Resisted more than engaged | Green shirt, smile, green glow |
+| `PARTIAL` | Mixed behavior | Amber palette |
+| `LOST` | Too isolated | Grey palette, tiny iris |
+
+---
+
+## 🧠 AI Intelligence Traits — Full Map
+
+| Trait | Where Implemented | Detail |
+|---|---|---|
+| **Perception** | Scenario 1, 2 | Phone notification detection; vision cone (90°, 200px); hearing range (150px); range shrinks at dusk and with phone out |
+| **Decision Making** | Scenario 1, 2 | Phone vs door; reply vs ignore; behavior-based transitions (3 conditions); 5 alternative endings |
+| **Emotional Intelligence** | Scenario 1, 2, 3 | Stress/happiness/loneliness affect behavior; NPC faces redraw per emotion; chain reactions; Mom advice |
+| **Learning** | Scenario 1, 2 | `agent.memory[]` stores patterns; avoids NPCs after conflict; Mom advice given once; returning visit dialogue |
+| **NL Communication** | Scenario 2 | Speech bubbles with emotion-colored borders and tails; NPCs call out when in hearing range; context-aware dialogue |
+| **Pathfinding** | Scenario 1, 2 | Agent walks to phone/door; NPCs wander autonomously; NPCs seek Kai via steering; rain sends NPCs to bench |
+
+---
+
+## 📊 Agent Variables
+
+| Variable | Range | Effect |
+|---|---|---|
+| `addictionLevel` | 0–100 | Drives hunch, auto-scroll, transitions |
+| `awareness` | 0–100 | Shrinks vision cone when low |
+| `relationshipLevel` | 0–100 | Affects NPC dialogue and endings |
+| `emotions.stress` | 0–100 | Drives FSM transitions, HUD bar |
+| `emotions.happiness` | 0–100 | Affects expression, HUD bar |
+| `emotions.loneliness` | 0–100 | Increases when messages ignored |
+| `hunchLevel` | 0–4 | Visual posture based on addiction |
+| `memory[]` | Array | Stores learned behavioral patterns |
+| `ignoredMessages` | Counter | Triggers social neglect learning |
+| `scrollCount` | Counter | Triggers compulsive scrolling learning |
