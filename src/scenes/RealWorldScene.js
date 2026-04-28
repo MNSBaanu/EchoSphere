@@ -1622,8 +1622,8 @@ export default class RealWorldScene extends Phaser.Scene {
 
     gsap.fromTo(card, { alpha: 0, scale: 0.8 }, { alpha: 1, scale: 1, duration: 0.5, ease: "back.out(1.5)" });
 
-    this.time.delayedCall(4000, () => {
-      this.cameras.main.fadeOut(800, 0, 0, 0);
+    this.time.delayedCall(2000, () => {
+      this.cameras.main.fadeOut(400, 0, 0, 0);
       this.cameras.main.once("camerafadeoutcomplete", () => {
         this.scene.start("BootScene");
       });
