@@ -163,7 +163,7 @@ export default class BootScene extends Phaser.Scene {
     this.input.once('pointerdown', (pointer) => {
       // Don't start if clicking help button
       if (!helpBg.getBounds().contains(pointer.x, pointer.y)) {
-        this.cameras.main.fadeOut(400, 0, 0, 0);
+        this.cameras.main.fadeOut(200, 0, 0, 0);
         this.cameras.main.once('camerafadeoutcomplete', () => {
           this.scene.start('AttractionScene');
         });

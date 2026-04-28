@@ -1266,8 +1266,8 @@ export default class AttractionScene extends Phaser.Scene {
       this._ended = true;
       gsap.to(popup, { alpha: 0, scale: 0.8, duration: 0.3 });
       this._closeMobileScreen();
-      this.time.delayedCall(400, () => {
-        this.cameras.main.fadeOut(600, 0, 0, 0);
+      this.time.delayedCall(200, () => {
+        this.cameras.main.fadeOut(300, 0, 0, 0);
         this.cameras.main.once('camerafadeoutcomplete', () => {
           this.scene.start('LearningScene');
         });
@@ -1340,8 +1340,12 @@ export default class AttractionScene extends Phaser.Scene {
 
     if (this._emotionUpdateTimer) this._emotionUpdateTimer.remove();
 
-    // Smooth fade out transition (no flash/glitch)
-    this.cameras.main.fadeOut(1200, 255, 240, 200);
+    // Fast flash — sunlight
+    this.cameras.main.flash(200, 255, 220, 150, false);
+
+    this.time.delayedCall(100, () => {
+      this.cameras.main.fadeOut(200, 255, 240, 200);
+    });
 
     this.cameras.main.once('camerafadeoutcomplete', () => {
       // Pass agent state to real world scene
@@ -1789,8 +1793,8 @@ export default class AttractionScene extends Phaser.Scene {
       
       this._closeMobileScreen();
       
-      this.time.delayedCall(400, () => {
-        this.cameras.main.fadeOut(600, 0, 0, 0);
+      this.time.delayedCall(200, () => {
+        this.cameras.main.fadeOut(300, 0, 0, 0);
         this.cameras.main.once('camerafadeoutcomplete', () => {
           this.scene.start('LearningScene', { fromKeyRedemption: true });
         });
