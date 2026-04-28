@@ -448,12 +448,21 @@ export default class AttractionScene extends Phaser.Scene {
     const bx = this._phonePos.x;
     const by = this._phonePos.y - 55;
     const bubble = this.add.container(bx, by).setDepth(8).setAlpha(0);
-    const bg = this.add.rectangle(0, 0, 160, 36, 0xffffff, 0.97);
+    
+    // Increase bubble size to fit text properly
+    const bg = this.add.rectangle(0, 0, 180, 40, 0xffffff, 0.97);
     bg.setStrokeStyle(2, 0x6366f1, 1);
-    const strip = this.add.rectangle(-78, 0, 4, 36, 0x6366f1, 1);
-    const txt = this.add.text(6, 0, '🔔 New notification!', {
-      fontFamily: FONT_BODY, fontSize: '13px', color: '#1e1b4b'
-    }).setOrigin(0, 0.5);
+    const strip = this.add.rectangle(-88, 0, 4, 40, 0x6366f1, 1);
+    
+    // Center text properly with word wrap
+    const txt = this.add.text(0, 0, '🔔 New notification!', {
+      fontFamily: FONT_BODY, 
+      fontSize: '12px', 
+      color: '#1e1b4b',
+      wordWrap: { width: 160 },
+      align: 'center'
+    }).setOrigin(0.5);
+    
     bubble.add([bg, strip, txt]);
 
     gsap.fromTo(bubble, { alpha: 0, y: by + 10 }, { alpha: 1, y: by, duration: 0.4, ease: 'back.out(1.5)' });

@@ -18,7 +18,6 @@ export default class LearningScene extends Phaser.Scene {
     this._ended   = false;
     this._taskIdx = 0;
     this._xp      = 0;
-    this._logLines = [];
     this._isSitting = false;
     this._chair = null;
   }
@@ -76,9 +75,7 @@ export default class LearningScene extends Phaser.Scene {
       if (!this._ended) this._toggleSitting();
     });
 
-    // ── Event log ─────────────────────────────────────────────────────────
-    this._logContainer = this.add.container(16, height - 16).setDepth(15);
-
+    
     this.cameras.main.fadeIn(600, 0, 0, 0);
   }
 
@@ -419,8 +416,7 @@ export default class LearningScene extends Phaser.Scene {
       { alpha: 1, y: this._taskCardY, duration: 0.5, ease: 'back.out(1.5)' }
     );
 
-    this._log('📚 Task', `${task.subject} — ${task.task}`);
-
+    
     // Agent shows excitement (no jumping)
     this.time.delayedCall(400, () => {
       // Agent remains calm and focused
@@ -480,8 +476,7 @@ export default class LearningScene extends Phaser.Scene {
       this.tweens.add({ targets: bg, fillColor: 0xd1fae5, duration: 300, yoyo: true });
     }
 
-    this._log('✅ Done', `${task.subject} +${task.xp} XP`);
-
+    
     this.time.delayedCall(1000, () => {
       this._taskCompleting = false;
       // Start next task automatically
@@ -508,21 +503,7 @@ export default class LearningScene extends Phaser.Scene {
     }
   }
 
-  // ── Event log ─────────────────────────────────────────────────────────────
-  _log(label, detail = '') {
-    const line = `${label}${detail ? '  —  ' + detail : ''}`;
-    this._logLines.push(line);
-    if (this._logLines.length > 5) this._logLines.shift();
-    this._logContainer.removeAll(true);
-    this._logLines.forEach((l, i) => {
-      const t = this.add.text(0, -(this._logLines.length - i) * 18, l, {
-        fontFamily: FONT_BODY, fontSize: '11px', color: '#374151',
-        backgroundColor: '#ffffffcc', padding: { x: 6, y: 2 }
-      });
-      this._logContainer.add(t);
-    });
-  }
-
+  
   
   // ── End scene ─────────────────────────────────────────────────────────────
   _endScene(outcome) {
@@ -602,15 +583,13 @@ export default class LearningScene extends Phaser.Scene {
       this._isSitting = false;
       this.agent.y = this._groundY - 60;
       this.agent.fsm.forceState('IDLE');
-      this._log('🪑 Stand', 'Agent stood up from the chair');
-    } else {
+          } else {
       // Sit down
       this._isSitting = true;
       this.agent.x = this._chair.x - 20;
       this.agent.y = this._groundY - 60;
       this.agent.fsm.forceState('IDLE');
-      this._log('🪑 Sit', 'Agent sat down to study');
-      
+            
       // Add sitting animation
       this.tweens.add({
         targets: this.agent,
