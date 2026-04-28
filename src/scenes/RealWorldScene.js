@@ -981,8 +981,6 @@ export default class RealWorldScene extends Phaser.Scene {
     return;
   }
 
-  }
-
   // ── Player movement — delegated to Agent ─────────────────────────────────
   _handlePlayerMovement() {
     if (this.agent) {
