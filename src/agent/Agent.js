@@ -72,20 +72,7 @@ export default class Agent {
       .setDepth(5)
       .setVisible(false);
 
-    // Controls hint (shown briefly)
-    this._controlsHint = scene.add.text(x, y + 95, '← → ↑ ↓  or  WASD to move', {
-      fontFamily: 'Inter, sans-serif',
-      fontSize: '11px', color: '#888888',
-      backgroundColor: '#ffffff99',
-      padding: { x: 6, y: 3 }
-    }).setOrigin(0.5).setDepth(12).setAlpha(1);
-
-    scene.tweens.add({
-      targets: this._controlsHint,
-      alpha: 0,
-      delay: 4000,
-      duration: 1000
-    });
+    // Controls hint removed
 
     this._drawCharacter('IDLE');
   }
@@ -463,7 +450,7 @@ export default class Agent {
     this.nameTag.setPosition(this.x, this.y - 105);
     this.stateLabel.setPosition(this.x, this.y + 68);
     this.perceptionRing.setPosition(this.x, this.y);
-    if (this._controlsHint) this._controlsHint.setPosition(this.x, this.y + 95);
+
   }
 
   // ── Perception ────────────────────────────────────────────────────────────
