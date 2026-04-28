@@ -1179,10 +1179,7 @@ export default class AttractionScene extends Phaser.Scene {
       gsap.to(popup, { alpha: 0, scale: 0.8, duration: 0.3 });
       this._closeMobileScreen();
       this.time.delayedCall(200, () => {
-        this.cameras.main.fadeOut(300, 0, 0, 0);
-        this.cameras.main.once('camerafadeoutcomplete', () => {
-          this.scene.start('LearningScene');
-        });
+        this.scene.start('LearningScene');
       });
     });
 
@@ -1250,16 +1247,13 @@ export default class AttractionScene extends Phaser.Scene {
 
     this._log('🌿 Real World', 'Kai steps outside...');
 
-    this.cameras.main.fadeOut(600, 0, 0, 0);
-    this.cameras.main.once('camerafadeoutcomplete', () => {
-      this.scene.start('RealWorldScene', {
+    this.scene.start('RealWorldScene', {
         addictionLevel:    this.agent ? this.agent.addictionLevel    : 0,
         awareness:         this.agent ? this.agent.awareness         : 70,
         relationshipLevel: this.agent ? this.agent.relationshipLevel : 50,
         hasPhone:          this.agent ? this.agent.hasPhone          : false,
         memory:            this.agent ? [...this.agent.memory]       : [],
       });
-    });
   }
 
   // ── CONFLICT TRIGGER: Message Interruption ────────────────────────────────
@@ -1697,10 +1691,7 @@ export default class AttractionScene extends Phaser.Scene {
       this._closeMobileScreen();
       
       this.time.delayedCall(200, () => {
-        this.cameras.main.fadeOut(300, 0, 0, 0);
-        this.cameras.main.once('camerafadeoutcomplete', () => {
-          this.scene.start('LearningScene', { fromKeyRedemption: true });
-        });
+        this.scene.start('LearningScene', { fromKeyRedemption: true });
       });
     };
     

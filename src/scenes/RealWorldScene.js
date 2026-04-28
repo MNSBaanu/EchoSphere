@@ -105,9 +105,7 @@ export default class RealWorldScene extends Phaser.Scene {
     this._h = height;
     this._groundY = height * 0.75;
 
-    this.cameras.main.fadeIn(800, 255, 240, 200);
-
-    // ── Background: warm outdoor park ────────────────────────────────────
+    // Background: warm outdoor park
     this._drawOutdoor(width, height);
 
     // ── Top bar ───────────────────────────────────────────────────────────
@@ -985,8 +983,9 @@ export default class RealWorldScene extends Phaser.Scene {
 
     npc._interactPrompt = prompt;
 
-    // Register T key for this NPC
+    // Register T key for this NPC (only fires if conversation is not active)
     npc._talkKey = this.input.keyboard.on("keydown-T", () => {
+      if (this._convTHandler) return; // conversation in progress — ignore proximity talk
       const dx = npc.x - this._playerX;
       const dy = npc.y - this._playerY;
       if (Math.sqrt(dx * dx + dy * dy) < 90) {
@@ -1232,82 +1231,90 @@ export default class RealWorldScene extends Phaser.Scene {
     return container;
   }
 
-  // ── Greeting sequence on scene start (automatic, one by one) ──────────────
+  // ── Greeting sequence — T key advances one message at a time ────────────
   _startGreetings() {
-    // Family conversation — press T near an NPC to advance one message at a time
     const conversation = [
       { npc: "mom",     text: "Hey everyone! It's such a beautiful day outside! 😊", emotion: "happy" },
-      { npc: "sibling", text: "Yeah! Can we do something fun together?",              emotion: "happy" },
-      { npc: "friend",  text: "I'm down for anything! What do you guys want to do?",  emotion: "happy" },
+      { npc: "sibling", text: "Yeah! Can we do something fun together?",               emotion: "happy" },
+      { npc: "friend",  text: "I'm down for anything! What do you guys want to do?",   emotion: "happy" },
       { npc: "mom",     text: "How about we go on a trip? We could drive to the lake!", emotion: "happy" },
       { npc: "sibling", text: "Yes! Road trip! Can we pick up more friends on the way?", emotion: "happy" },
-      { npc: "friend",  text: "That sounds awesome! I'll bring snacks! 🎉",           emotion: "happy" },
-      { npc: "mom",     text: "Perfect! Let's get ready and head to the car! 🚗",     emotion: "happy" },
+      { npc: "friend",  text: "That sounds awesome! I'll bring snacks! 🎉",            emotion: "happy" },
+      { npc: "mom",     text: "Perfect! Let's get ready and head to the car! 🚗",      emotion: "happy" },
     ];
 
-    this._convIndex = 0;
-    this._convActive = false;
+    let index = 0;
+    let waiting = false; // true while a message is displayed, waiting for T
 
-    // Show hint
+    // Hint text at bottom
     this._convHint = this.add.text(this._w / 2, this._h - 40,
-      "Press [T] to talk to the group", {
+      `Press [T] to start conversation  (0/${conversation.length})`, {
         fontFamily: FONT, fontSize: "14px", color: "#ffffff",
         backgroundColor: "#00000088", padding: { x: 12, y: 6 }
       }).setOrigin(0.5).setDepth(25);
     this.tweens.add({ targets: this._convHint, alpha: 0.4, duration: 700, yoyo: true, repeat: -1 });
 
-    const showNext = () => {
-      if (this._ended) return;
-      if (this._convIndex >= conversation.length) {
-        // All lines done — walk to road
-        if (this._convHint) { this._convHint.destroy(); this._convHint = null; }
-        this._tKey.removeAllListeners();
-        this.time.delayedCall(800, () => {
-          if (!this._ended) this._agentWalkToRoad();
-        });
-        return;
-      }
-
-      const { npc: npcId, text, emotion } = conversation[this._convIndex];
-      this._convIndex++;
-      this._convActive = true;
-
-      const npc = this._npcs.find(n => n.id === npcId);
-      if (!npc) { showNext(); return; }
-
-      // Clear ALL existing bubbles first
+    const clearAllBubbles = () => {
       this._npcs.forEach(n => {
         if (n.bubble) {
           n.bubble.destroy();
           n.bubble = null;
         }
       });
+    };
 
-      // Show this line
+    const showMessage = (i) => {
+      if (this._ended) return;
+      clearAllBubbles();
+
+      const { npc: npcId, text, emotion } = conversation[i];
+      const npc = this._npcs.find(n => n.id === npcId);
+      if (!npc) return;
+
       const bubble = this._createSpeechBubble(npc.x, npc.y - 110, text, npc.data.color, emotion);
       npc.bubble = bubble;
       npc.emotion = emotion;
       if (npc.drawNPC) npc.drawNPC(emotion);
 
-      // Update hint
       if (this._convHint) {
-        const remaining = conversation.length - this._convIndex;
-        this._convHint.setText(remaining > 0
-          ? `Press [T] for next  (${this._convIndex}/${conversation.length})`
-          : "Press [T] to continue");
+        this._convHint.setText(`Press [T] for next  (${i + 1}/${conversation.length})`);
       }
 
-      this._convActive = false;
+      waiting = true;
     };
 
-    // T key advances conversation
-    this._tKey = this.input.keyboard.on("keydown-T", () => {
-      if (this._convActive) return;
-      showNext();
-    });
+    // Single T key handler — only active during this conversation
+    const onT = () => {
+      if (this._ended) return;
 
-    // Show first message automatically after a short delay
-    this.time.delayedCall(1000, () => showNext());
+      if (!waiting && index === 0) {
+        // First press — show first message
+        showMessage(index);
+        index++;
+        return;
+      }
+
+      if (waiting) {
+        // Advance to next
+        if (index < conversation.length) {
+          showMessage(index);
+          index++;
+        } else {
+          // All done — clear and walk
+          waiting = false;
+          clearAllBubbles();
+          if (this._convHint) { this._convHint.destroy(); this._convHint = null; }
+          this.input.keyboard.off("keydown-T", onT);
+          this.time.delayedCall(400, () => {
+            if (!this._ended) this._agentWalkToRoad();
+          });
+        }
+      }
+    };
+
+    this.input.keyboard.on("keydown-T", onT);
+    // Store reference so _showInteractPrompt T key doesn't conflict
+    this._convTHandler = onT;
   }
 
   // ── Agent and NPCs walk to road together ──────────────────────────────────
@@ -1446,13 +1453,10 @@ export default class RealWorldScene extends Phaser.Scene {
     this._ended = true;
 
     this.time.delayedCall(500, () => {
-      this.cameras.main.fadeOut(800, 0, 0, 0);
-      this.cameras.main.once("camerafadeoutcomplete", () => {
-        this.scene.start("TripScene", {
-          addictionLevel: this._addictionLevel,
-          awareness: this._awareness,
-          relationshipLevel: this._relationshipLevel
-        });
+      this.scene.start("TripScene", {
+        addictionLevel: this._addictionLevel,
+        awareness: this._awareness,
+        relationshipLevel: this._relationshipLevel
       });
     });
   }
@@ -1573,10 +1577,7 @@ export default class RealWorldScene extends Phaser.Scene {
     gsap.fromTo(card, { alpha: 0, scale: 0.8 }, { alpha: 1, scale: 1, duration: 0.5, ease: "back.out(1.5)" });
 
     this.time.delayedCall(2000, () => {
-      this.cameras.main.fadeOut(400, 0, 0, 0);
-      this.cameras.main.once("camerafadeoutcomplete", () => {
-        this.scene.start("BootScene");
-      });
+      this.scene.start("BootScene");
     });
   }
 }

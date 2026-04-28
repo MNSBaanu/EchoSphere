@@ -74,9 +74,6 @@ export default class LearningScene extends Phaser.Scene {
     this.input.keyboard.on('keydown-C', () => {
       if (!this._ended) this._toggleSitting();
     });
-
-    
-    this.cameras.main.fadeIn(600, 0, 0, 0);
   }
 
   update() {
@@ -530,10 +527,7 @@ export default class LearningScene extends Phaser.Scene {
     gsap.fromTo(card, { alpha: 0, scale: 0.85 }, { alpha: 1, scale: 1, duration: 0.5, ease: 'back.out(1.5)' });
 
     this.input.once('pointerdown', () => {
-      this.cameras.main.fadeOut(600, 0, 0, 0);
-      this.cameras.main.once('camerafadeoutcomplete', () => {
-        console.log('[Scene] Learning path complete — good ending branch');
-      });
+      this.scene.start('BootScene');
     });
   }
 
