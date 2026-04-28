@@ -76,7 +76,7 @@ export default class AttractionScene extends Phaser.Scene {
     this._spawnDoor(height);
 
     // ── Agent starts centre-left ──────────────────────────────────────────
-    this.agent = new Agent(this, width * 0.35, height * 0.62);
+    this.agent = new Agent(this, width * 0.35, height * 0.72 - 52);
     // Agent can move freely from the start
     this._lockAgentKeys(false);
 
@@ -333,102 +333,87 @@ export default class AttractionScene extends Phaser.Scene {
       }
     }
 
-    // ── Bed (right side) — 3/4 front view, against back wall ────────────
-    const bedX = width * 0.60;
-    const bedY = height * 0.38;
-    const bedW = width * 0.37;
-    const bedH = height * 0.28;
+    // ── Bed (right side) — side view, against right wall ─────────────────
+    const floorY  = height * 0.72;
+    const bedX    = width * 0.72;
+    const bedW    = width * 0.26;
+    const bedH    = height * 0.20;
+    const legH    = 18;
+    const bedY    = floorY - legH - bedH;   // bed sits on floor via legs
+    const deskY   = floorY - height * 0.14 - 14; // desk surface: legs reach floor
 
-    // Drop shadow on floor
-    g.fillStyle(0x000000, 0.10);
-    g.fillRoundedRect(bedX + 8, bedY + bedH + 18, bedW - 8, 14, 6);
+    // Floor shadow
+    g.fillStyle(0x000000, 0.08);
+    g.fillEllipse(bedX + bedW * 0.5, bedY + bedH + 10, bedW * 0.85, 14);
 
-    // ── Headboard — tall panel rising above mattress ──────────────────────
-    const hbH = bedH * 0.55; // headboard height above mattress top
-    g.fillStyle(0x7c3d12, 1);
-    g.fillRoundedRect(bedX, bedY - hbH, bedW, hbH + 10, 10);
-    // Headboard face highlight (lighter wood strip)
-    g.fillStyle(0xa0522d, 1);
-    g.fillRoundedRect(bedX + 5, bedY - hbH + 5, bedW - 10, hbH - 10, 7);
-    // Two decorative inset panels on headboard
-    const panW = (bedW - 40) / 2;
-    g.fillStyle(0x6b3410, 1);
-    g.fillRoundedRect(bedX + 12, bedY - hbH + 12, panW, hbH - 24, 5);
-    g.fillRoundedRect(bedX + 24 + panW, bedY - hbH + 12, panW, hbH - 24, 5);
-    // Panel inner highlight
-    g.fillStyle(0x92400e, 0.6);
-    g.fillRoundedRect(bedX + 14, bedY - hbH + 14, panW - 4, 6, 3);
-    g.fillRoundedRect(bedX + 26 + panW, bedY - hbH + 14, panW - 4, 6, 3);
+    // Bed legs (front pair visible)
+    g.fillStyle(0x5c2d0e, 1);
+    g.fillRoundedRect(bedX + 10, bedY + bedH, 12, 18, 3);
+    g.fillRoundedRect(bedX + bedW - 22, bedY + bedH, 12, 18, 3);
 
-    // ── Bed frame (sides + foot visible from front) ───────────────────────
-    // Left side rail
+    // Bed frame — main box
     g.fillStyle(0x92400e, 1);
-    g.fillRoundedRect(bedX, bedY, 14, bedH, 4);
-    // Right side rail
-    g.fillRoundedRect(bedX + bedW - 14, bedY, 14, bedH, 4);
-    // Footboard (front panel)
-    g.fillStyle(0x7c3d12, 1);
-    g.fillRoundedRect(bedX, bedY + bedH - 18, bedW, 22, 6);
-    g.fillStyle(0xa0522d, 1);
-    g.fillRoundedRect(bedX + 5, bedY + bedH - 15, bedW - 10, 8, 4);
+    g.fillRoundedRect(bedX, bedY, bedW, bedH, 6);
 
-    // ── Mattress top surface ──────────────────────────────────────────────
+    // Mattress (white, inset from frame)
     g.fillStyle(0xf5f5f5, 1);
-    g.fillRoundedRect(bedX + 14, bedY, bedW - 28, bedH - 18, 4);
-    // Mattress side edge (gives thickness)
-    g.fillStyle(0xe0e0e0, 1);
-    g.fillRect(bedX + 14, bedY + bedH - 28, bedW - 28, 10);
+    g.fillRoundedRect(bedX + 6, bedY + 6, bedW - 12, bedH - 10, 4);
 
-    // ── Blanket — draped over mattress, front fold visible ────────────────
-    const blankY = bedY + bedH * 0.32;
-    const blankH = bedH * 0.50;
+    // Blanket — covers lower 55% of mattress face
+    const blankY = bedY + bedH * 0.40;
+    const blankH = bedH * 0.52;
     g.fillStyle(0x6366f1, 1);
-    g.fillRoundedRect(bedX + 14, blankY, bedW - 28, blankH, 5);
-    // Blanket front drape (hangs over footboard slightly)
-    g.fillStyle(0x5254cc, 1);
-    g.fillRoundedRect(bedX + 14, blankY + blankH - 8, bedW - 28, 14, { tl: 0, tr: 0, bl: 5, br: 5 });
-    // Blanket top fold (rolled edge)
+    g.fillRoundedRect(bedX + 6, blankY, bedW - 12, blankH, 4);
+    // Blanket top fold (lighter rolled strip)
     g.fillStyle(0x818cf8, 1);
-    g.fillRoundedRect(bedX + 14, blankY, bedW - 28, 14, 5);
-    g.fillStyle(0x6366f1, 0.5);
-    g.fillRect(bedX + 14, blankY + 12, bedW - 28, 4);
-    // Blanket horizontal crease lines
+    g.fillRoundedRect(bedX + 6, blankY, bedW - 12, 11, 4);
+    // Fold underline shadow
+    g.fillStyle(0x4338ca, 0.35);
+    g.fillRect(bedX + 6, blankY + 9, bedW - 12, 4);
+    // Horizontal crease lines on blanket
     g.lineStyle(1.5, 0x4338ca, 0.4);
     for (let s = 1; s < 4; s++) {
       g.lineBetween(
-        bedX + 18, blankY + 18 + s * (blankH - 18) / 4,
-        bedX + bedW - 18, blankY + 18 + s * (blankH - 18) / 4
+        bedX + 10, blankY + 15 + s * (blankH - 15) / 4,
+        bedX + bedW - 10, blankY + 15 + s * (blankH - 15) / 4
       );
     }
 
-    // ── Two pillows (sitting on mattress, above blanket) ──────────────────
-    const pillowY = bedY + 6;
-    const pillowH = bedH * 0.26;
-    const pillowW = (bedW - 38) / 2;
+    // Two pillows side by side (upper portion of mattress face)
+    const pillowY = bedY + 8;
+    const pillowH = bedH * 0.28;
+    const pillowW = (bedW - 26) / 2;
     // Left pillow
     g.fillStyle(0xdbeafe, 1);
-    g.fillRoundedRect(bedX + 16, pillowY, pillowW, pillowH, 10);
-    // Pillow bottom shadow
-    g.fillStyle(0x93c5fd, 0.45);
-    g.fillRoundedRect(bedX + 16, pillowY + pillowH - 8, pillowW, 8, { tl: 0, tr: 0, bl: 10, br: 10 });
+    g.fillRoundedRect(bedX + 8, pillowY, pillowW, pillowH, 8);
+    g.fillStyle(0x93c5fd, 0.4);
+    g.fillRoundedRect(bedX + 8, pillowY + pillowH - 7, pillowW, 7, { tl: 0, tr: 0, bl: 8, br: 8 });
     g.lineStyle(1.5, 0x93c5fd, 1);
-    g.strokeRoundedRect(bedX + 16, pillowY, pillowW, pillowH, 10);
+    g.strokeRoundedRect(bedX + 8, pillowY, pillowW, pillowH, 8);
     // Right pillow
     g.fillStyle(0xdbeafe, 1);
-    g.fillRoundedRect(bedX + 22 + pillowW, pillowY, pillowW, pillowH, 10);
-    g.fillStyle(0x93c5fd, 0.45);
-    g.fillRoundedRect(bedX + 22 + pillowW, pillowY + pillowH - 8, pillowW, 8, { tl: 0, tr: 0, bl: 10, br: 10 });
+    g.fillRoundedRect(bedX + 14 + pillowW, pillowY, pillowW, pillowH, 8);
+    g.fillStyle(0x93c5fd, 0.4);
+    g.fillRoundedRect(bedX + 14 + pillowW, pillowY + pillowH - 7, pillowW, 7, { tl: 0, tr: 0, bl: 8, br: 8 });
     g.lineStyle(1.5, 0x93c5fd, 1);
-    g.strokeRoundedRect(bedX + 22 + pillowW, pillowY, pillowW, pillowH, 10);
+    g.strokeRoundedRect(bedX + 14 + pillowW, pillowY, pillowW, pillowH, 8);
 
-    // ── Bed legs (visible below footboard) ───────────────────────────────
-    g.fillStyle(0x5c2d0e, 1);
-    g.fillRoundedRect(bedX + 6, bedY + bedH + 4, 10, 16, 3);
-    g.fillRoundedRect(bedX + bedW - 16, bedY + bedH + 4, 10, 16, 3);
+    // Nightstand / bedside table — left of bed
+    const nsX = bedX - 52;
+    const nsY = bedY + bedH * 0.35;
+    const nsW = 44;
+    const nsH = bedH * 0.65;
+    g.fillStyle(0xa0522d, 1);
+    g.fillRoundedRect(nsX, nsY, nsW, nsH, 4);
+    g.fillStyle(0xc8783c, 1);
+    g.fillRoundedRect(nsX + 3, nsY + 3, nsW - 6, 6, 2);
+    // Nightstand legs
+    g.fillStyle(0x8b4513, 1);
+    g.fillRect(nsX + 4, nsY + nsH, 6, 12);
+    g.fillRect(nsX + nsW - 10, nsY + nsH, 6, 12);
 
     // ── Desk / table (centre-right) ───────────────────────────────────────
     const deskX = width * 0.5;
-    const deskY = height * 0.58;
     const deskW = width * 0.22;
     const deskH = 14;
     // Desk surface
@@ -772,20 +757,7 @@ export default class AttractionScene extends Phaser.Scene {
     this.agent.fsm.handleEvent('NOTIFICATION_SEEN');
     this._log('🔔 Phone', 'notification received!');
 
-    // Show decision node: phone or door?
-    this.time.delayedCall(1200, () => {
-      this._showDecisionNode(
-        'Kai notices the phone glowing...',
-        '📱 Check Phone',
-        '🚪 Go Outside'
-      );
-    });
-  }
-
-  // ── Placeholder methods (to be implemented) ──────────────────────────────
-  _showDecisionNode(message, option1, option2) {
-    // TODO: Implement decision node UI
-    console.log('Decision:', message, option1, option2);
+    // Agent can now walk to phone or door freely (no popup blocking movement)
   }
 
   _scheduleNextFriendMessage() {
