@@ -72,20 +72,7 @@ export default class Agent {
       .setDepth(5)
       .setVisible(false);
 
-    // Controls hint (shown briefly)
-    this._controlsHint = scene.add.text(x, y + 95, '← → ↑ ↓  or  WASD to move', {
-      fontFamily: 'Inter, sans-serif',
-      fontSize: '11px', color: '#888888',
-      backgroundColor: '#ffffff99',
-      padding: { x: 6, y: 3 }
-    }).setOrigin(0.5).setDepth(12).setAlpha(1);
-
-    scene.tweens.add({
-      targets: this._controlsHint,
-      alpha: 0,
-      delay: 4000,
-      duration: 1000
-    });
+    // Controls hint removed
 
     this._drawCharacter('IDLE');
   }
@@ -106,21 +93,25 @@ export default class Agent {
     const P = {
       IDLE:           { skin: 0xf5c5a3, hair: 0x3d2314, shirt: 0x2563eb, pants: 0x1e3a5f, shoe: 0x111827, eye: 0x1e3a5f, phone: null,   glow: 0x000000, glowA: 0 },
       ATTRACTED:      { skin: 0xf5c5a3, hair: 0x3d2314, shirt: 0x2563eb, pants: 0x1e3a5f, shoe: 0x111827, eye: 0x1e3a5f, phone: 0x111827, glow: 0x7c3aed, glowA: 0.12 },
-      LOOPING:        { skin: 0xf5c5a3, hair: 0x3d2314, shirt: 0x2563eb, pants: 0x1e3a5f, shoe: 0x111827, eye: 0x1e3a5f, phone: 0x111827, glow: 0xea580c, glowA: 0.18 },
-      DISTORTED:      { skin: 0xf5c5a3, hair: 0x3d2314, shirt: 0x2563eb, pants: 0x1e3a5f, shoe: 0x111827, eye: 0x1e3a5f, phone: 0x111827, glow: 0xdc2626, glowA: 0.25 },
-      BREAKING_POINT: { skin: 0xf5c5a3, hair: 0x3d2314, shirt: 0x2563eb, pants: 0x1e3a5f, shoe: 0x111827, eye: 0x1e3a5f, phone: 0x111827, glow: 0x7f1d1d, glowA: 0.3 },
-      RECOVERED:      { skin: 0xf5c5a3, hair: 0x3d2314, shirt: 0x2563eb, pants: 0x1e3a5f, shoe: 0x111827, eye: 0x1e3a5f, phone: null,   glow: 0x16a34a, glowA: 0.15 },
-      PARTIAL:        { skin: 0xf5c5a3, hair: 0x3d2314, shirt: 0x2563eb, pants: 0x1e3a5f, shoe: 0x111827, eye: 0x1e3a5f, phone: 0x111827, glow: 0xca8a04, glowA: 0.12 },
-      LOST:           { skin: 0xf5c5a3, hair: 0x3d2314, shirt: 0x2563eb, pants: 0x1e3a5f, shoe: 0x111827, eye: 0x1e3a5f, phone: 0x111827, glow: 0x000000, glowA: 0 },
+
+      LOOPING:        { skin: 0xedb48a, hair: 0x2c1a0e, shirt: 0x1d4ed8, pants: 0x172554, shoe: 0x0f172a, eye: 0x1e3a5f, phone: 0x0f172a, glow: 0xea580c, glowA: 0.18 },
+      DISTORTED:      { skin: 0xd4956e, hair: 0x1a0f08, shirt: 0x1e40af, pants: 0x0f1f3d, shoe: 0x080f1e, eye: 0x1e3a5f, phone: 0x080f1e, glow: 0xdc2626, glowA: 0.25 },
+      BREAKING_POINT: { skin: 0xb87a55, hair: 0x0f0805, shirt: 0x1e3a8a, pants: 0x0a1628, shoe: 0x050a14, eye: 0x1e3a5f, phone: 0x050a14, glow: 0x7f1d1d, glowA: 0.3 },
+      RECOVERED:      { skin: 0xf5c5a3, hair: 0x3d2314, shirt: 0x16a34a, pants: 0x14532d, shoe: 0x052e16, eye: 0x1e3a5f, phone: null,   glow: 0x16a34a, glowA: 0.15 },
+      PARTIAL:        { skin: 0xefc090, hair: 0x2c1a0e, shirt: 0xca8a04, pants: 0x3f2d00, shoe: 0x1c1300, eye: 0x1e3a5f, phone: 0x1c1300, glow: 0xca8a04, glowA: 0.12 },
+      LOST:           { skin: 0x9a8070, hair: 0x111111, shirt: 0x1f2937, pants: 0x111827, shoe: 0x030712, eye: 0x1e3a5f, phone: 0x030712, glow: 0x000000, glowA: 0 },
+
     }[state] || { skin: 0xf5c5a3, hair: 0x3d2314, shirt: 0x2563eb, pants: 0x1e3a5f, shoe: 0x111827, eye: 0x1e3a5f, phone: null, glow: 0x000000, glowA: 0 };
 
     const showPhone = this.hasPhone && P.phone !== null;
 
-    // ── Hunch transform — compress posture (NO TILT) ─────────────────────
+
+    // ── Hunch transform — compress posture but no rotation ────────
     const hunch = this.hunchLevel; // 0–4
     const hunchScaleY = 1 - hunch * 0.06; // body compresses vertically
     const hunchOffsetY = hunch * 6;     // sinks slightly downward
-    // Keep agent upright - no rotation
+    // No rotation - keep agent upright
+
     this.container.setRotation(0);
     this.container.setScale(this._facingRight ? 1 : -1, hunchScaleY);
 
@@ -217,15 +208,14 @@ export default class Agent {
     g.fillEllipse(gl + 0, -40*S, 26*S, 14*S);
     g.fillRect(gl + -12*S, -44*S, 24*S, 16*S);
 
-    // ── Hair front / spiky teen style ─────────────────────────────────────
+    // ── Hair front / smooth teen style (NO SPIKES) ────────────────────────
     g.fillStyle(P.hair, 1);
     // Main top
     g.fillEllipse(gl + 0, -43*S, 22*S, 10*S);
-    // Spiky bangs — teen boy style
-    g.fillTriangle(gl + -10*S, -40*S, gl + -5*S, -40*S, gl + -8*S, -48*S);
-    g.fillTriangle(gl + -5*S,  -41*S, gl +  1*S, -41*S, gl + -2*S, -50*S);
-    g.fillTriangle(gl +  1*S,  -41*S, gl +  7*S, -41*S, gl +  4*S, -49*S);
-    g.fillTriangle(gl +  6*S,  -40*S, gl + 11*S, -40*S, gl +  9*S, -47*S);
+    // Smooth rounded bangs — teen boy style (no spikes)
+    g.fillEllipse(gl + -8*S, -40*S, 6*S, 6*S);
+    g.fillEllipse(gl + -2*S, -41*S, 6*S, 6*S);
+    g.fillEllipse(gl + 4*S, -40*S, 6*S, 6*S);
     // Side hair
     g.fillEllipse(gl + -13*S, -34*S, 6*S, 12*S);
     g.fillEllipse(gl +  13*S, -34*S, 6*S, 12*S);
@@ -282,16 +272,16 @@ export default class Agent {
     g.lineStyle(1.8*S * 0.4, 0x8b4513, 1);
     if (state === 'RECOVERED') {
       // Smile — arc curving downward
-      g.beginPath(); g.arc(gl, -12*S, 4*S, Phaser.Math.DegToRad(20), Phaser.Math.DegToRad(160), false); g.strokePath();
+      g.beginPath(); g.arc(gl, -14*S, 4*S, Phaser.Math.DegToRad(20), Phaser.Math.DegToRad(160), false); g.strokePath();
     } else if (state === 'LOST' || state === 'BREAKING_POINT') {
       // Frown — arc curving upward
-      g.beginPath(); g.arc(gl, -16*S, 4*S, Phaser.Math.DegToRad(200), Phaser.Math.DegToRad(340), false); g.strokePath();
+      g.beginPath(); g.arc(gl, -18*S, 4*S, Phaser.Math.DegToRad(200), Phaser.Math.DegToRad(340), false); g.strokePath();
     } else if (state === 'ATTRACTED') {
       // Slight smile
-      g.beginPath(); g.arc(gl, -12.5*S, 3.5*S, Phaser.Math.DegToRad(25), Phaser.Math.DegToRad(155), false); g.strokePath();
+      g.beginPath(); g.arc(gl, -14.5*S, 3.5*S, Phaser.Math.DegToRad(25), Phaser.Math.DegToRad(155), false); g.strokePath();
     } else {
       // Neutral line
-      g.beginPath(); g.moveTo(gl + -3*S, -13*S); g.lineTo(gl + 3*S, -13*S); g.strokePath();
+      g.beginPath(); g.moveTo(gl + -3*S, -15*S); g.lineTo(gl + 3*S, -15*S); g.strokePath();
     }
 
     // ── Subtle cheek blush ────────────────────────────────────────────────
@@ -391,7 +381,7 @@ export default class Agent {
     if (this.keysLocked) return; // Allow locking keyboard control
     
     const { width, height } = this.scene.scale;
-    const speed = 3.5;
+    const speed = 6;
     const k = this._keys;
     const w = this._wasd;
 
@@ -464,7 +454,7 @@ export default class Agent {
     this.nameTag.setPosition(this.x, this.y - 105);
     this.stateLabel.setPosition(this.x, this.y + 68);
     this.perceptionRing.setPosition(this.x, this.y);
-    if (this._controlsHint) this._controlsHint.setPosition(this.x, this.y + 95);
+
   }
 
   // ── Perception ────────────────────────────────────────────────────────────

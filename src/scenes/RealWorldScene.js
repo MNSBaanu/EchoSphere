@@ -11,7 +11,7 @@ const NPC_DATA = [
     name: "Mom",
     color: 0xe879a0,
     x: 0.72,
-    y: 0.62,
+    y: 0.70, // Same level as others
     emotion: "happy",
     lines: [
       "Hey! You actually came outside! 😊",
@@ -30,7 +30,7 @@ const NPC_DATA = [
     name: "Alex",
     color: 0x38bdf8,
     x: 0.55,
-    y: 0.65,
+    y: 0.70, // Same level as others
     emotion: "neutral",
     lines: [
       "Yo! Finally offline? 😄",
@@ -49,7 +49,7 @@ const NPC_DATA = [
     name: "Sam",
     color: 0x4ade80,
     x: 0.38,
-    y: 0.68,
+    y: 0.70, // Same level as others
     emotion: "neutral",
     lines: [
       "Can we play something together?",
@@ -133,8 +133,8 @@ export default class RealWorldScene extends Phaser.Scene {
     // ── Player character (Kai) ────────────────────────────────────────────
     this._spawnPlayer(width, height);
 
-    // ── Vision cone graphics (drawn each frame) ───────────────────────────
-    this._visionGfx = this.add.graphics().setDepth(6).setAlpha(0.12);
+    // ── Vision cone graphics (removed - no visual effects) ───────────────
+    this._visionGfx = this.add.graphics().setDepth(6).setAlpha(0); // Completely hidden
 
     // ── Phone in hand (if carried) ────────────────────────────────────────
     if (this._hasPhone || this._addictionLevel > 30) {
@@ -144,6 +144,9 @@ export default class RealWorldScene extends Phaser.Scene {
         backgroundColor: "#6366f1dd", padding: { x: 8, y: 4 }
       }).setDepth(15).setAlpha(0);
     }
+
+    // ── Notification Icon (distraction trigger) ───────────────────────────
+    this._createNotificationIcon();
 
     // ── Awareness HUD ─────────────────────────────────────────────────────
     this._buildHUD(width, height);
@@ -355,7 +358,7 @@ export default class RealWorldScene extends Phaser.Scene {
       this._showWeatherEffect('wind');
       const npc = Phaser.Utils.Array.GetRandom(this._npcs);
       if (npc) {
-        this._createSpeechBubble(npc.x, npc.y - 55, 'Whoa, that wind! 💨', npc.data.color, 'neutral');
+        this._createSpeechBubble(npc.x, npc.y - 110, 'Whoa, that wind! 💨', npc.data.color, 'neutral');
       }
       this.time.delayedCall(3000, () => { this._weatherEvent = null; });
 
@@ -390,7 +393,7 @@ export default class RealWorldScene extends Phaser.Scene {
         if (dist < this.HEARING_RANGE) {
           const hearLines = ['Hey Kai! Over here! 👋', 'Kai! Can you hear me?', 'Psst! Kai!'];
           const line = Phaser.Utils.Array.GetRandom(hearLines);
-          this._createSpeechBubble(npc.x, npc.y - 55, line, npc.data.color, 'happy');
+          this._createSpeechBubble(npc.x, npc.y - 110, line, npc.data.color, 'happy');
           this._log(`👂 Kai heard ${npc.name} calling`);
           // Kai's awareness increases when he hears someone
           this._awareness = Math.min(100, this._awareness + 8);
@@ -446,7 +449,7 @@ export default class RealWorldScene extends Phaser.Scene {
     this._adviceGiven = true;
 
     const adviceLine = 'Put the phone down. Real moments matter more. 💚';
-    const bubble = this._createSpeechBubble(npc.x, npc.y - 55, adviceLine, npc.data.color, 'happy');
+    const bubble = this._createSpeechBubble(npc.x, npc.y - 110, adviceLine, npc.data.color, 'happy');
     npc.bubble = bubble;
 
     // Kai learns — store in memory
@@ -472,20 +475,184 @@ export default class RealWorldScene extends Phaser.Scene {
     console.log(`[RealWorld] ${msg}`);
   }
 
+  // ── Notification Icon (clickable distraction) ─────────────────────────────
+  _createNotificationIcon() {
+    const { _w: W } = this;
+    
+    // Floating notification bell icon in top right
+    this._notifIcon = this.add.container(W - 80, 80).setDepth(22).setInteractive(
+      new Phaser.Geom.Circle(0, 0, 25), 
+      Phaser.Geom.Circle.Contains
+    );
+
+    // Background circle
+    const bg = this.add.circle(0, 0, 25, 0x6366f1, 1);
+    bg.setStrokeStyle(3, 0x4f46e5, 1);
+
+    // Bell icon (using graphics)
+    const bell = this.add.graphics();
+    bell.lineStyle(3, 0xffffff, 1);
+    bell.fillStyle(0xffffff, 1);
+    
+    // Bell body
+    bell.beginPath();
+    bell.arc(0, -2, 10, Math.PI * 0.8, Math.PI * 0.2, false);
+    bell.lineTo(8, 6);
+    bell.lineTo(-8, 6);
+    bell.closePath();
+    bell.strokePath();
+    bell.fillPath();
+    
+    // Bell clapper
+    bell.fillCircle(0, 6, 2);
+    
+    // Bell top
+    bell.fillCircle(0, -12, 3);
+
+    // Notification badge (red dot)
+    this._notifBadge = this.add.circle(12, -12, 6, 0xef4444, 1);
+    this._notifBadge.setStrokeStyle(2, 0xffffff, 1);
+
+    // Badge number
+    const badgeNum = this.add.text(12, -12, "3", {
+      fontFamily: FONT, fontSize: "10px", color: "#ffffff", fontStyle: "bold"
+    }).setOrigin(0.5);
+
+    this._notifIcon.add([bg, bell, this._notifBadge, badgeNum]);
+
+    // Pulse animation
+    this.tweens.add({
+      targets: this._notifIcon,
+      scaleX: 1.1,
+      scaleY: 1.1,
+      duration: 800,
+      yoyo: true,
+      repeat: -1,
+      ease: "Sine.easeInOut"
+    });
+
+    // Click handler
+    this._notifIcon.on('pointerdown', () => {
+      this._onNotificationClicked();
+    });
+
+    // Hover effect
+    this._notifIcon.on('pointerover', () => {
+      bg.setFillStyle(0x4f46e5, 1);
+      this.game.canvas.style.cursor = 'pointer';
+    });
+
+    this._notifIcon.on('pointerout', () => {
+      bg.setFillStyle(0x6366f1, 1);
+      this.game.canvas.style.cursor = 'default';
+    });
+  }
+
+  // ── Handle notification click (distraction event) ─────────────────────────
+  _onNotificationClicked() {
+    // Kai gets distracted by phone
+    this._phoneVisible = true;
+    this._addictionLevel = Math.min(100, this._addictionLevel + 15);
+    this._awareness = Math.max(0, this._awareness - 10);
+    
+    if (this.agent) {
+      this.agent.hasPhone = true;
+      this.agent.addictionLevel = this._addictionLevel;
+      this.agent.awareness = this._awareness;
+    }
+
+    // Show distraction message
+    const { _w: W, _h: H } = this;
+    const distractMsg = this.add.container(W / 2, H / 2 - 50).setDepth(30);
+    
+    const msgBg = this.add.rectangle(0, 0, 400, 100, 0x6366f1, 0.95);
+    msgBg.setStrokeStyle(3, 0x4f46e5, 1);
+    
+    const msgText = this.add.text(0, -15, "📱 New Notifications!", {
+      fontFamily: FONT, fontSize: "24px", color: "#ffffff", fontStyle: "bold"
+    }).setOrigin(0.5);
+    
+    const subText = this.add.text(0, 15, "Kai got distracted by the phone...", {
+      fontFamily: FONT, fontSize: "14px", color: "#e0e7ff"
+    }).setOrigin(0.5);
+    
+    distractMsg.add([msgBg, msgText, subText]);
+    
+    // Animate in
+    gsap.fromTo(distractMsg, 
+      { alpha: 0, scale: 0.8 }, 
+      { alpha: 1, scale: 1, duration: 0.4, ease: "back.out(1.5)" }
+    );
+    
+    // Fade out after 2 seconds
+    this.time.delayedCall(2000, () => {
+      gsap.to(distractMsg, {
+        alpha: 0,
+        duration: 0.5,
+        onComplete: () => distractMsg.destroy()
+      });
+    });
+
+    // NPCs react negatively
+    const reactingNpc = Phaser.Utils.Array.GetRandom(this._npcs);
+    if (reactingNpc && !reactingNpc.bubble) {
+      this.time.delayedCall(1000, () => {
+        reactingNpc.emotion = "sad";
+        if (reactingNpc.emotionTag) reactingNpc.emotionTag.setText("😢");
+        if (reactingNpc.drawNPC) reactingNpc.drawNPC("sad");
+        
+        const sadLines = [
+          "Oh no, not the phone again... 😔",
+          "We were having such a good time... 😢",
+          "Please put it away... 🥺"
+        ];
+        const line = Phaser.Utils.Array.GetRandom(sadLines);
+        
+        const b = this._createSpeechBubble(
+          reactingNpc.x, reactingNpc.y - 110,
+          line,
+          reactingNpc.data.color, "sad"
+        );
+        reactingNpc.bubble = b;
+        
+        this.time.delayedCall(3000, () => {
+          if (reactingNpc.bubble === b) {
+            gsap.to(b, { alpha: 0, duration: 0.3, onComplete: () => b.destroy() });
+            reactingNpc.bubble = null;
+            reactingNpc.emotion = "neutral";
+            if (reactingNpc.emotionTag) reactingNpc.emotionTag.setText("😐");
+            if (reactingNpc.drawNPC) reactingNpc.drawNPC("neutral");
+          }
+        });
+      });
+    }
+
+    // Update relationships
+    this._relationshipLevel = Math.max(0, this._relationshipLevel - 10);
+    this._playerIgnoreCount++;
+
+    // Shake notification icon and update badge
+    this.tweens.add({
+      targets: this._notifIcon,
+      angle: -10,
+      duration: 100,
+      yoyo: true,
+      repeat: 3
+    });
+
+    // Increase badge number
+    const currentNum = parseInt(this._notifIcon.list[3].text) || 3;
+    this._notifIcon.list[3].setText((currentNum + 2).toString());
+  }
+
   // ── Outdoor background ────────────────────────────────────────────────────
   _drawOutdoor(width, height) {
     const g = this.add.graphics().setDepth(0);
     const groundY = height * 0.75;
 
-    // Sky gradient
-    g.fillGradientStyle(0x87ceeb, 0x87ceeb, 0xfde8c8, 0xfde8c8, 1);
+    // Sky gradient (no sun, no yellow effect)
+    g.fillGradientStyle(0x87ceeb, 0x87ceeb, 0xe0f2fe, 0xe0f2fe, 1);
     g.fillRect(0, 0, width, groundY);
-
-    // Sun
-    g.fillStyle(0xffd700, 1);
-    g.fillCircle(width * 0.85, height * 0.15, 50);
-    g.fillStyle(0xfff3b0, 0.3);
-    g.fillCircle(width * 0.85, height * 0.15, 75);
 
     // Clouds
     [[0.15, 0.12], [0.4, 0.08], [0.65, 0.14]].forEach(([cx, cy]) => {
@@ -554,23 +721,54 @@ export default class RealWorldScene extends Phaser.Scene {
       g.fillStyle(0x000000, 0.15);
       g.fillEllipse(x, y + 40 * S * 0.36, 44, 10);
 
-      // Shoes
-      g.fillStyle(0x111827, 1);
-      g.fillRoundedRect(x + 4 * S, y + (28 - 2) * S, 9 * S, 5 * S, 2);
-      g.fillRoundedRect(x - 13 * S, y + (28 + 2) * S, 9 * S, 5 * S, 2);
+      // ── MOM: Draw dress instead of pants ──────────────────────────────
+      if (data.id === 'mom') {
+        // Shoes (smaller, more feminine)
+        g.fillStyle(0x8b4513, 1);
+        g.fillRoundedRect(x + 4 * S, y + (28 - 2) * S, 8 * S, 4 * S, 2);
+        g.fillRoundedRect(x - 12 * S, y + (28 + 2) * S, 8 * S, 4 * S, 2);
 
-      // Legs
-      g.fillStyle(pants, 1);
-      g.fillRoundedRect(x + 5 * S, y + 10 * S, 7 * S, 18 * S, 2);
-      g.fillRoundedRect(x - 12 * S, y + 10 * S, 7 * S, 18 * S, 2);
+        // Dress - A-line skirt shape
+        g.fillStyle(shirt, 1);
+        // Upper dress (fitted)
+        g.fillRoundedRect(x - 13 * S, y - 8 * S, 26 * S, 12 * S, 4);
+        // Skirt (flared)
+        g.beginPath();
+        g.moveTo(x - 13 * S, y + 4 * S);
+        g.lineTo(x - 18 * S, y + 24 * S);
+        g.lineTo(x + 18 * S, y + 24 * S);
+        g.lineTo(x + 13 * S, y + 4 * S);
+        g.closePath();
+        g.fillPath();
+        
+        // Dress pattern/detail
+        g.fillStyle(0xffffff, 0.2);
+        g.fillCircle(x - 6 * S, y + 0 * S, 2 * S);
+        g.fillCircle(x + 6 * S, y + 0 * S, 2 * S);
+        g.fillCircle(x, y + 12 * S, 2 * S);
+        
+        // Collar (V-neck)
+        g.fillStyle(0xf5c5a3, 1);
+        g.fillTriangle(x - 4 * S, y - 8 * S, x + 4 * S, y - 8 * S, x, y - 1 * S);
+      } else {
+        // Regular shoes for others
+        g.fillStyle(0x111827, 1);
+        g.fillRoundedRect(x + 4 * S, y + (28 - 2) * S, 9 * S, 5 * S, 2);
+        g.fillRoundedRect(x - 13 * S, y + (28 + 2) * S, 9 * S, 5 * S, 2);
 
-      // Body
-      g.fillStyle(shirt, 1);
-      g.fillRoundedRect(x - 13 * S, y - 8 * S, 26 * S, 20 * S, 4);
+        // Legs
+        g.fillStyle(pants, 1);
+        g.fillRoundedRect(x + 5 * S, y + 10 * S, 7 * S, 18 * S, 2);
+        g.fillRoundedRect(x - 12 * S, y + 10 * S, 7 * S, 18 * S, 2);
 
-      // Collar
-      g.fillStyle(0xf5c5a3, 1);
-      g.fillTriangle(x - 3 * S, y - 8 * S, x + 3 * S, y - 8 * S, x, y - 2 * S);
+        // Body
+        g.fillStyle(shirt, 1);
+        g.fillRoundedRect(x - 13 * S, y - 8 * S, 26 * S, 20 * S, 4);
+
+        // Collar
+        g.fillStyle(0xf5c5a3, 1);
+        g.fillTriangle(x - 3 * S, y - 8 * S, x + 3 * S, y - 8 * S, x, y - 2 * S);
+      }
 
       // Arms
       g.fillStyle(shirt, 1);
@@ -595,14 +793,48 @@ export default class RealWorldScene extends Phaser.Scene {
       g.fillEllipse(x - 12 * S, y - 24 * S, 5 * S, 7 * S);
       g.fillEllipse(x + 12 * S, y - 24 * S, 5 * S, 7 * S);
 
-      // Hair
+      // ── HAIR: Different styles per character (NO SPIKES) ──────────────
       g.fillStyle(0x3d2314, 1);
-      g.fillEllipse(x, y - 40 * S, 26 * S, 14 * S);
-      g.fillRect(x - 12 * S, y - 44 * S, 24 * S, 16 * S);
-      g.fillEllipse(x, y - 43 * S, 22 * S, 10 * S);
-      g.fillTriangle(x - 10 * S, y - 40 * S, x - 5 * S, y - 40 * S, x - 8 * S, y - 48 * S);
-      g.fillTriangle(x - 4 * S, y - 41 * S, x + 2 * S, y - 41 * S, x - 1 * S, y - 50 * S);
-      g.fillTriangle(x + 2 * S, y - 41 * S, x + 8 * S, y - 41 * S, x + 5 * S, y - 49 * S);
+      
+      if (data.id === 'mom') {
+        // Mom: Longer, wavy feminine hair (moved up slightly)
+        // Back hair (longer)
+        g.fillEllipse(x, y - 42 * S, 28 * S, 16 * S);
+        g.fillRect(x - 14 * S, y - 46 * S, 28 * S, 20 * S);
+        // Top smooth
+        g.fillEllipse(x, y - 45 * S, 26 * S, 12 * S);
+        // Side waves
+        g.fillEllipse(x - 14 * S, y - 34 * S, 8 * S, 16 * S);
+        g.fillEllipse(x + 14 * S, y - 34 * S, 8 * S, 16 * S);
+        // Bangs (smooth, no spikes)
+        g.fillEllipse(x - 8 * S, y - 40 * S, 6 * S, 8 * S);
+        g.fillEllipse(x, y - 41 * S, 8 * S, 8 * S);
+        g.fillEllipse(x + 8 * S, y - 40 * S, 6 * S, 8 * S);
+        
+        // Small flower on hair (right side)
+        g.fillStyle(0xff69b4, 1); // Pink flower
+        g.fillCircle(x + 10 * S, y - 42 * S, 3 * S);
+        // Flower petals
+        g.fillCircle(x + 8 * S, y - 42 * S, 2 * S);
+        g.fillCircle(x + 12 * S, y - 42 * S, 2 * S);
+        g.fillCircle(x + 10 * S, y - 40 * S, 2 * S);
+        g.fillCircle(x + 10 * S, y - 44 * S, 2 * S);
+        // Flower center
+        g.fillStyle(0xffd700, 1); // Yellow center
+        g.fillCircle(x + 10 * S, y - 42 * S, 1.5 * S);
+      } else {
+        // Others: Short hair (NO SPIKES - smooth rounded style)
+        g.fillEllipse(x, y - 40 * S, 26 * S, 14 * S);
+        g.fillRect(x - 12 * S, y - 44 * S, 24 * S, 16 * S);
+        g.fillEllipse(x, y - 43 * S, 22 * S, 10 * S);
+        // Smooth rounded bangs instead of spikes
+        g.fillEllipse(x - 8 * S, y - 40 * S, 6 * S, 6 * S);
+        g.fillEllipse(x - 2 * S, y - 41 * S, 6 * S, 6 * S);
+        g.fillEllipse(x + 4 * S, y - 40 * S, 6 * S, 6 * S);
+        // Side hair
+        g.fillEllipse(x - 13 * S, y - 34 * S, 6 * S, 12 * S);
+        g.fillEllipse(x + 13 * S, y - 34 * S, 6 * S, 12 * S);
+      }
 
       // Eyebrows
       g.lineStyle(2.5 * S * 0.4, 0x3d2314, 1);
@@ -649,15 +881,15 @@ export default class RealWorldScene extends Phaser.Scene {
       // Mouth
       g.lineStyle(1.8 * S * 0.4, 0x8b4513, 1);
       if (emotion === 'happy') {
-        g.beginPath(); g.arc(x, y - 12 * S, 4 * S, Phaser.Math.DegToRad(20), Phaser.Math.DegToRad(160), false); g.strokePath();
+        g.beginPath(); g.arc(x, y - 14 * S, 4 * S, Phaser.Math.DegToRad(20), Phaser.Math.DegToRad(160), false); g.strokePath();
         // Blush
         g.fillStyle(0xfca5a5, 0.25);
         g.fillEllipse(x - 9 * S, y - 21 * S, 7 * S, 4 * S);
         g.fillEllipse(x + 9 * S, y - 21 * S, 7 * S, 4 * S);
       } else if (emotion === 'angry' || emotion === 'sad') {
-        g.beginPath(); g.arc(x, y - 16 * S, 4 * S, Phaser.Math.DegToRad(200), Phaser.Math.DegToRad(340), false); g.strokePath();
+        g.beginPath(); g.arc(x, y - 18 * S, 4 * S, Phaser.Math.DegToRad(200), Phaser.Math.DegToRad(340), false); g.strokePath();
       } else {
-        g.beginPath(); g.moveTo(x - 3 * S, y - 13 * S); g.lineTo(x + 3 * S, y - 13 * S); g.strokePath();
+        g.beginPath(); g.moveTo(x - 3 * S, y - 15 * S); g.lineTo(x + 3 * S, y - 15 * S); g.strokePath();
       }
     };
 
@@ -679,7 +911,7 @@ export default class RealWorldScene extends Phaser.Scene {
   // ── Spawn player using the real Agent class ──────────────────────────────
   _spawnPlayer(width, height) {
     const x = width * 0.5;
-    const y = height * 0.68;
+    const y = height * 0.70; // Same level as NPCs
 
     this.agent = new Agent(this, x, y);
 
@@ -705,13 +937,47 @@ export default class RealWorldScene extends Phaser.Scene {
 
   // ── HUD ───────────────────────────────────────────────────────────────────
   _buildHUD(width, height) {
-    // Agent Status HUD removed for cleaner interface
-    // Metrics are still tracked internally but not displayed
-    return;
+
+    const hud = this.add.container(width - 200, 62).setDepth(25);
+
+    const bg = this.add.rectangle(0, 0, 185, 110, 0x000000, 0.6);
+    bg.setStrokeStyle(1, 0x4ade80, 0.5);
+
+    const title = this.add.text(0, -40, "Agent State", {
+      fontFamily: FONT, fontSize: "12px", color: "#86efac", fontStyle: "bold"
+    }).setOrigin(0.5);
+
+    // Awareness bar
+    const awLabel = this.add.text(-70, -20, "👁 Awareness", {
+      fontFamily: FONT, fontSize: "10px", color: "#e2e8f0"
+    }).setOrigin(0, 0.5);
+    const awBg = this.add.rectangle(20, -20, 60, 8, 0x1e293b, 1).setOrigin(0, 0.5);
+    this._awBar = this.add.rectangle(20, -20, (this._awareness / 100) * 60, 6, 0x3b82f6, 1).setOrigin(0, 0.5);
+
+    // Addiction bar
+    const adLabel = this.add.text(-70, 0, "📱 Addiction", {
+      fontFamily: FONT, fontSize: "10px", color: "#e2e8f0"
+    }).setOrigin(0, 0.5);
+    const adBg = this.add.rectangle(20, 0, 60, 8, 0x1e293b, 1).setOrigin(0, 0.5);
+    this._adBar = this.add.rectangle(20, 0, (this._addictionLevel / 100) * 60, 6, 0xef4444, 1).setOrigin(0, 0.5);
+
+    // Relationship bar
+    const relLabel = this.add.text(-70, 20, "💬 Relations", {
+      fontFamily: FONT, fontSize: "10px", color: "#e2e8f0"
+    }).setOrigin(0, 0.5);
+    const relBg = this.add.rectangle(20, 20, 60, 8, 0x1e293b, 1).setOrigin(0, 0.5);
+    this._relBar = this.add.rectangle(20, 20, (this._relationshipLevel / 100) * 60, 6, 0x10b981, 1).setOrigin(0, 0.5);
+
+    hud.add([bg, title, awLabel, awBg, this._awBar, adLabel, adBg, this._adBar, relLabel, relBg, this._relBar]);
   }
 
   _updateHUD() {
-    // HUD removed - no updates needed
+    if (this._awBar)  this._awBar.width  = (this._awareness / 100) * 60;
+    if (this._adBar)  this._adBar.width  = (this._addictionLevel / 100) * 60;
+    if (this._relBar) this._relBar.width = (this._relationshipLevel / 100) * 60;
+
+    // Agent Status HUD removed for cleaner interface
+    // Metrics are still tracked internally but not displayed
     return;
   }
 
@@ -841,8 +1107,8 @@ export default class RealWorldScene extends Phaser.Scene {
     if (npc.emotionTag) npc.emotionTag.setText(emotionEmoji[npc.emotion] || "😐");
     if (npc.drawNPC) npc.drawNPC(npc.emotion);
 
-    // Build speech bubble
-    const bubble = this._createSpeechBubble(npc.x, npc.y - 55, line, npc.data.color, npc.emotion);
+    // Build speech bubble (positioned well above NPC to not cover them)
+    const bubble = this._createSpeechBubble(npc.x, npc.y - 110, line, npc.data.color, npc.emotion);
     npc.bubble = bubble;
 
     // Auto-dismiss after 3.5s
@@ -856,17 +1122,27 @@ export default class RealWorldScene extends Phaser.Scene {
       }
     });
 
-    // ── Emotional response: if angry, nearby NPCs react too ───────────────
+    // ── EMOTIONAL INTELLIGENCE: NPCs respond to each other's emotions ────
     if (npc.emotion === "angry") {
+      // When one NPC is angry, others show concern and try to help
       this._npcs.forEach(other => {
         if (other.id !== npc.id && !other.bubble) {
           this.time.delayedCall(800, () => {
             other.emotion = "sad";
             if (other.emotionTag) other.emotionTag.setText("😢");
             if (other.drawNPC) other.drawNPC("sad");
-            const supportLine = "Are you okay? 😟";
-            const b = this._createSpeechBubble(other.x, other.y - 55, supportLine, other.data.color, "sad");
+            
+            // Different NPCs respond differently based on their relationship
+            const supportLines = {
+              mom: "Honey, I understand you're upset. Let's talk about it. 💚",
+              friend: "Hey, I'm here for you. What's wrong? 🤝",
+              sibling: "Are you okay? I'm worried about you... 😟"
+            };
+            const supportLine = supportLines[other.id] || "Are you okay? 😟";
+            
+            const b = this._createSpeechBubble(other.x, other.y - 110, supportLine, other.data.color, "sad");
             other.bubble = b;
+            
             this.time.delayedCall(2500, () => {
               if (other.bubble === b) {
                 gsap.to(b, { alpha: 0, duration: 0.3, onComplete: () => b.destroy() });
@@ -879,19 +1155,69 @@ export default class RealWorldScene extends Phaser.Scene {
           });
         }
       });
+      
+      // After others show support, angry NPC calms down
+      this.time.delayedCall(3500, () => {
+        if (npc.emotion === "angry") {
+          npc.emotion = "sad";
+          if (npc.emotionTag) npc.emotionTag.setText("😢");
+          if (npc.drawNPC) npc.drawNPC("sad");
+          
+          // NPC acknowledges the support
+          if (npc.bubble) npc.bubble.destroy();
+          const calmLine = "Thanks for understanding... I just feel ignored sometimes. 😔";
+          const b = this._createSpeechBubble(npc.x, npc.y - 110, calmLine, npc.data.color, "sad");
+          npc.bubble = b;
+          
+          this.time.delayedCall(3000, () => {
+            if (npc.bubble === b) {
+              gsap.to(b, { alpha: 0, duration: 0.3, onComplete: () => b.destroy() });
+              npc.bubble = null;
+              npc.emotion = "neutral";
+              if (npc.emotionTag) npc.emotionTag.setText("😐");
+              if (npc.drawNPC) npc.drawNPC("neutral");
+            }
+          });
+        }
+      });
+    }
+    
+    // ── EMOTIONAL INTELLIGENCE: Happy emotions are contagious ─────────────
+    if (npc.emotion === "happy" && this._playerEngageCount > 0) {
+      this._npcs.forEach(other => {
+        if (other.id !== npc.id && other.emotion !== "angry") {
+          this.time.delayedCall(600, () => {
+            if (!other.bubble) {
+              other.emotion = "happy";
+              if (other.emotionTag) other.emotionTag.setText("😊");
+              if (other.drawNPC) other.drawNPC("happy");
+              
+              // Reset after a moment
+              this.time.delayedCall(2500, () => {
+                if (!other.bubble && other.emotion === "happy") {
+                  other.emotion = "neutral";
+                  if (other.emotionTag) other.emotionTag.setText("😐");
+                  if (other.drawNPC) other.drawNPC("neutral");
+                }
+              });
+            }
+          });
+        }
+      });
     }
   }
 
-  // ── Speech bubble factory ─────────────────────────────────────────────────
+  // ── Speech bubble factory (positioned near NPC with gap above head) ──────
   _createSpeechBubble(x, y, text, color, emotion) {
+    // Position bubble above the NPC with a gap (y is already NPC.y - 110)
     const container = this.add.container(x, y).setDepth(20);
 
-    const maxW = 220;
-    const padding = 12;
+    const maxW = 280;
+    const padding = 14;
 
     // Measure text
     const tempTxt = this.add.text(0, 0, text, {
-      fontFamily: FONT, fontSize: "13px",
+      fontFamily: FONT, fontSize: "14px",
       wordWrap: { width: maxW - padding * 2 }
     });
     const tw = Math.min(tempTxt.width + padding * 2, maxW);
@@ -903,7 +1229,7 @@ export default class RealWorldScene extends Phaser.Scene {
     const borderColor = borderColors[emotion] || color;
 
     // Bubble background
-    const bg = this.add.rectangle(0, 0, tw, th, 0xffffff, 0.97);
+    const bg = this.add.rectangle(0, 0, tw, th, 0xffffff, 0.98);
     bg.setStrokeStyle(3, borderColor, 1);
 
     // Emotion accent strip on left
@@ -911,44 +1237,271 @@ export default class RealWorldScene extends Phaser.Scene {
 
     // Text
     const txt = this.add.text(-tw / 2 + padding + 4, 0, text, {
-      fontFamily: FONT, fontSize: "13px", color: "#1e1b4b",
+      fontFamily: FONT, fontSize: "14px", color: "#1e1b4b",
       wordWrap: { width: tw - padding * 2 - 8 }
     }).setOrigin(0, 0.5);
 
-    // Tail (triangle pointing down)
-    const tail = this.add.triangle(0, th / 2 + 8, -8, 0, 8, 0, 0, 14, 0xffffff, 1);
-    tail.setStrokeStyle(1, borderColor, 0.5);
+    // Tail pointing down to NPC
+    const tail = this.add.graphics();
+    tail.fillStyle(0xffffff, 0.98);
+    tail.beginPath();
+    tail.moveTo(-8, th / 2);
+    tail.lineTo(0, th / 2 + 12);
+    tail.lineTo(8, th / 2);
+    tail.closePath();
+    tail.fillPath();
+    tail.lineStyle(3, borderColor, 1);
+    tail.beginPath();
+    tail.moveTo(-8, th / 2);
+    tail.lineTo(0, th / 2 + 12);
+    tail.lineTo(8, th / 2);
+    tail.strokePath();
 
-    container.add([bg, strip, txt, tail]);
+    container.add([tail, bg, strip, txt]);
 
     // Animate in
-    container.setAlpha(0).setScale(0.8);
-    gsap.to(container, { alpha: 1, duration: 0.25, ease: "power2.out" });
+    container.setAlpha(0).setScale(0.9);
+    gsap.to(container, { alpha: 1, duration: 0.3, ease: "power2.out" });
     this.tweens.add({
-      targets: container, scaleX: 1, scaleY: 1, duration: 250, ease: "Back.easeOut"
+      targets: container, scaleX: 1, scaleY: 1, duration: 300, ease: "Back.easeOut"
     });
 
     return container;
   }
 
-  // ── Greeting sequence on scene start ─────────────────────────────────────
+  // ── Greeting sequence on scene start (automatic, one by one) ──────────────
   _startGreetings() {
-    // Slower, one-by-one communication with longer delays
-    this._npcs.forEach((npc, i) => {
-      this.time.delayedCall(i * 4000, () => { // Increased from 1200 to 4000ms
+    // Family conversation leading to trip decision
+    const conversation = [
+      { npc: "mom", text: "Hey everyone! It's such a beautiful day outside! 😊", emotion: "happy", delay: 0 },
+      { npc: "sibling", text: "Yeah! Can we do something fun together?", emotion: "happy", delay: 4000 },
+      { npc: "friend", text: "I'm down for anything! What do you guys want to do?", emotion: "happy", delay: 8000 },
+      { npc: "mom", text: "How about we go on a trip? We could drive to the lake!", emotion: "happy", delay: 12000 },
+      { npc: "sibling", text: "Yes! Road trip! Can we pick up more friends on the way?", emotion: "happy", delay: 16000 },
+      { npc: "friend", text: "That sounds awesome! I'll bring snacks! 🎉", emotion: "happy", delay: 20000 },
+      { npc: "mom", text: "Perfect! Let's get ready and head to the car! 🚗", emotion: "happy", delay: 24000 }
+    ];
+
+    conversation.forEach(({ npc: npcId, text, emotion, delay }) => {
+      this.time.delayedCall(delay, () => {
         if (this._ended) return;
-        const line = npc.data.lines[0];
-        const bubble = this._createSpeechBubble(npc.x, npc.y - 55, line, npc.data.color, "happy");
+        const npc = this._npcs.find(n => n.id === npcId);
+        if (!npc) return;
+
+        // Clear previous bubble
+        if (npc.bubble) {
+          npc.bubble.destroy();
+          npc.bubble = null;
+        }
+
+        // Create speech bubble
+        const bubble = this._createSpeechBubble(npc.x, npc.y - 110, text, npc.data.color, emotion);
         npc.bubble = bubble;
-        npc.emotion = "happy";
-        if (npc.emotionTag) npc.emotionTag.setText("😊");
-        this.time.delayedCall(5000, () => { // Increased from 3000 to 5000ms
+        npc.emotion = emotion;
+        if (npc.emotionTag) npc.emotionTag.setText(emotion === "happy" ? "😊" : "😐");
+        if (npc.drawNPC) npc.drawNPC(emotion);
+
+        // ── EMOTIONAL INTELLIGENCE: Other NPCs react to excitement ────────
+        if (emotion === "happy" && (text.includes("trip") || text.includes("awesome"))) {
+          this._npcs.forEach(other => {
+            if (other.id !== npcId && !other.bubble) {
+              this.time.delayedCall(500, () => {
+                other.emotion = "happy";
+                if (other.emotionTag) other.emotionTag.setText("😊");
+                if (other.drawNPC) other.drawNPC("happy");
+                
+                // Reset emotion after a moment
+                this.time.delayedCall(2000, () => {
+                  if (!other.bubble) {
+                    other.emotion = "neutral";
+                    if (other.emotionTag) other.emotionTag.setText("😐");
+                    if (other.drawNPC) other.drawNPC("neutral");
+                  }
+                });
+              });
+            }
+          });
+        }
+
+        // Auto-dismiss after 3.5 seconds
+        this.time.delayedCall(3500, () => {
           if (npc.bubble === bubble) {
             gsap.to(bubble, { alpha: 0, duration: 0.3, onComplete: () => bubble.destroy() });
             npc.bubble = null;
-            npc.emotion = "neutral";
-            if (npc.emotionTag) npc.emotionTag.setText("😐");
           }
+        });
+      });
+    });
+
+    // After conversation ends, agent walks to road then transition to trip scene
+    this.time.delayedCall(28000, () => {
+      if (!this._ended) {
+        this._agentWalkToRoad();
+      }
+    });
+  }
+
+  // ── Agent and NPCs walk to road together ──────────────────────────────────
+  _agentWalkToRoad() {
+    if (!this.agent) return;
+
+    // Lock player controls during automatic walk
+    this.agent.keysLocked = true;
+
+    const targetY = this._h - 100; // Bottom of screen (road side)
+
+    // Calculate positions for everyone in a group
+    const groupCenterX = this._w / 2;
+    const spacing = 80; // Space between characters
+    
+    // Positions: Mom (left), Kai (center), Friend (right of Kai), Sibling (far right)
+    const positions = [
+      { x: groupCenterX - spacing * 1.5, y: targetY }, // Mom (leftmost)
+      { x: groupCenterX - spacing * 0.5, y: targetY }, // Kai (center-left)
+      { x: groupCenterX + spacing * 0.5, y: targetY }, // Friend (center-right)
+      { x: groupCenterX + spacing * 1.5, y: targetY }  // Sibling (rightmost)
+    ];
+
+    // Kai's target position (center-left)
+    const kaiTarget = positions[1];
+
+    // Show message
+    this._createSpeechBubble(this.agent.x, this.agent.y - 110, "Let's all go to the car! 🚗", 0x4ade80, "happy");
+
+    // Calculate duration based on distance
+    const distance = Phaser.Math.Distance.Between(this.agent.x, this.agent.y, kaiTarget.x, kaiTarget.y);
+    const walkSpeed = 2;
+    const duration = (distance / walkSpeed) * 16.67;
+
+    // Animate Kai walking
+    this.tweens.add({
+      targets: this.agent,
+      x: kaiTarget.x,
+      y: kaiTarget.y,
+      duration: duration,
+      ease: "Linear",
+      onUpdate: () => {
+        this.agent._moving = true;
+        this.agent._walkCycle += 0.18;
+        
+        if (kaiTarget.x > this.agent.x) {
+          this.agent._facingRight = true;
+        } else if (kaiTarget.x < this.agent.x) {
+          this.agent._facingRight = false;
+        }
+
+        this.agent.container.setPosition(this.agent.x, this.agent.y);
+        this.agent.container.setScale(this.agent._facingRight ? 1 : -1, 1 - this.agent.hunchLevel * 0.06);
+        this.agent._shadow.setPosition(this.agent.x, this.agent.y + 52);
+        this.agent._glow.setPosition(this.agent.x, this.agent.y);
+        this.agent.perceptionRing.setPosition(this.agent.x, this.agent.y);
+      },
+      onComplete: () => {
+        this.agent._moving = false;
+      }
+    });
+
+    // Animate all NPCs walking to their positions
+    this._npcs.forEach((npc, index) => {
+      // Assign positions: mom=0, friend=2, sibling=3
+      let targetPos;
+      if (npc.id === 'mom') {
+        targetPos = positions[0]; // Leftmost
+      } else if (npc.id === 'friend') {
+        targetPos = positions[2]; // Center-right
+      } else if (npc.id === 'sibling') {
+        targetPos = positions[3]; // Rightmost
+      }
+
+      if (!targetPos) return;
+
+      const npcDistance = Phaser.Math.Distance.Between(npc.x, npc.y, targetPos.x, targetPos.y);
+      const npcDuration = (npcDistance / walkSpeed) * 16.67;
+
+      // Stop any existing wander behavior
+      npc._seekingPlayer = false;
+      npc._wanderTimer = 0;
+
+      // Show excited emotion
+      npc.emotion = "happy";
+      if (npc.emotionTag) npc.emotionTag.setText("😊");
+      if (npc.drawNPC) npc.drawNPC("happy");
+
+      // Animate NPC walking
+      this.tweens.add({
+        targets: npc,
+        x: targetPos.x,
+        y: targetPos.y,
+        duration: npcDuration,
+        ease: "Linear",
+        onUpdate: () => {
+          // Update NPC visuals during walk
+          if (npc.drawNPC) npc.drawNPC(npc.emotion);
+          if (npc.nameTag) npc.nameTag.setPosition(npc.x, npc.nameTag.y);
+          if (npc.emotionTag) npc.emotionTag.setPosition(npc.x + 30, npc.emotionTag.y);
+        }
+      });
+
+      // NPCs say excited things while walking
+      const excitedLines = [
+        "This is going to be so fun! 😊",
+        "Can't wait! 🎉",
+        "Road trip time! 🚗",
+        "Let's go! 💚"
+      ];
+      
+      this.time.delayedCall(500 + index * 800, () => {
+        if (npc.bubble) npc.bubble.destroy();
+        const line = Phaser.Utils.Array.GetRandom(excitedLines);
+        const bubble = this._createSpeechBubble(npc.x, npc.y - 110, line, npc.data.color, "happy");
+        npc.bubble = bubble;
+        
+        this.time.delayedCall(2500, () => {
+          if (npc.bubble === bubble) {
+            gsap.to(bubble, { alpha: 0, duration: 0.3, onComplete: () => bubble.destroy() });
+            npc.bubble = null;
+          }
+        });
+      });
+    });
+
+    // Wait for everyone to arrive, then transition
+    this.time.delayedCall(duration + 1000, () => {
+      this._transitionToTrip();
+    });
+  }
+
+  // ── Transition to trip scene ──────────────────────────────────────────────
+  _transitionToTrip() {
+    if (this._ended) return;
+    this._ended = true;
+
+    const { _w: W, _h: H } = this;
+
+    // Show transition message
+    const card = this.add.container(W / 2, H / 2).setDepth(50);
+    const bg = this.add.rectangle(0, 0, 520, 140, 0x000000, 0.92);
+    bg.setStrokeStyle(3, 0x4ade80, 1);
+    const title = this.add.text(0, -28, "🚗 Time for a Road Trip!", {
+      fontFamily: FONT, fontSize: "28px", fontStyle: "bold",
+      color: "#4ade80"
+    }).setOrigin(0.5);
+    const sub = this.add.text(0, 16, "The family decided to go on an adventure together!", {
+      fontFamily: FONT, fontSize: "14px", color: "#e2e8f0",
+      wordWrap: { width: 480 }, align: "center"
+    }).setOrigin(0.5);
+
+    card.add([bg, title, sub]);
+    gsap.fromTo(card, { alpha: 0, scale: 0.8 }, { alpha: 1, scale: 1, duration: 0.5, ease: "back.out(1.5)" });
+
+    this.time.delayedCall(3000, () => {
+      this.cameras.main.fadeOut(800, 0, 0, 0);
+      this.cameras.main.once("camerafadeoutcomplete", () => {
+        // Start trip/driving scene
+        this.scene.start("TripScene", {
+          addictionLevel: this._addictionLevel,
+          awareness: this._awareness,
+          relationshipLevel: this._relationshipLevel
         });
       });
     });
@@ -996,7 +1549,7 @@ export default class RealWorldScene extends Phaser.Scene {
         if (reactingNpc.emotionTag) reactingNpc.emotionTag.setText("😢");
         if (reactingNpc.drawNPC) reactingNpc.drawNPC("sad");
         const b = this._createSpeechBubble(
-          reactingNpc.x, reactingNpc.y - 55,
+          reactingNpc.x, reactingNpc.y - 110,
           "You are on your phone again... 😔",
           reactingNpc.data.color, "sad"
         );

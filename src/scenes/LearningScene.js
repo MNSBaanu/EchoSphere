@@ -9,9 +9,7 @@ const FONT_BODY = 'Inter, sans-serif';
 const STUDY_TASKS = [
   { subject: '📐 Mathematics',  task: 'Solving quadratic equations',   xp: 30 },
   { subject: '🔬 Science',      task: 'Reading about photosynthesis',  xp: 25 },
-  { subject: '📖 Literature',   task: 'Analysing a poem',              xp: 20 },
-  { subject: '💻 Coding',       task: 'Writing a Python function',     xp: 35 },
-  { subject: '🌍 Geography',    task: 'Studying climate zones',        xp: 22 },
+  { subject: ' Coding',       task: 'Writing a Python function',     xp: 35 },
 ];
 
 export default class LearningScene extends Phaser.Scene {
@@ -20,16 +18,18 @@ export default class LearningScene extends Phaser.Scene {
     this._ended   = false;
     this._taskIdx = 0;
     this._xp      = 0;
-    this._logLines = [];
     this._isSitting = false;
     this._chair = null;
   }
 
-  create() {
+  create(data = {}) {
     const { width, height } = this.scale;
     this._width   = width;
     this._height  = height;
     this._groundY = height - 70;
+    
+    // Check if agent came from key redemption
+    this._fromKeyRedemption = data.fromKeyRedemption || false;
 
     // ── Background — warm study room ─────────────────────────────────────
     this._drawStudyRoom(width, height);
@@ -75,9 +75,7 @@ export default class LearningScene extends Phaser.Scene {
       if (!this._ended) this._toggleSitting();
     });
 
-    // ── Event log ─────────────────────────────────────────────────────────
-    this._logContainer = this.add.container(16, height - 16).setDepth(15);
-
+    
     this.cameras.main.fadeIn(600, 0, 0, 0);
   }
 
@@ -363,6 +361,7 @@ export default class LearningScene extends Phaser.Scene {
   // ── Start next study task ─────────────────────────────────────────────────
   _startNextTask() {
     if (this._taskIdx >= STUDY_TASKS.length) {
+      // All tasks completed - go to normal ending
       this._endScene('good');
       return;
     }
@@ -417,15 +416,10 @@ export default class LearningScene extends Phaser.Scene {
       { alpha: 1, y: this._taskCardY, duration: 0.5, ease: 'back.out(1.5)' }
     );
 
-    this._log('📚 Task', `${task.subject} — ${task.task}`);
-
-    // Agent shows excitement
+    
+    // Agent shows excitement (no jumping)
     this.time.delayedCall(400, () => {
-      if (this._isSitting) {
-        this.agent.bounce();
-      } else {
-        this.agent.bounce();
-      }
+      // Agent remains calm and focused
     });
 
     // SPACE key fills the progress bar and completes the task
@@ -443,15 +437,9 @@ export default class LearningScene extends Phaser.Scene {
     const newW = Math.min(this._taskProgressMax, currentW + 18);
     this._taskProgress.width = newW;
 
-    // Agent shows focus while studying
+    // Agent shows focus while studying (no jumping)
     if (Math.random() < 0.15) {
-      if (this._isSitting) {
-        // Subtle movement when sitting
-        this.agent.y -= 2;
-        this.tweens.add({ targets: this.agent, y: this.agent.y + 2, duration: 200 });
-      } else {
-        this.agent.bounce();
-      }
+      // Agent remains focused without jumping
     }
 
     if (newW >= this._taskProgressMax) {
@@ -479,8 +467,7 @@ export default class LearningScene extends Phaser.Scene {
     this._xpBar.width = xpPct * this._xpBarMax;
     this._xpLabel.setText(`${this._xp} / ${totalXP} XP`);
 
-    // Completion burst
-    this.agent.bounce();
+    // Completion burst (no jumping)
     this._burstParticles(this.agent.x, this.agent.y);
 
     // Flash card green
@@ -489,8 +476,7 @@ export default class LearningScene extends Phaser.Scene {
       this.tweens.add({ targets: bg, fillColor: 0xd1fae5, duration: 300, yoyo: true });
     }
 
-    this._log('✅ Done', `${task.subject} +${task.xp} XP`);
-
+    
     this.time.delayedCall(1000, () => {
       this._taskCompleting = false;
       // Start next task automatically
@@ -517,21 +503,8 @@ export default class LearningScene extends Phaser.Scene {
     }
   }
 
-  // ── Event log ─────────────────────────────────────────────────────────────
-  _log(label, detail = '') {
-    const line = `${label}${detail ? '  —  ' + detail : ''}`;
-    this._logLines.push(line);
-    if (this._logLines.length > 5) this._logLines.shift();
-    this._logContainer.removeAll(true);
-    this._logLines.forEach((l, i) => {
-      const t = this.add.text(0, -(this._logLines.length - i) * 18, l, {
-        fontFamily: FONT_BODY, fontSize: '11px', color: '#374151',
-        backgroundColor: '#ffffffcc', padding: { x: 6, y: 2 }
-      });
-      this._logContainer.add(t);
-    });
-  }
-
+  
+  
   // ── End scene ─────────────────────────────────────────────────────────────
   _endScene(outcome) {
     if (this._ended) return;
@@ -610,15 +583,13 @@ export default class LearningScene extends Phaser.Scene {
       this._isSitting = false;
       this.agent.y = this._groundY - 60;
       this.agent.fsm.forceState('IDLE');
-      this._log('🪑 Stand', 'Agent stood up from the chair');
-    } else {
+          } else {
       // Sit down
       this._isSitting = true;
       this.agent.x = this._chair.x - 20;
       this.agent.y = this._groundY - 60;
       this.agent.fsm.forceState('IDLE');
-      this._log('🪑 Sit', 'Agent sat down to study');
-      
+            
       // Add sitting animation
       this.tweens.add({
         targets: this.agent,
