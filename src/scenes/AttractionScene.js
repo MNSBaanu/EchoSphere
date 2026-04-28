@@ -980,8 +980,8 @@ export default class AttractionScene extends Phaser.Scene {
       this._ended = true;
       gsap.to(popup, { alpha: 0, scale: 0.8, duration: 0.3 });
       this._closeMobileScreen();
-      this.time.delayedCall(400, () => {
-        this.cameras.main.fadeOut(600, 0, 0, 0);
+      this.time.delayedCall(200, () => {
+        this.cameras.main.fadeOut(300, 0, 0, 0);
         this.cameras.main.once('camerafadeoutcomplete', () => {
           this.scene.start('LearningScene');
         });
@@ -1057,8 +1057,8 @@ export default class AttractionScene extends Phaser.Scene {
     // Warm flash — sunlight
     this.cameras.main.flash(400, 255, 220, 150, false);
 
-    this.time.delayedCall(400, () => {
-      this.cameras.main.fadeOut(800, 255, 240, 200);
+    this.time.delayedCall(200, () => {
+      this.cameras.main.fadeOut(400, 255, 240, 200);
     });
 
     this.cameras.main.once('camerafadeoutcomplete', () => {
@@ -1513,8 +1513,8 @@ export default class AttractionScene extends Phaser.Scene {
       
       this._closeMobileScreen();
       
-      this.time.delayedCall(400, () => {
-        this.cameras.main.fadeOut(600, 0, 0, 0);
+      this.time.delayedCall(200, () => {
+        this.cameras.main.fadeOut(300, 0, 0, 0);
         this.cameras.main.once('camerafadeoutcomplete', () => {
           this.scene.start('LearningScene', { fromKeyRedemption: true });
         });
