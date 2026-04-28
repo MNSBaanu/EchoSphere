@@ -858,7 +858,7 @@ export default class TripScene extends Phaser.Scene {
 
       // End scene after showing results
       this.time.delayedCall(6000, () => {
-        this.cameras.main.fadeOut(1000, 135, 206, 235);
+        this.cameras.main.fadeOut(800, 0, 0, 0);
         this.cameras.main.once("camerafadeoutcomplete", () => {
           // Trip complete - show final message
           this._showFinalScreen();

@@ -512,31 +512,27 @@ export default class LearningScene extends Phaser.Scene {
 
     const { _width: W, _height: H } = this;
 
-    this.cameras.main.flash(300, 100, 200, 100);
+    const card = this.add.container(W / 2, H / 2).setDepth(40);
+    const bg   = this.add.rectangle(0, 0, 540, 160, 0xffffff, 0.97);
+    bg.setStrokeStyle(3, 0x16a34a, 1);
+    const title = this.add.text(0, -35, '✅ Kai chose to learn!', {
+      fontFamily: FONT, fontSize: '28px', fontStyle: 'bold', color: '#16a34a'
+    }).setOrigin(0.5);
+    const sub = this.add.text(0, 10, `He earned ${this._xp} XP and grew as a person.`, {
+      fontFamily: FONT_BODY, fontSize: '15px', color: '#374151'
+    }).setOrigin(0.5);
+    const hint = this.add.text(0, 55, 'Click anywhere to continue →', {
+      fontFamily: FONT_BODY, fontSize: '12px', color: '#9ca3af'
+    }).setOrigin(0.5);
+    this.tweens.add({ targets: hint, alpha: 0.3, duration: 700, yoyo: true, repeat: -1 });
+    card.add([bg, title, sub, hint]);
 
-    this.time.delayedCall(400, () => {
-      const card = this.add.container(W / 2, H / 2).setDepth(40);
-      const bg   = this.add.rectangle(0, 0, 540, 160, 0xffffff, 0.97);
-      bg.setStrokeStyle(3, 0x16a34a, 1);
-      const title = this.add.text(0, -35, '✅ Kai chose to learn!', {
-        fontFamily: FONT, fontSize: '28px', fontStyle: 'bold', color: '#16a34a'
-      }).setOrigin(0.5);
-      const sub = this.add.text(0, 10, `He earned ${this._xp} XP and grew as a person.`, {
-        fontFamily: FONT_BODY, fontSize: '15px', color: '#374151'
-      }).setOrigin(0.5);
-      const hint = this.add.text(0, 55, 'Click anywhere to continue →', {
-        fontFamily: FONT_BODY, fontSize: '12px', color: '#9ca3af'
-      }).setOrigin(0.5);
-      this.tweens.add({ targets: hint, alpha: 0.3, duration: 700, yoyo: true, repeat: -1 });
-      card.add([bg, title, sub, hint]);
+    gsap.fromTo(card, { alpha: 0, scale: 0.85 }, { alpha: 1, scale: 1, duration: 0.5, ease: 'back.out(1.5)' });
 
-      gsap.fromTo(card, { alpha: 0, scale: 0.85 }, { alpha: 1, scale: 1, duration: 0.5, ease: 'back.out(1.5)' });
-
-      this.input.once('pointerdown', () => {
-        this.cameras.main.fadeOut(300, 0, 0, 0);
-        this.cameras.main.once('camerafadeoutcomplete', () => {
-          console.log('[Scene] Learning path complete — good ending branch');
-        });
+    this.input.once('pointerdown', () => {
+      this.cameras.main.fadeOut(600, 0, 0, 0);
+      this.cameras.main.once('camerafadeoutcomplete', () => {
+        console.log('[Scene] Learning path complete — good ending branch');
       });
     });
   }

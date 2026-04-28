@@ -918,37 +918,6 @@ export default class AttractionScene extends Phaser.Scene {
       fontFamily: FONT_BODY, fontSize: '12px', color: '#64748b', fontStyle: 'bold'
     }).setOrigin(0.5);
     
-    // ── EMOTION BARS (AI VISIBILITY) ──────────────────────────────────────
-    const emotionY = -screenH / 2 + 125;
-    const emotionBarW = (screenW - 40) / 3;
-    
-    // Awareness bar
-    const awarenessLabel = this.add.text(-screenW / 2 + 20, emotionY, '👁️', {
-      fontSize: '14px'
-    }).setOrigin(0, 0.5);
-    const awarenessBg = this.add.rectangle(-screenW / 2 + 35, emotionY, emotionBarW - 20, 6, 0x1e293b, 1);
-    awarenessBg.setOrigin(0, 0.5);
-    this._awarenessBar = this.add.rectangle(-screenW / 2 + 35, emotionY, 0, 4, 0x3b82f6, 1);
-    this._awarenessBar.setOrigin(0, 0.5);
-    
-    // Stress bar
-    const stressLabel = this.add.text(-screenW / 2 + 20 + emotionBarW, emotionY, '😰', {
-      fontSize: '14px'
-    }).setOrigin(0, 0.5);
-    const stressBg = this.add.rectangle(-screenW / 2 + 35 + emotionBarW, emotionY, emotionBarW - 20, 6, 0x1e293b, 1);
-    stressBg.setOrigin(0, 0.5);
-    this._stressBar = this.add.rectangle(-screenW / 2 + 35 + emotionBarW, emotionY, 0, 4, 0xef4444, 1);
-    this._stressBar.setOrigin(0, 0.5);
-    
-    // Relationship bar
-    const relationLabel = this.add.text(-screenW / 2 + 20 + emotionBarW * 2, emotionY, '💬', {
-      fontSize: '14px'
-    }).setOrigin(0, 0.5);
-    const relationBg = this.add.rectangle(-screenW / 2 + 35 + emotionBarW * 2, emotionY, emotionBarW - 20, 6, 0x1e293b, 1);
-    relationBg.setOrigin(0, 0.5);
-    this._relationBar = this.add.rectangle(-screenW / 2 + 35 + emotionBarW * 2, emotionY, 0, 4, 0x10b981, 1);
-    this._relationBar.setOrigin(0, 0.5);
-    
     // Create scrollable content container
     const contentY = -screenH / 2 + 155;
     const contentHeight = screenH - 285;
@@ -1070,9 +1039,6 @@ export default class AttractionScene extends Phaser.Scene {
       progressBg,
       this._progressBar,
       this._progressLabel,
-      awarenessLabel, awarenessBg, this._awarenessBar,
-      stressLabel, stressBg, this._stressBar,
-      relationLabel, relationBg, this._relationBar,
       maskShape,
       this._scrollContent,
       scrollHint,
@@ -1101,15 +1067,10 @@ export default class AttractionScene extends Phaser.Scene {
       this._closeMobileScreen();
     });
     
-    // Start emotion bar update loop
-    this._emotionUpdateTimer = this.time.addEvent({
-      delay: 100,
-      callback: this._updateEmotionBars,
-      callbackScope: this,
-      loop: true
-    });
+    // Emotion tracking happens internally via agent.usePhone()
+    // No visual bars displayed on screen
 
-    // ──// Educational notification fires after 8s of scrolling (but not in continuous scroll mode)
+    // Educational notification fires after 8s of scrolling (but not in continuous scroll mode)
     this.time.delayedCall(8000, () => {
       if (this._mobileScreenOpen && !this._ended && !this._continuousScrollMode) {
         this._showEducationalNotification();
@@ -1117,27 +1078,6 @@ export default class AttractionScene extends Phaser.Scene {
     });
     
     this._log('📱 Phone', 'screen opened - AI tracking started');
-  }
-
-  _updateEmotionBars() {
-    if (!this.agent || !this._mobileScreenOpen) return;
-    
-    const barMaxW = (320 - 40) / 3 - 20;
-    
-    // Update awareness bar
-    if (this._awarenessBar) {
-      this._awarenessBar.width = (this.agent.awareness / 100) * barMaxW;
-    }
-    
-    // Update stress bar
-    if (this._stressBar) {
-      this._stressBar.width = (this.agent.emotions.stress / 100) * barMaxW;
-    }
-    
-    // Update relationship bar
-    if (this._relationBar) {
-      this._relationBar.width = (this.agent.relationshipLevel / 100) * barMaxW;
-    }
   }
 
   _updateProgressBar() {
@@ -1310,17 +1250,8 @@ export default class AttractionScene extends Phaser.Scene {
 
     this._log('🌿 Real World', 'Kai steps outside...');
 
-    if (this._emotionUpdateTimer) this._emotionUpdateTimer.remove();
-
-    // Fast flash — sunlight
-    this.cameras.main.flash(200, 255, 220, 150, false);
-
-    this.time.delayedCall(100, () => {
-      this.cameras.main.fadeOut(200, 255, 240, 200);
-    });
-
+    this.cameras.main.fadeOut(600, 0, 0, 0);
     this.cameras.main.once('camerafadeoutcomplete', () => {
-      // Pass agent state to real world scene
       this.scene.start('RealWorldScene', {
         addictionLevel:    this.agent ? this.agent.addictionLevel    : 0,
         awareness:         this.agent ? this.agent.awareness         : 70,
