@@ -334,25 +334,61 @@ export default class AttractionScene extends Phaser.Scene {
     }
 
     // ── Bed (right side) ─────────────────────────────────────────────────
-    const bedX = width * 0.72;
-    const bedY = height * 0.52;
-    // Bed frame
-    g.fillStyle(0x8b6914, 1);
-    g.fillRoundedRect(bedX, bedY, width * 0.26, height * 0.22, 6);
-    // Mattress
+    const bedX = width * 0.70;
+    const bedY = height * 0.50;
+    const bedW = width * 0.29;
+    const bedH = height * 0.24;
+
+    // Headboard (tall panel at left of bed)
+    g.fillStyle(0x92400e, 1);
+    g.fillRoundedRect(bedX, bedY - bedH * 0.35, 18, bedH * 1.35, 6);
+    // Headboard highlight
+    g.fillStyle(0xb45309, 1);
+    g.fillRoundedRect(bedX + 3, bedY - bedH * 0.32, 6, bedH * 1.1, 4);
+
+    // Bed frame (golden-brown border)
+    g.fillStyle(0x92400e, 1);
+    g.fillRoundedRect(bedX, bedY, bedW, bedH, 8);
+
+    // Mattress (white base)
     g.fillStyle(0xffffff, 1);
-    g.fillRoundedRect(bedX + 6, bedY + 6, width * 0.26 - 12, height * 0.22 - 12, 4);
-    // Pillow
-    g.fillStyle(0xe8f4ff, 1);
-    g.fillRoundedRect(bedX + 12, bedY + 10, width * 0.1, height * 0.07, 8);
-    // Blanket
-    g.fillStyle(0x6366f1, 0.7);
-    g.fillRoundedRect(bedX + 6, bedY + height * 0.1, width * 0.26 - 12, height * 0.1, 4);
-    // Blanket stripes
-    g.lineStyle(2, 0x4f46e5, 0.4);
-    for (let s = 0; s < 4; s++) {
-      g.lineBetween(bedX + 6, bedY + height * 0.1 + s * 10, bedX + width * 0.26 - 6, bedY + height * 0.1 + s * 10);
+    g.fillRoundedRect(bedX + 6, bedY + 6, bedW - 12, bedH - 12, 6);
+
+    // Blanket — covers bottom 60% of mattress, solid blue-purple
+    const blankY = bedY + bedH * 0.38;
+    const blankH = bedH * 0.56;
+    g.fillStyle(0x6366f1, 1);
+    g.fillRoundedRect(bedX + 6, blankY, bedW - 12, blankH, 6);
+
+    // Blanket fold line at top (lighter strip)
+    g.fillStyle(0x818cf8, 1);
+    g.fillRoundedRect(bedX + 6, blankY, bedW - 12, 10, 4);
+
+    // Blanket horizontal stripes
+    g.lineStyle(1.5, 0x4f46e5, 0.5);
+    for (let s = 1; s < 4; s++) {
+      g.lineBetween(
+        bedX + 10, blankY + 10 + s * (blankH - 10) / 4,
+        bedX + bedW - 10, blankY + 10 + s * (blankH - 10) / 4
+      );
     }
+
+    // Two pillows side by side (top portion of mattress)
+    const pillowY = bedY + 10;
+    const pillowH = bedH * 0.28;
+    const pillowW = (bedW - 28) / 2;
+
+    // Left pillow
+    g.fillStyle(0xdbeafe, 1);
+    g.fillRoundedRect(bedX + 10, pillowY, pillowW, pillowH, 8);
+    g.lineStyle(1, 0xbfdbfe, 1);
+    g.strokeRoundedRect(bedX + 10, pillowY, pillowW, pillowH, 8);
+
+    // Right pillow
+    g.fillStyle(0xdbeafe, 1);
+    g.fillRoundedRect(bedX + 16 + pillowW, pillowY, pillowW, pillowH, 8);
+    g.lineStyle(1, 0xbfdbfe, 1);
+    g.strokeRoundedRect(bedX + 16 + pillowW, pillowY, pillowW, pillowH, 8);
 
     // ── Desk / table (centre-right) ───────────────────────────────────────
     const deskX = width * 0.5;
@@ -472,11 +508,7 @@ export default class AttractionScene extends Phaser.Scene {
     g.fillRect(width * 0.15 + 10, height * 0.15 + 62, 50, 6);
     g.fillRect(width * 0.15 + 18, height * 0.15 + 72, 34, 6);
 
-    // ── Rug on floor ──────────────────────────────────────────────────────
-    g.fillStyle(0x7c3aed, 0.25);
-    g.fillEllipse(width * 0.45, height * 0.8, width * 0.35, height * 0.1);
-    g.lineStyle(2, 0x6d28d9, 0.3);
-    g.strokeEllipse(width * 0.45, height * 0.8, width * 0.35, height * 0.1);
+    // ── Rug removed ───────────────────────────────────────────────────────
   }
 
   // ── Phone on table ────────────────────────────────────────────────────────
