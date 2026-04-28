@@ -381,7 +381,7 @@ export default class Agent {
     if (this.keysLocked) return; // Allow locking keyboard control
     
     const { width, height } = this.scene.scale;
-    const speed = 3.5;
+    const speed = 6;
     const k = this._keys;
     const w = this._wasd;
 

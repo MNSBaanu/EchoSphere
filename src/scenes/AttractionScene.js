@@ -333,62 +333,98 @@ export default class AttractionScene extends Phaser.Scene {
       }
     }
 
-    // ── Bed (right side) ─────────────────────────────────────────────────
-    const bedX = width * 0.70;
-    const bedY = height * 0.50;
-    const bedW = width * 0.29;
-    const bedH = height * 0.24;
+    // ── Bed (right side) — 3/4 front view, against back wall ────────────
+    const bedX = width * 0.60;
+    const bedY = height * 0.38;
+    const bedW = width * 0.37;
+    const bedH = height * 0.28;
 
-    // Headboard (tall panel at left of bed)
+    // Drop shadow on floor
+    g.fillStyle(0x000000, 0.10);
+    g.fillRoundedRect(bedX + 8, bedY + bedH + 18, bedW - 8, 14, 6);
+
+    // ── Headboard — tall panel rising above mattress ──────────────────────
+    const hbH = bedH * 0.55; // headboard height above mattress top
+    g.fillStyle(0x7c3d12, 1);
+    g.fillRoundedRect(bedX, bedY - hbH, bedW, hbH + 10, 10);
+    // Headboard face highlight (lighter wood strip)
+    g.fillStyle(0xa0522d, 1);
+    g.fillRoundedRect(bedX + 5, bedY - hbH + 5, bedW - 10, hbH - 10, 7);
+    // Two decorative inset panels on headboard
+    const panW = (bedW - 40) / 2;
+    g.fillStyle(0x6b3410, 1);
+    g.fillRoundedRect(bedX + 12, bedY - hbH + 12, panW, hbH - 24, 5);
+    g.fillRoundedRect(bedX + 24 + panW, bedY - hbH + 12, panW, hbH - 24, 5);
+    // Panel inner highlight
+    g.fillStyle(0x92400e, 0.6);
+    g.fillRoundedRect(bedX + 14, bedY - hbH + 14, panW - 4, 6, 3);
+    g.fillRoundedRect(bedX + 26 + panW, bedY - hbH + 14, panW - 4, 6, 3);
+
+    // ── Bed frame (sides + foot visible from front) ───────────────────────
+    // Left side rail
     g.fillStyle(0x92400e, 1);
-    g.fillRoundedRect(bedX, bedY - bedH * 0.35, 18, bedH * 1.35, 6);
-    // Headboard highlight
-    g.fillStyle(0xb45309, 1);
-    g.fillRoundedRect(bedX + 3, bedY - bedH * 0.32, 6, bedH * 1.1, 4);
+    g.fillRoundedRect(bedX, bedY, 14, bedH, 4);
+    // Right side rail
+    g.fillRoundedRect(bedX + bedW - 14, bedY, 14, bedH, 4);
+    // Footboard (front panel)
+    g.fillStyle(0x7c3d12, 1);
+    g.fillRoundedRect(bedX, bedY + bedH - 18, bedW, 22, 6);
+    g.fillStyle(0xa0522d, 1);
+    g.fillRoundedRect(bedX + 5, bedY + bedH - 15, bedW - 10, 8, 4);
 
-    // Bed frame (golden-brown border)
-    g.fillStyle(0x92400e, 1);
-    g.fillRoundedRect(bedX, bedY, bedW, bedH, 8);
+    // ── Mattress top surface ──────────────────────────────────────────────
+    g.fillStyle(0xf5f5f5, 1);
+    g.fillRoundedRect(bedX + 14, bedY, bedW - 28, bedH - 18, 4);
+    // Mattress side edge (gives thickness)
+    g.fillStyle(0xe0e0e0, 1);
+    g.fillRect(bedX + 14, bedY + bedH - 28, bedW - 28, 10);
 
-    // Mattress (white base)
-    g.fillStyle(0xffffff, 1);
-    g.fillRoundedRect(bedX + 6, bedY + 6, bedW - 12, bedH - 12, 6);
-
-    // Blanket — covers bottom 60% of mattress, solid blue-purple
-    const blankY = bedY + bedH * 0.38;
-    const blankH = bedH * 0.56;
+    // ── Blanket — draped over mattress, front fold visible ────────────────
+    const blankY = bedY + bedH * 0.32;
+    const blankH = bedH * 0.50;
     g.fillStyle(0x6366f1, 1);
-    g.fillRoundedRect(bedX + 6, blankY, bedW - 12, blankH, 6);
-
-    // Blanket fold line at top (lighter strip)
+    g.fillRoundedRect(bedX + 14, blankY, bedW - 28, blankH, 5);
+    // Blanket front drape (hangs over footboard slightly)
+    g.fillStyle(0x5254cc, 1);
+    g.fillRoundedRect(bedX + 14, blankY + blankH - 8, bedW - 28, 14, { tl: 0, tr: 0, bl: 5, br: 5 });
+    // Blanket top fold (rolled edge)
     g.fillStyle(0x818cf8, 1);
-    g.fillRoundedRect(bedX + 6, blankY, bedW - 12, 10, 4);
-
-    // Blanket horizontal stripes
-    g.lineStyle(1.5, 0x4f46e5, 0.5);
+    g.fillRoundedRect(bedX + 14, blankY, bedW - 28, 14, 5);
+    g.fillStyle(0x6366f1, 0.5);
+    g.fillRect(bedX + 14, blankY + 12, bedW - 28, 4);
+    // Blanket horizontal crease lines
+    g.lineStyle(1.5, 0x4338ca, 0.4);
     for (let s = 1; s < 4; s++) {
       g.lineBetween(
-        bedX + 10, blankY + 10 + s * (blankH - 10) / 4,
-        bedX + bedW - 10, blankY + 10 + s * (blankH - 10) / 4
+        bedX + 18, blankY + 18 + s * (blankH - 18) / 4,
+        bedX + bedW - 18, blankY + 18 + s * (blankH - 18) / 4
       );
     }
 
-    // Two pillows side by side (top portion of mattress)
-    const pillowY = bedY + 10;
-    const pillowH = bedH * 0.28;
-    const pillowW = (bedW - 28) / 2;
-
+    // ── Two pillows (sitting on mattress, above blanket) ──────────────────
+    const pillowY = bedY + 6;
+    const pillowH = bedH * 0.26;
+    const pillowW = (bedW - 38) / 2;
     // Left pillow
     g.fillStyle(0xdbeafe, 1);
-    g.fillRoundedRect(bedX + 10, pillowY, pillowW, pillowH, 8);
-    g.lineStyle(1, 0xbfdbfe, 1);
-    g.strokeRoundedRect(bedX + 10, pillowY, pillowW, pillowH, 8);
-
+    g.fillRoundedRect(bedX + 16, pillowY, pillowW, pillowH, 10);
+    // Pillow bottom shadow
+    g.fillStyle(0x93c5fd, 0.45);
+    g.fillRoundedRect(bedX + 16, pillowY + pillowH - 8, pillowW, 8, { tl: 0, tr: 0, bl: 10, br: 10 });
+    g.lineStyle(1.5, 0x93c5fd, 1);
+    g.strokeRoundedRect(bedX + 16, pillowY, pillowW, pillowH, 10);
     // Right pillow
     g.fillStyle(0xdbeafe, 1);
-    g.fillRoundedRect(bedX + 16 + pillowW, pillowY, pillowW, pillowH, 8);
-    g.lineStyle(1, 0xbfdbfe, 1);
-    g.strokeRoundedRect(bedX + 16 + pillowW, pillowY, pillowW, pillowH, 8);
+    g.fillRoundedRect(bedX + 22 + pillowW, pillowY, pillowW, pillowH, 10);
+    g.fillStyle(0x93c5fd, 0.45);
+    g.fillRoundedRect(bedX + 22 + pillowW, pillowY + pillowH - 8, pillowW, 8, { tl: 0, tr: 0, bl: 10, br: 10 });
+    g.lineStyle(1.5, 0x93c5fd, 1);
+    g.strokeRoundedRect(bedX + 22 + pillowW, pillowY, pillowW, pillowH, 10);
+
+    // ── Bed legs (visible below footboard) ───────────────────────────────
+    g.fillStyle(0x5c2d0e, 1);
+    g.fillRoundedRect(bedX + 6, bedY + bedH + 4, 10, 16, 3);
+    g.fillRoundedRect(bedX + bedW - 16, bedY + bedH + 4, 10, 16, 3);
 
     // ── Desk / table (centre-right) ───────────────────────────────────────
     const deskX = width * 0.5;
