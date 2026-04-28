@@ -937,14 +937,50 @@ export default class RealWorldScene extends Phaser.Scene {
 
   // ── HUD ───────────────────────────────────────────────────────────────────
   _buildHUD(width, height) {
+
+    const hud = this.add.container(width - 200, 62).setDepth(25);
+
+    const bg = this.add.rectangle(0, 0, 185, 110, 0x000000, 0.6);
+    bg.setStrokeStyle(1, 0x4ade80, 0.5);
+
+    const title = this.add.text(0, -40, "Agent State", {
+      fontFamily: FONT, fontSize: "12px", color: "#86efac", fontStyle: "bold"
+    }).setOrigin(0.5);
+
+    // Awareness bar
+    const awLabel = this.add.text(-70, -20, "👁 Awareness", {
+      fontFamily: FONT, fontSize: "10px", color: "#e2e8f0"
+    }).setOrigin(0, 0.5);
+    const awBg = this.add.rectangle(20, -20, 60, 8, 0x1e293b, 1).setOrigin(0, 0.5);
+    this._awBar = this.add.rectangle(20, -20, (this._awareness / 100) * 60, 6, 0x3b82f6, 1).setOrigin(0, 0.5);
+
+    // Addiction bar
+    const adLabel = this.add.text(-70, 0, "📱 Addiction", {
+      fontFamily: FONT, fontSize: "10px", color: "#e2e8f0"
+    }).setOrigin(0, 0.5);
+    const adBg = this.add.rectangle(20, 0, 60, 8, 0x1e293b, 1).setOrigin(0, 0.5);
+    this._adBar = this.add.rectangle(20, 0, (this._addictionLevel / 100) * 60, 6, 0xef4444, 1).setOrigin(0, 0.5);
+
+    // Relationship bar
+    const relLabel = this.add.text(-70, 20, "💬 Relations", {
+      fontFamily: FONT, fontSize: "10px", color: "#e2e8f0"
+    }).setOrigin(0, 0.5);
+    const relBg = this.add.rectangle(20, 20, 60, 8, 0x1e293b, 1).setOrigin(0, 0.5);
+    this._relBar = this.add.rectangle(20, 20, (this._relationshipLevel / 100) * 60, 6, 0x10b981, 1).setOrigin(0, 0.5);
+
+    hud.add([bg, title, awLabel, awBg, this._awBar, adLabel, adBg, this._adBar, relLabel, relBg, this._relBar]);
+  }
+
+  _updateHUD() {
+    if (this._awBar)  this._awBar.width  = (this._awareness / 100) * 60;
+    if (this._adBar)  this._adBar.width  = (this._addictionLevel / 100) * 60;
+    if (this._relBar) this._relBar.width = (this._relationshipLevel / 100) * 60;
+
     // Agent Status HUD removed for cleaner interface
     // Metrics are still tracked internally but not displayed
     return;
   }
 
-  _updateHUD() {
-    // HUD removed - no updates needed
-    return;
   }
 
   // ── Player movement — delegated to Agent ─────────────────────────────────

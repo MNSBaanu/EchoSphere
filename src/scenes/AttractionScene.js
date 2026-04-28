@@ -84,8 +84,12 @@ export default class AttractionScene extends Phaser.Scene {
       this._onStateChange(newState, reason);
     });
 
-    // ── Notification fires after 2s ───────────────────────────────────────
-    this.time.delayedCall(2000, () => this._firePhoneNotification());
+    // ── Notification fires after 2s (but not if continuous scroll mode is already active)
+    this.time.delayedCall(2000, () => {
+      if (!this._continuousScrollMode) {
+        this._firePhoneNotification();
+      }
+    });
 
     // ── Friend messages ───────────────────────────────────────────────────
     this._scheduleNextFriendMessage();
@@ -124,8 +128,8 @@ export default class AttractionScene extends Phaser.Scene {
       this._hidePickupPrompt();
     }
 
-    // Check proximity to door and show open-door prompt
-    if (!this._doorReached && this._doorPos && this.agent) {
+    // Check proximity to door and show prompt (but not in continuous scroll mode)
+    if (!this._doorReached && this._doorPos && this.agent && !this._continuousScrollMode) {
       const ddx = this._doorPos.x - this.agent.x;
       const ddy = this._doorPos.y - this.agent.y;
       const ddist = Math.sqrt(ddx * ddx + ddy * ddy);
@@ -162,8 +166,8 @@ export default class AttractionScene extends Phaser.Scene {
         }
       }
 
-      // ── CONFLICT TRIGGER: Message interruption ─────────────────────────
-      if (this.agent.addictionLevel > 70 && !this._conflictTriggered) {
+      // ── CONFLICT TRIGGER: Message interruption (but not in continuous scroll mode)
+      if (this.agent.addictionLevel > 70 && !this._conflictTriggered && !this._continuousScrollMode) {
         const now = this.time.now;
         if (now - this._lastMessageTime > 3000) { // Random event every 3s
           if (Math.random() < 0.3) { // 30% chance
@@ -449,12 +453,21 @@ export default class AttractionScene extends Phaser.Scene {
     const bx = this._phonePos.x;
     const by = this._phonePos.y - 55;
     const bubble = this.add.container(bx, by).setDepth(8).setAlpha(0);
-    const bg = this.add.rectangle(0, 0, 160, 36, 0xffffff, 0.97);
+    
+    // Increase bubble size to fit text properly
+    const bg = this.add.rectangle(0, 0, 180, 40, 0xffffff, 0.97);
     bg.setStrokeStyle(2, 0x6366f1, 1);
-    const strip = this.add.rectangle(-78, 0, 4, 36, 0x6366f1, 1);
-    const txt = this.add.text(6, 0, '🔔 New notification!', {
-      fontFamily: FONT_BODY, fontSize: '13px', color: '#1e1b4b'
-    }).setOrigin(0, 0.5);
+    const strip = this.add.rectangle(-88, 0, 4, 40, 0x6366f1, 1);
+    
+    // Center text properly with word wrap
+    const txt = this.add.text(0, 0, '🔔 New notification!', {
+      fontFamily: FONT_BODY, 
+      fontSize: '12px', 
+      color: '#1e1b4b',
+      wordWrap: { width: 160 },
+      align: 'center'
+    }).setOrigin(0.5);
+    
     bubble.add([bg, strip, txt]);
 
     gsap.fromTo(bubble, { alpha: 0, y: by + 10 }, { alpha: 1, y: by, duration: 0.4, ease: 'back.out(1.5)' });
@@ -843,9 +856,9 @@ export default class AttractionScene extends Phaser.Scene {
       loop: true
     });
 
-    // ── Educational notification fires after 8s of scrolling ─────────────
+    // ──// Educational notification fires after 8s of scrolling (but not in continuous scroll mode)
     this.time.delayedCall(8000, () => {
-      if (this._mobileScreenOpen && !this._ended) {
+      if (this._mobileScreenOpen && !this._ended && !this._continuousScrollMode) {
         this._showEducationalNotification();
       }
     });
@@ -1259,8 +1272,8 @@ export default class AttractionScene extends Phaser.Scene {
       this._reachDoor();
     });
 
-    // If agent has phone, also show a pull-back warning
-    if (this.agent && this.agent.hasPhone) {
+    // If agent has phone, also show a pull-back warning (but not in continuous scroll mode)
+    if (this.agent && this.agent.hasPhone && !this._continuousScrollMode) {
       this._showPhonePullBack();
     }
   }
@@ -1413,7 +1426,8 @@ export default class AttractionScene extends Phaser.Scene {
         alpha: 0, scale: 0.8, duration: 0.3,
         onComplete: () => {
           popup.destroy();
-          // Continue scrolling after notification
+          // Show key icon for learning scene transition
+          this._showLearningKey();
         }
       });
     });
@@ -1432,5 +1446,94 @@ export default class AttractionScene extends Phaser.Scene {
       this.agent.emotions.stress += 15;
       this.agent.addictionLevel += 10;
     }
+  }
+
+  // Show learning key icon for transition to Learning Scene
+  _showLearningKey() {
+    if (!this._mobileScreen || !this._mobileScreenOpen) return;
+    
+    this._log('🔑 Learning Key', 'Agent has learned from mistakes - key to learning appears');
+    
+    const { width, height } = this.scale;
+    const screenW = 320;
+    const screenH = 600;
+    
+    // Create key icon container
+    this._learningKey = this.add.container(0, 0).setDepth(130).setAlpha(0);
+    
+    // Key background circle
+    const keyBg = this.add.circle(0, -100, 35, 0x10b981, 0.9);
+    keyBg.setStrokeStyle(3, 0x059669, 1);
+    
+    // Key icon
+    const keyIcon = this.add.text(0, -100, '🔑', {
+      fontSize: '32px'
+    }).setOrigin(0.5);
+    
+    // Key text label
+    const keyLabel = this.add.text(0, -60, 'Return to Studies', {
+      fontFamily: FONT, fontSize: '14px', color: '#10b981', fontStyle: 'bold'
+    }).setOrigin(0.5);
+    
+    const keySubLabel = this.add.text(0, -45, 'Click to learn from mistakes', {
+      fontFamily: FONT_BODY, fontSize: '11px', color: '#64748b'
+    }).setOrigin(0.5);
+    
+    this._learningKey.add([keyBg, keyIcon, keyLabel, keySubLabel]);
+    
+    // Position relative to phone screen
+    this._learningKey.setPosition(width / 2, height / 2);
+    
+    // Make interactive
+    keyBg.setInteractive({ useHandCursor: true });
+    keyIcon.setInteractive({ useHandCursor: true });
+    
+    // Animate in with bounce
+    gsap.fromTo(this._learningKey,
+      { alpha: 0, scale: 0.5 },
+      { alpha: 1, scale: 1, duration: 0.6, ease: 'back.out(1.8)' }
+    );
+    
+    // Pulse animation to draw attention
+    gsap.to(keyBg, {
+      scaleX: 1.1, scaleY: 1.1, duration: 1,
+      yoyo: true, repeat: -1, ease: 'sine.inOut'
+    });
+    
+    // Click handlers
+    const goToLearning = () => {
+      this._log('🔑 Learning', 'Agent chooses to return to studies - learned from mistakes');
+      
+      // End the scene and transition to Learning Scene
+      this._ended = true;
+      
+      // Fade out animation
+      gsap.to(this._learningKey, {
+        alpha: 0, scale: 0.8, duration: 0.3
+      });
+      
+      this._closeMobileScreen();
+      
+      this.time.delayedCall(400, () => {
+        this.cameras.main.fadeOut(600, 0, 0, 0);
+        this.cameras.main.once('camerafadeoutcomplete', () => {
+          this.scene.start('LearningScene', { fromKeyRedemption: true });
+        });
+      });
+    };
+    
+    keyBg.on('pointerdown', goToLearning);
+    keyIcon.on('pointerdown', goToLearning);
+    
+    // Hover effects
+    keyBg.on('pointerover', () => {
+      keyBg.setFillStyle(0x059669);
+      keyBg.setScale(1.15);
+    });
+    
+    keyBg.on('pointerout', () => {
+      keyBg.setFillStyle(0x10b981);
+      keyBg.setScale(1);
+    });
   }
 }
