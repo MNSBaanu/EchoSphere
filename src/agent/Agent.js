@@ -93,21 +93,25 @@ export default class Agent {
     const P = {
       IDLE:           { skin: 0xf5c5a3, hair: 0x3d2314, shirt: 0x2563eb, pants: 0x1e3a5f, shoe: 0x111827, eye: 0x1e3a5f, phone: null,   glow: 0x000000, glowA: 0 },
       ATTRACTED:      { skin: 0xf5c5a3, hair: 0x3d2314, shirt: 0x2563eb, pants: 0x1e3a5f, shoe: 0x111827, eye: 0x1e3a5f, phone: 0x111827, glow: 0x7c3aed, glowA: 0.12 },
-      LOOPING:        { skin: 0xf5c5a3, hair: 0x3d2314, shirt: 0x2563eb, pants: 0x1e3a5f, shoe: 0x111827, eye: 0x1e3a5f, phone: 0x111827, glow: 0xea580c, glowA: 0.18 },
-      DISTORTED:      { skin: 0xf5c5a3, hair: 0x3d2314, shirt: 0x2563eb, pants: 0x1e3a5f, shoe: 0x111827, eye: 0x1e3a5f, phone: 0x111827, glow: 0xdc2626, glowA: 0.25 },
-      BREAKING_POINT: { skin: 0xf5c5a3, hair: 0x3d2314, shirt: 0x2563eb, pants: 0x1e3a5f, shoe: 0x111827, eye: 0x1e3a5f, phone: 0x111827, glow: 0x7f1d1d, glowA: 0.3 },
-      RECOVERED:      { skin: 0xf5c5a3, hair: 0x3d2314, shirt: 0x2563eb, pants: 0x1e3a5f, shoe: 0x111827, eye: 0x1e3a5f, phone: null,   glow: 0x16a34a, glowA: 0.15 },
-      PARTIAL:        { skin: 0xf5c5a3, hair: 0x3d2314, shirt: 0x2563eb, pants: 0x1e3a5f, shoe: 0x111827, eye: 0x1e3a5f, phone: 0x111827, glow: 0xca8a04, glowA: 0.12 },
-      LOST:           { skin: 0xf5c5a3, hair: 0x3d2314, shirt: 0x2563eb, pants: 0x1e3a5f, shoe: 0x111827, eye: 0x1e3a5f, phone: 0x111827, glow: 0x000000, glowA: 0 },
+
+      LOOPING:        { skin: 0xedb48a, hair: 0x2c1a0e, shirt: 0x1d4ed8, pants: 0x172554, shoe: 0x0f172a, eye: 0x1e3a5f, phone: 0x0f172a, glow: 0xea580c, glowA: 0.18 },
+      DISTORTED:      { skin: 0xd4956e, hair: 0x1a0f08, shirt: 0x1e40af, pants: 0x0f1f3d, shoe: 0x080f1e, eye: 0x1e3a5f, phone: 0x080f1e, glow: 0xdc2626, glowA: 0.25 },
+      BREAKING_POINT: { skin: 0xb87a55, hair: 0x0f0805, shirt: 0x1e3a8a, pants: 0x0a1628, shoe: 0x050a14, eye: 0x1e3a5f, phone: 0x050a14, glow: 0x7f1d1d, glowA: 0.3 },
+      RECOVERED:      { skin: 0xf5c5a3, hair: 0x3d2314, shirt: 0x16a34a, pants: 0x14532d, shoe: 0x052e16, eye: 0x1e3a5f, phone: null,   glow: 0x16a34a, glowA: 0.15 },
+      PARTIAL:        { skin: 0xefc090, hair: 0x2c1a0e, shirt: 0xca8a04, pants: 0x3f2d00, shoe: 0x1c1300, eye: 0x1e3a5f, phone: 0x1c1300, glow: 0xca8a04, glowA: 0.12 },
+      LOST:           { skin: 0x9a8070, hair: 0x111111, shirt: 0x1f2937, pants: 0x111827, shoe: 0x030712, eye: 0x1e3a5f, phone: 0x030712, glow: 0x000000, glowA: 0 },
+
     }[state] || { skin: 0xf5c5a3, hair: 0x3d2314, shirt: 0x2563eb, pants: 0x1e3a5f, shoe: 0x111827, eye: 0x1e3a5f, phone: null, glow: 0x000000, glowA: 0 };
 
     const showPhone = this.hasPhone && P.phone !== null;
 
-    // ── Hunch transform — compress posture (NO TILT) ─────────────────────
+
+    // ── Hunch transform — compress posture but no rotation ────────
     const hunch = this.hunchLevel; // 0–4
     const hunchScaleY = 1 - hunch * 0.06; // body compresses vertically
     const hunchOffsetY = hunch * 6;     // sinks slightly downward
-    // Keep agent upright - no rotation
+    // No rotation - keep agent upright
+
     this.container.setRotation(0);
     this.container.setScale(this._facingRight ? 1 : -1, hunchScaleY);
 
