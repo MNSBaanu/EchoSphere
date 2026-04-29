@@ -52,6 +52,37 @@ export default class AttractionScene extends Phaser.Scene {
   create() {
     const { width, height } = this.scale;
 
+    // ── Reset all state (scene may be restarted from LearningScene) ───────
+    this._msgIndex          = 0;
+    this._pendingFriendMsg  = false;
+    this._decisionPending   = false;
+    this._ended             = false;
+    this._logLines          = [];
+    this._engageStreak      = 0;
+    this._phonePickedUp     = false;
+    this._doorReached       = false;
+    this._pickupPromptShown = false;
+    this._doorPromptShown   = false;
+    this._mobileScreenOpen  = false;
+    this._scrollOffset      = 0;
+    this._autoScrollEnabled = false;
+    this._autoScrollSpeed   = 0;
+    this._conflictTriggered = false;
+    this._messageQueue      = [];
+    this._lastMessageTime   = 0;
+    this._continuousScrollMode = false;
+    this._notificationFired = false;
+    this._walkingToPhone    = false;
+    this._walkingToDoor     = false;
+    this._phonePos          = null;
+    this._doorPos           = null;
+    this._mobileScreen      = null;
+    this._pickupPrompt      = null;
+    this._doorPrompt        = null;
+    this._pickupKey         = null;
+    this._doorKey           = null;
+    this.agent              = null;
+
     // ── Room environment (side view) ─────────────────────────────────────
     this._drawRoom(width, height);
 
@@ -207,9 +238,9 @@ export default class AttractionScene extends Phaser.Scene {
       const dy = this._phonePos.y - this.agent.y;
       const dist = Math.sqrt(dx * dx + dy * dy);
 
-      if (dist < 60 && !this._pickupPromptShown) {
+      if (dist < 35 && !this._pickupPromptShown) {
         this._showPickupPrompt();
-      } else if ((dist >= 60 || this._mobileScreenOpen) && this._pickupPromptShown) {
+      } else if ((dist >= 35 || this._mobileScreenOpen) && this._pickupPromptShown) {
         this._hidePickupPrompt();
       }
     } else if (this._mobileScreenOpen && this._pickupPromptShown) {
@@ -803,21 +834,49 @@ export default class AttractionScene extends Phaser.Scene {
     if (this._pickupPromptShown) return;
     this._pickupPromptShown = true;
 
-    this._pickupPrompt = this.add.container(this._phonePos.x, this._phonePos.y - 50).setDepth(30);
+    this._pickupPrompt = this.add.container(this._phonePos.x, this._phonePos.y - 55).setDepth(30);
 
-    const bg = this.add.rectangle(0, 0, 100, 32, 0x1e1b4b, 0.92);
+    // Key badge background
+    const bg = this.add.rectangle(0, 0, 110, 36, 0x1e1b4b, 0.95);
     bg.setStrokeStyle(2, 0x6366f1, 1);
 
-    const hint = this.add.text(0, 0, 'Press [E]', {
-      fontFamily: FONT_BODY, fontSize: '13px', color: '#a5b4fc', fontStyle: 'bold'
+    // [E] key box
+    const keyBox = this.add.rectangle(-22, 0, 26, 24, 0x6366f1, 1);
+    keyBox.setStrokeStyle(1, 0x818cf8, 1);
+    const keyLetter = this.add.text(-22, 0, 'E', {
+      fontFamily: FONT_BODY, fontSize: '14px', color: '#ffffff', fontStyle: 'bold'
     }).setOrigin(0.5);
 
-    this._pickupPrompt.add([bg, hint]);
+    const label = this.add.text(14, 0, 'Pick up', {
+      fontFamily: FONT_BODY, fontSize: '12px', color: '#a5b4fc'
+    }).setOrigin(0, 0.5);
 
-    gsap.fromTo(this._pickupPrompt,
-      { alpha: 0, y: this._phonePos.y - 40 },
-      { alpha: 1, y: this._phonePos.y - 50, duration: 0.3, ease: 'back.out(1.5)' }
-    );
+    // Arrow pointing down to phone
+    const arrow = this.add.text(0, 22, '▼', {
+      fontFamily: FONT_BODY, fontSize: '10px', color: '#6366f1'
+    }).setOrigin(0.5);
+
+    this._pickupPrompt.add([bg, keyBox, keyLetter, label, arrow]);
+
+    // Bounce in
+    this._pickupPrompt.setAlpha(0).setScale(0.8);
+    gsap.to(this._pickupPrompt, { alpha: 1, duration: 0.2, ease: 'power2.out' });
+    this.tweens.add({
+      targets: this._pickupPrompt,
+      scaleX: 1, scaleY: 1,
+      duration: 200,
+      ease: 'Back.easeOut'
+    });
+
+    // Gentle float
+    this.tweens.add({
+      targets: this._pickupPrompt,
+      y: this._phonePos.y - 60,
+      duration: 600,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut'
+    });
 
     this._pickupKey = this.input.keyboard.on('keydown-E', () => {
       if (this._pickupPromptShown && !this._mobileScreenOpen) {
