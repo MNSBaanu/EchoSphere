@@ -700,8 +700,7 @@ export default class RealWorldScene extends Phaser.Scene {
 
   // ── Spawn NPC — drawn with same style as Agent._drawCharacter ───────────
   _spawnNPC(data, width, height) {
-    const x = width * data.x;
-    const y = height * data.y;
+    const pos = { x: width * data.x, y: height * data.y }; // mutable position
 
     // NPC shirt colors per character
     const shirtColors = { mom: 0xe879a0, friend: 0x0ea5e9, sibling: 0x16a34a };
@@ -713,6 +712,8 @@ export default class RealWorldScene extends Phaser.Scene {
     const g = this.add.graphics().setDepth(8);
 
     const drawNPC = (emotion) => {
+      const x = pos.x;
+      const y = pos.y;
       g.clear();
 
       // Shadow
@@ -899,7 +900,12 @@ export default class RealWorldScene extends Phaser.Scene {
     const emotionTag = null;
 
     const npc = {
-      id: data.id, name: data.name, x, y, g, nameTag, emotionTag,
+      id: data.id, name: data.name,
+      get x() { return pos.x; },
+      set x(v) { pos.x = v; },
+      get y() { return pos.y; },
+      set y(v) { pos.y = v; },
+      g, nameTag, emotionTag,
       data, emotion: data.emotion, lineIndex: 0, bubble: null,
       drawNPC  // store so we can redraw on emotion change
     };
@@ -972,6 +978,7 @@ export default class RealWorldScene extends Phaser.Scene {
 
   _showInteractPrompt(npc) {
     if (npc._interactPrompt) return;
+    if (this._convActive) return; // block during greeting conversation
 
     const prompt = this.add.container(npc.x, npc.y - 80).setDepth(15);
     const bg = this.add.rectangle(0, 0, 130, 32, 0x14532d, 0.95);
@@ -1007,6 +1014,9 @@ export default class RealWorldScene extends Phaser.Scene {
 
   // ── NPC Speech Bubble (Natural Language Communication) ────────────────────
   _npcSpeak(npc) {
+    // Block all NPC speech while the greeting conversation is running
+    if (this._convActive) return;
+
     // ── LEARNING: Skip NPC Kai decided to avoid ───────────────────────────
     if (this._avoidedNPC === npc.id) {
       this._log(`🧠 Kai remembers avoiding ${npc.name} — walking away`);
@@ -1244,7 +1254,8 @@ export default class RealWorldScene extends Phaser.Scene {
     ];
 
     let index = 0;
-    let waiting = false; // true while a message is displayed, waiting for T
+    let waiting = false;
+    this._convActive = true; // block all other NPC speech while conversation runs
 
     // Hint text at bottom
     this._convHint = this.add.text(this._w / 2, this._h - 40,
@@ -1255,17 +1266,21 @@ export default class RealWorldScene extends Phaser.Scene {
     this.tweens.add({ targets: this._convHint, alpha: 0.4, duration: 700, yoyo: true, repeat: -1 });
 
     const clearAllBubbles = () => {
+      // Destroy every NPC bubble — no leftovers
       this._npcs.forEach(n => {
         if (n.bubble) {
           n.bubble.destroy();
           n.bubble = null;
         }
+        // Reset emotion back to neutral
+        n.emotion = "neutral";
+        if (n.drawNPC) n.drawNPC("neutral");
       });
     };
 
     const showMessage = (i) => {
       if (this._ended) return;
-      clearAllBubbles();
+      clearAllBubbles(); // always wipe before showing next
 
       const { npc: npcId, text, emotion } = conversation[i];
       const npc = this._npcs.find(n => n.id === npcId);
@@ -1283,25 +1298,24 @@ export default class RealWorldScene extends Phaser.Scene {
       waiting = true;
     };
 
-    // Single T key handler — only active during this conversation
     const onT = () => {
       if (this._ended) return;
 
       if (!waiting && index === 0) {
-        // First press — show first message
         showMessage(index);
         index++;
         return;
       }
 
       if (waiting) {
-        // Advance to next
         if (index < conversation.length) {
           showMessage(index);
           index++;
         } else {
-          // All done — clear and walk
+          // All done
           waiting = false;
+          this._convActive = false;
+          this._convTHandler = null;
           clearAllBubbles();
           if (this._convHint) { this._convHint.destroy(); this._convHint = null; }
           this.input.keyboard.off("keydown-T", onT);
@@ -1313,7 +1327,6 @@ export default class RealWorldScene extends Phaser.Scene {
     };
 
     this.input.keyboard.on("keydown-T", onT);
-    // Store reference so _showInteractPrompt T key doesn't conflict
     this._convTHandler = onT;
   }
 
@@ -1411,10 +1424,13 @@ export default class RealWorldScene extends Phaser.Scene {
         duration: npcDuration,
         ease: "Linear",
         onUpdate: () => {
-          // Update NPC visuals during walk
+          // Redraw NPC at updated position
           if (npc.drawNPC) npc.drawNPC(npc.emotion);
-          if (npc.nameTag) npc.nameTag.setPosition(npc.x, npc.nameTag.y);
-          if (npc.emotionTag) npc.emotionTag.setPosition(npc.x + 30, npc.emotionTag.y);
+          // Move speech bubble with NPC if present
+          if (npc.bubble) npc.bubble.setPosition(npc.x, npc.y - 110);
+        },
+        onComplete: () => {
+          if (npc.drawNPC) npc.drawNPC(npc.emotion);
         }
       });
 
