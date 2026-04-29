@@ -264,22 +264,6 @@ export default class AttractionScene extends Phaser.Scene {
           this._lastMessageTime = now;
         }
       }
-
-      // ── BEHAVIOR-BASED TRANSITION ──────────────────────────────────────
-      // Not just 100% - multiple conditions for intelligent transition
-      // But prevent transition if in continuous scroll mode (after clicking "later")
-      if (!this._continuousScrollMode && (
-          this.agent.addictionLevel >= 100 || 
-          (this.agent.addictionLevel > 85 && this.agent.ignoredMessages >= 2) ||
-          (this.agent.awareness < 20 && this.agent.addictionLevel > 80))) {
-        
-        this._log('🌀 Transition', `Addiction: ${this.agent.addictionLevel.toFixed(0)}%, Ignored: ${this.agent.ignoredMessages}, Awareness: ${this.agent.awareness.toFixed(0)}%`);
-        
-        // Delay transition slightly for dramatic effect
-        this.time.delayedCall(800, () => {
-          this._transitionToRealWorld();
-        });
-      }
     }
 
     // Auto-walk to phone if agent chose phone path
