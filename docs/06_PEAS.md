@@ -76,15 +76,28 @@ PEAS is a framework for describing intelligent agents. EchoSphere contains multi
 
 | Agent | Performance Measure | Environment | Actuators | Sensors |
 |-------|--------------------|-----------|-----------|---------| 
-| **Steve** | Awareness, relationship, FSM outcome | Bedroom, park, study room | Movement, phone pickup, scrolling, task completion | Vision cone, hearing range, proximity detection |
-| **Mom** | Relationship maintenance, advice delivery | Outdoor park | Wander, speech, emotion display, approach | Steve proximity, addiction level, phone visibility |
-| **Alex** | Social engagement, emotional support | Outdoor park | Wander, speech, emotion display, approach | Steve proximity, phone visibility, NPC emotions |
-| **Sam** | Play engagement, group participation | Outdoor park | Wander, speech, emotion display, approach | Steve proximity, phone visibility, group emotions |
-| **Feed System** | Addiction maximisation | Phone screen | Feed display, auto-scroll, notifications | Scroll events, addiction thresholds |
+| **Steve** | Awareness, relationship, FSM outcome | Bedroom, park, study room | Movement, phone pickup, scrolling, task completion | Vision cone (200px ±45°), hearing range (150px), proximity detection (90px) |
+| **Mom** | Relationship maintenance, advice delivery | Outdoor park | Wander, speech bubbles, emotion display, approach, advice dialogue | Steve proximity, addiction level, phone visibility, other NPC emotions |
+| **Alex** | Social engagement, emotional support | Outdoor park | Wander, speech bubbles, emotion display, approach | Steve proximity, phone visibility, NPC emotions |
+| **Sam** | Play engagement, group participation | Outdoor park | Wander, speech bubbles, emotion display, approach | Steve proximity, phone visibility, group emotions |
+| **Feed System** | Addiction maximisation | Phone screen | Feed display, auto-scroll, notifications, decision popups | Scroll events, addiction thresholds (50%, 70%, 100%) |
 
 ---
 
-## 6.7 Environment Properties
+## 6.7 Intelligence Traits Mapped to PEAS
+
+| Intelligence Trait | Agent | PEAS Component |
+|-------------------|-------|---------------|
+| **Perceptions** (vision, hearing, sensing) | Steve | Sensors: vision cone, hearing range, proximity |
+| **Emotional Intelligence** | Steve + all NPCs | Performance + Actuators: emotion-driven behaviour and NPC reactions |
+| **Natural Language Communication** | All NPCs + Steve | Actuators: speech bubbles, context-sensitive dialogue, 7-line conversation |
+| **Learning** | Steve | Performance: memory array, advice retention, NPC avoidance |
+| **Searching / Pathfinding** | All NPCs | Actuators: seek steering, wander, shelter pathfinding |
+| **Decision Making** | Steve (FSM) + NPCs | Performance: FSM outcome resolution, player choice nodes, NPC autonomous decisions |
+
+---
+
+## 6.8 Environment Properties
 
 | Property | Value | Justification |
 |----------|-------|---------------|
