@@ -527,7 +527,7 @@ export default class LearningScene extends Phaser.Scene {
     gsap.fromTo(card, { alpha: 0, scale: 0.85 }, { alpha: 1, scale: 1, duration: 0.5, ease: 'back.out(1.5)' });
 
     this.input.once('pointerdown', () => {
-      this.scene.start('BootScene');
+      this.scene.start('AttractionScene');
     });
   }
 
