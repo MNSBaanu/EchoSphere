@@ -38,6 +38,7 @@ export default class Agent {
     this.rubberBand = false;
     this.hunchLevel = 0; // 0 = upright, 4 = fully hunched
     this.keysLocked = false; // Can lock keyboard control
+    this.speed = 6; // movement speed — can be overridden per scene
 
     // Keyboard input
     this._keys = scene.input.keyboard.createCursorKeys();
@@ -381,7 +382,7 @@ export default class Agent {
     if (this.keysLocked) return; // Allow locking keyboard control
     
     const { width, height } = this.scene.scale;
-    const speed = 6;
+    const speed = this.speed;
     const k = this._keys;
     const w = this._wasd;
 
@@ -466,7 +467,10 @@ export default class Agent {
       if (!n.active || n._seen) return;
       const dist = Phaser.Math.Distance.Between(this.x, this.y, n.x, n.y);
       if (dist < 90) {
-        this.fsm.handleEvent('NOTIFICATION_SEEN');
+        // Only fire if scene hasn't already handled it
+        if (!this.scene._notificationFired) {
+          this.fsm.handleEvent('NOTIFICATION_SEEN');
+        }
         this._perceptionCooldown = 50;
         n._seen = true;
       }
