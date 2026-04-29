@@ -1,4 +1,4 @@
-# 10. Test Plans & Test Data
+﻿# 10. Test Plans & Test Data
 
 ## 10.1 Test Plan Overview
 
@@ -27,7 +27,7 @@
 | T21 | Navigation | Learning complete → AttractionScene | Clicking card after tasks returns to Scenario 1 | ✅ Pass |
 | T22 | Navigation | RealWorld end → EndScene | After walk sequence, EndScene loads | ✅ Pass |
 | T23 | NPC | Wander behaviour | NPCs pick new target every ~4 seconds | ✅ Pass |
-| T24 | NPC | Approach behaviour | NPC walks toward Kai when triggered | ✅ Pass |
+| T24 | NPC | Approach behaviour | NPC walks toward Steve when triggered | ✅ Pass |
 | T25 | NPC | Emotional contagion | Happy NPC makes others happy | ✅ Pass |
 | T26 | Conversation | T key advances messages | Each T press shows next message | ✅ Pass |
 | T27 | Conversation | Previous bubble cleared | Old bubble destroyed before new one appears | ✅ Pass |

@@ -1,4 +1,4 @@
-import Phaser from 'phaser';
+﻿import Phaser from 'phaser';
 import Agent from '../agent/Agent.js';
 import { gsap } from 'gsap';
 
@@ -511,7 +511,7 @@ export default class LearningScene extends Phaser.Scene {
     const card = this.add.container(W / 2, H / 2).setDepth(40);
     const bg   = this.add.rectangle(0, 0, 540, 160, 0xffffff, 0.97);
     bg.setStrokeStyle(3, 0x16a34a, 1);
-    const title = this.add.text(0, -35, '✅ Kai chose to learn!', {
+    const title = this.add.text(0, -35, '✅ Steve chose to learn!', {
       fontFamily: FONT, fontSize: '28px', fontStyle: 'bold', color: '#16a34a'
     }).setOrigin(0.5);
     const sub = this.add.text(0, 10, `He earned ${this._xp} XP and grew as a person.`, {

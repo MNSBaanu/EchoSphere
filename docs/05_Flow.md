@@ -1,4 +1,4 @@
-# 5. Flow — Scene and System Flows
+﻿# 5. Flow — Scene and System Flows
 
 ## 5.1 Overall Game Flow
 
@@ -12,7 +12,7 @@ START
   │
   ▼
 [AttractionScene] ─────────────────────────────────────────────────┐
-  Kai's bedroom                                                     │
+  Steve's bedroom                                                     │
   Phone notification fires at 300ms                                 │
   Social media icons appear                                         │
   │                                                                 │
@@ -48,7 +48,7 @@ START
   3 NPCs (Mom, Alex, Sam)
   Press T to advance conversation
   7 conversation lines
-  After last line → NPCs and Kai walk to road
+  After last line → NPCs and Steve walk to road
   │
   ▼
 [EndScene]
@@ -118,7 +118,7 @@ _updatePerception()
     
     if (canSee OR canHear) AND not perceived:
       npc._perceived = true
-      log "Kai noticed [NPC name]"
+      log "Steve noticed [NPC name]"
       
 _updatePlayerProximity()
   For each NPC:
@@ -172,12 +172,12 @@ Event: Mom gives advice (RealWorldScene)
   → addictionLevel -= 20
   → awareness += 15
   → _adviceGiven = true (won't repeat)
-  → console: "Kai learned: mom_advice"
+  → console: "Steve learned: mom_advice"
 
 Event: 2 bad interactions with same NPC
   → memory.push('avoid_[npcId]')
   → _avoidedNPC = npc.id
-  → console: "Kai learned: avoid [name]"
+  → console: "Steve learned: avoid [name]"
 
 Memory persists across scenes:
   AttractionScene → RealWorldScene:
@@ -252,7 +252,7 @@ Player presses T on last line (index = 7):
 
 _agentWalkToRoad():
   Lock agent keys
-  Tween Kai to position[1]
+  Tween Steve to position[1]
   Tween each NPC to their position
   NPCs redraw at new position each frame (pos getter/setter)
   After duration + 1000ms → _transitionToTrip()

@@ -1,4 +1,4 @@
-# 4. State Diagrams — UML Diagrams
+﻿# 4. State Diagrams — UML Diagrams
 
 ## 4.1 Agent FSM State Transition Diagram
 
@@ -146,7 +146,7 @@
                          │
               ┌──────────┴──────────┐
               │                     │
-              │ Kai in range        │ Random event:
+              │ Steve in range        │ Random event:
               │ (vision/hearing)    │ "approach" triggered
               ▼                     ▼
         ┌──────────┐         ┌──────────────┐
@@ -154,7 +154,7 @@
         │ (neutral)│         │  PLAYER      │
         └──────────┘         └──────────────┘
               │                     │
-              │ Kai presses T       │ Arrives within 80px
+              │ Steve presses T       │ Arrives within 80px
               │ (proximity)         │
               ▼                     ▼
         ┌──────────┐         ┌──────────────┐

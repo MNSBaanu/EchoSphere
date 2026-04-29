@@ -1,4 +1,4 @@
-# 9. Source Code Listing
+﻿# 9. Source Code Listing
 
 > All source code is fully annotated. Key files are listed below with their purpose and critical annotated excerpts. Full source is in the `src/` directory.
 
@@ -184,7 +184,7 @@ export default class EmotionSystem {
 
 ```javascript
 /**
- * Agent — "Kai", teen boy character
+ * Agent — "Steve", teen boy character
  * Player-controlled movement with AI-driven emotional and behavioural responses.
  */
 
@@ -272,7 +272,7 @@ _updatePerception() {
     if ((canSee || canHear) && !npc._perceived) {
       npc._perceived = true;
       if (!this._learnedNPCs.has(npc.id)) {
-        this._log(`👁 Kai noticed ${npc.name}`);
+        this._log(`👁 Steve noticed ${npc.name}`);
       }
     }
   });
@@ -290,7 +290,7 @@ _giveAdvice(npc) {
   // Store in agent memory — persists across scenes
   if (this.agent && !this.agent.memory.includes('mom_advice')) {
     this.agent.memory.push('mom_advice');
-    this._log('🧠 Kai learned: mom_advice — will not ignore Mom again');
+    this._log('🧠 Steve learned: mom_advice — will not ignore Mom again');
   }
 
   // Significant addiction reduction after receiving advice

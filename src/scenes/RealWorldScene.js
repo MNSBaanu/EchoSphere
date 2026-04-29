@@ -75,14 +75,14 @@ export default class RealWorldScene extends Phaser.Scene {
     this._playerEngageCount = 0;
 
     // ── Physics / perception constants ────────────────────────────────────
-    this.VISION_RANGE   = 200;   // px — how far Kai can see
+    this.VISION_RANGE   = 200;   // px — how far Steve can see
     this.VISION_ANGLE   = 90;    // degrees — cone of vision (±45° from facing)
-    this.HEARING_RANGE  = 150;   // px — how far Kai can hear NPCs
+    this.HEARING_RANGE  = 150;   // px — how far Steve can hear NPCs
     this.NPC_WANDER_SPEED = 0.6; // px/frame — NPCs wander slowly
 
     // ── Learning / memory ─────────────────────────────────────────────────
-    this._learnedNPCs   = new Set(); // NPCs Kai has spoken to (not same mistake twice)
-    this._avoidedNPC    = null;      // NPC Kai decided to avoid after bad interaction
+    this._learnedNPCs   = new Set(); // NPCs Steve has spoken to (not same mistake twice)
+    this._avoidedNPC    = null;      // NPC Steve decided to avoid after bad interaction
     this._adviceGiven   = false;     // Mom gave advice once — not repeated
 
     // ── Random event state ────────────────────────────────────────────────
@@ -128,7 +128,7 @@ export default class RealWorldScene extends Phaser.Scene {
     // ── Spawn NPCs ────────────────────────────────────────────────────────
     NPC_DATA.forEach(data => this._spawnNPC(data, width, height));
 
-    // ── Player character (Kai) ────────────────────────────────────────────
+    // ── Player character (Steve) ────────────────────────────────────────────
     this._spawnPlayer(width, height);
 
     // ── Vision cone graphics (removed - no visual effects) ───────────────
@@ -228,7 +228,7 @@ export default class RealWorldScene extends Phaser.Scene {
     g.strokeCircle(ax, ay, this.HEARING_RANGE);
   }
 
-  // ── PERCEPTION: Kai perceives NPCs in vision/hearing range ───────────────
+  // ── PERCEPTION: Steve perceives NPCs in vision/hearing range ───────────────
   _updatePerception() {
     if (!this.agent) return;
     const ax = this.agent.x;
@@ -256,7 +256,7 @@ export default class RealWorldScene extends Phaser.Scene {
         npc._perceived = true;
         // First time perceiving this NPC — log it
         if (!this._learnedNPCs.has(npc.id)) {
-          this._log(`👁 Kai noticed ${npc.name}`);
+          this._log(`👁 Steve noticed ${npc.name}`);
         }
       } else if (!canSee && !canHear) {
         npc._perceived = false;
@@ -309,12 +309,12 @@ export default class RealWorldScene extends Phaser.Scene {
     });
   }
 
-  // ── DECISION MAKING: NPC decides to approach Kai if ignored too long ──────
+  // ── DECISION MAKING: NPC decides to approach Steve if ignored too long ──────
   _npcDecideToApproach(npc) {
     if (npc._seekingPlayer || npc.bubble) return;
     npc._seekingPlayer = true;
 
-    // NPC walks toward Kai
+    // NPC walks toward Steve
     const seekInterval = this.time.addEvent({
       delay: 50,
       callback: () => {
@@ -344,7 +344,7 @@ export default class RealWorldScene extends Phaser.Scene {
       // Time shifts to dusk — vision range drops
       this._timeOfDay = 'dusk';
       this._applyDusk();
-      this._log('🌅 Dusk falls — Kai\'s vision narrows');
+      this._log('🌅 Dusk falls — Steve\'s vision narrows');
       this.time.delayedCall(12000, () => {
         this._timeOfDay = 'day';
         this._removeDusk();
@@ -376,24 +376,24 @@ export default class RealWorldScene extends Phaser.Scene {
       });
 
     } else if (roll < 0.75) {
-      // Random NPC decides to approach Kai
+      // Random NPC decides to approach Steve
       const npc = Phaser.Utils.Array.GetRandom(this._npcs);
       if (npc) {
-        this._log(`${npc.name} is coming to find Kai...`);
+        this._log(`${npc.name} is coming to find Steve...`);
         this._npcDecideToApproach(npc);
       }
 
     } else if (roll < 0.88) {
-      // Kai hears something — perception event
+      // Steve hears something — perception event
       const npc = Phaser.Utils.Array.GetRandom(this._npcs);
       if (npc && this.agent) {
         const dist = Phaser.Math.Distance.Between(this.agent.x, this.agent.y, npc.x, npc.y);
         if (dist < this.HEARING_RANGE) {
-          const hearLines = ['Hey Kai! Over here! 👋', 'Kai! Can you hear me?', 'Psst! Kai!'];
+          const hearLines = ['Hey Steve! Over here! 👋', 'Steve! Can you hear me?', 'Psst! Steve!'];
           const line = Phaser.Utils.Array.GetRandom(hearLines);
           this._createSpeechBubble(npc.x, npc.y - 110, line, npc.data.color, 'happy');
-          this._log(`👂 Kai heard ${npc.name} calling`);
-          // Kai's awareness increases when he hears someone
+          this._log(`👂 Steve heard ${npc.name} calling`);
+          // Steve's awareness increases when he hears someone
           this._awareness = Math.min(100, this._awareness + 8);
         }
       }
@@ -441,7 +441,7 @@ export default class RealWorldScene extends Phaser.Scene {
     }
   }
 
-  // ── LEARNING: Kai remembers advice from Mom ───────────────────────────────
+  // ── LEARNING: Steve remembers advice from Mom ───────────────────────────────
   _giveAdvice(npc) {
     if (this._adviceGiven || npc.id !== 'mom') return;
     this._adviceGiven = true;
@@ -450,10 +450,10 @@ export default class RealWorldScene extends Phaser.Scene {
     const bubble = this._createSpeechBubble(npc.x, npc.y - 110, adviceLine, npc.data.color, 'happy');
     npc.bubble = bubble;
 
-    // Kai learns — store in memory
+    // Steve learns — store in memory
     if (this.agent && !this.agent.memory.includes('mom_advice')) {
       this.agent.memory.push('mom_advice');
-      this._log('🧠 Kai learned: mom_advice — will not ignore Mom again');
+      this._log('🧠 Steve learned: mom_advice — will not ignore Mom again');
     }
 
     // Addiction drops significantly after advice
@@ -548,7 +548,7 @@ export default class RealWorldScene extends Phaser.Scene {
 
   // ── Handle notification click (distraction event) ─────────────────────────
   _onNotificationClicked() {
-    // Kai gets distracted by phone
+    // Steve gets distracted by phone
     this._phoneVisible = true;
     this._addictionLevel = Math.min(100, this._addictionLevel + 15);
     this._awareness = Math.max(0, this._awareness - 10);
@@ -570,7 +570,7 @@ export default class RealWorldScene extends Phaser.Scene {
       fontFamily: FONT, fontSize: "24px", color: "#ffffff", fontStyle: "bold"
     }).setOrigin(0.5);
     
-    const subText = this.add.text(0, 15, "Kai got distracted by the phone...", {
+    const subText = this.add.text(0, 15, "Steve got distracted by the phone...", {
       fontFamily: FONT, fontSize: "14px", color: "#e0e7ff"
     }).setOrigin(0.5);
     
@@ -708,7 +708,7 @@ export default class RealWorldScene extends Phaser.Scene {
     const shirt = shirtColors[data.id] || 0x6366f1;
     const pants = pantsColors[data.id] || 0x1e3a5f;
 
-    const S = 2.2; // slightly smaller than Kai (2.8)
+    const S = 2.2; // slightly smaller than Steve (2.8)
     const g = this.add.graphics().setDepth(8);
 
     const drawNPC = (emotion) => {
@@ -1017,9 +1017,9 @@ export default class RealWorldScene extends Phaser.Scene {
     // Block all NPC speech while the greeting conversation is running
     if (this._convActive) return;
 
-    // ── LEARNING: Skip NPC Kai decided to avoid ───────────────────────────
+    // ── LEARNING: Skip NPC Steve decided to avoid ───────────────────────────
     if (this._avoidedNPC === npc.id) {
-      this._log(`🧠 Kai remembers avoiding ${npc.name} — walking away`);
+      this._log(`🧠 Steve remembers avoiding ${npc.name} — walking away`);
       return;
     }
 
@@ -1032,7 +1032,7 @@ export default class RealWorldScene extends Phaser.Scene {
       return;
     }
 
-    // ── LEARNING: Kai already spoke to this NPC — uses remembered context ─
+    // ── LEARNING: Steve already spoke to this NPC — uses remembered context ─
     const isReturningVisit = this._learnedNPCs.has(npc.id);
 
     // ── Emotional Intelligence: NPC reacts to phone addiction ─────────────
@@ -1045,11 +1045,11 @@ export default class RealWorldScene extends Phaser.Scene {
       this._addictionLevel = Math.min(100, this._addictionLevel + 3);
       this._relationshipLevel = Math.max(0, this._relationshipLevel - 8);
 
-      // ── LEARNING: After 2 bad interactions with same NPC, Kai avoids them
+      // ── LEARNING: After 2 bad interactions with same NPC, Steve avoids them
       npc._badInteractions = (npc._badInteractions || 0) + 1;
       if (npc._badInteractions >= 2 && npc.id !== 'mom') {
         this._avoidedNPC = npc.id;
-        this._log(`🧠 Kai learned: avoid ${npc.name} after repeated conflict`);
+        this._log(`🧠 Steve learned: avoid ${npc.name} after repeated conflict`);
         if (this.agent) this.agent.memory.push(`avoid_${npc.id}`);
       }
     } else {
@@ -1057,9 +1057,9 @@ export default class RealWorldScene extends Phaser.Scene {
       // Returning visit — NPC acknowledges it
       if (isReturningVisit) {
         const returnLines = [
-          `Good to see you again, Kai! 😊`,
+          `Good to see you again, Steve! 😊`,
           `You came back! That means a lot.`,
-          `Kai! Glad you are still here with us.`
+          `Steve! Glad you are still here with us.`
         ];
         line = Phaser.Utils.Array.GetRandom(returnLines);
       } else {
@@ -1343,15 +1343,15 @@ export default class RealWorldScene extends Phaser.Scene {
     const groupCenterX = this._w / 2;
     const spacing = 80; // Space between characters
     
-    // Positions: Mom (left), Kai (center), Friend (right of Kai), Sibling (far right)
+    // Positions: Mom (left), Steve (center), Friend (right of Steve), Sibling (far right)
     const positions = [
       { x: groupCenterX - spacing * 1.5, y: targetY }, // Mom (leftmost)
-      { x: groupCenterX - spacing * 0.5, y: targetY }, // Kai (center-left)
+      { x: groupCenterX - spacing * 0.5, y: targetY }, // Steve (center-left)
       { x: groupCenterX + spacing * 0.5, y: targetY }, // Friend (center-right)
       { x: groupCenterX + spacing * 1.5, y: targetY }  // Sibling (rightmost)
     ];
 
-    // Kai's target position (center-left)
+    // Steve's target position (center-left)
     const kaiTarget = positions[1];
 
     // Show message
@@ -1362,7 +1362,7 @@ export default class RealWorldScene extends Phaser.Scene {
     const walkSpeed = 2;
     const duration = (distance / walkSpeed) * 16.67;
 
-    // Animate Kai walking
+    // Animate Steve walking
     this.tweens.add({
       targets: this.agent,
       x: kaiTarget.x,
@@ -1548,19 +1548,19 @@ export default class RealWorldScene extends Phaser.Scene {
 
     if (learnedAdvice && lowAddiction && highRelation) {
       outcome = { title: "🌿 Full Recovery!", color: 0x4ade80,
-        sub: "Kai put the phone down and reconnected with the real world." };
+        sub: "Steve put the phone down and reconnected with the real world." };
     } else if (manyConversations && highRelation) {
       outcome = { title: "💚 Real Connection Made", color: 0x86efac,
-        sub: "Kai chose people over the screen." };
+        sub: "Steve chose people over the screen." };
     } else if (this._playerIgnoreCount >= 3) {
       outcome = { title: "📱 Still Distracted...", color: 0xfbbf24,
-        sub: "The phone kept pulling Kai back. Relationships suffered." };
+        sub: "The phone kept pulling Steve back. Relationships suffered." };
     } else if (this._avoidedNPC) {
       outcome = { title: "😔 Bridges Burned", color: 0xef4444,
-        sub: `Kai avoided ${this._avoidedNPC} after repeated conflict.` };
+        sub: `Steve avoided ${this._avoidedNPC} after repeated conflict.` };
     } else {
       outcome = { title: "🤔 Uncertain Path", color: 0x94a3b8,
-        sub: "Kai is still figuring out the balance." };
+        sub: "Steve is still figuring out the balance." };
     }
 
     // Show outcome card
