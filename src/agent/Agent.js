@@ -39,6 +39,7 @@ export default class Agent {
     this.hunchLevel = 0; // 0 = upright, 4 = fully hunched
     this.keysLocked = false; // Can lock keyboard control
     this.speed = 6; // movement speed — can be overridden per scene
+    this._eyeOffset = 0; // horizontal iris/pupil shift for look-direction animation
 
     // Keyboard input
     this._keys = scene.input.keyboard.createCursorKeys();
@@ -58,7 +59,7 @@ export default class Agent {
     this.container.add(this._gfx);
 
     // Glow layer behind character — hidden (kept for state-based logic)
-    this._glow = scene.add.circle(x, y, 38, 0x7b2fff, 0.0).setDepth(9).setVisible(false);
+    this._glow = scene.add.circle(x, y, 38, 0x000000, 0.0).setDepth(9).setVisible(false);
 
     // Name tag — removed
     this.nameTag = { setPosition: () => {}, setText: () => {}, setStyle: () => {}, setAlpha: () => {} };
@@ -68,7 +69,7 @@ export default class Agent {
 
     // Perception ring — hidden
     this.perceptionRing = scene.add.circle(x, y, 90)
-      .setStrokeStyle(0, 0x7b2fff, 0)
+      .setStrokeStyle(0, 0x1e3a5f, 0)
       .setFillStyle(0x000000, 0)
       .setDepth(5)
       .setVisible(false);
@@ -93,7 +94,7 @@ export default class Agent {
     // Shirt (0x2563eb) and eye color (0x1e3a5f) never change for main agent
     const P = {
       IDLE:           { skin: 0xf5c5a3, hair: 0x3d2314, shirt: 0x2563eb, pants: 0x1e3a5f, shoe: 0x111827, eye: 0x1e3a5f, phone: null,   glow: 0x000000, glowA: 0 },
-      ATTRACTED:      { skin: 0xf5c5a3, hair: 0x3d2314, shirt: 0x2563eb, pants: 0x1e3a5f, shoe: 0x111827, eye: 0x1e3a5f, phone: 0x111827, glow: 0x7c3aed, glowA: 0.12 },
+      ATTRACTED:      { skin: 0xf5c5a3, hair: 0x3d2314, shirt: 0x2563eb, pants: 0x1e3a5f, shoe: 0x111827, eye: 0x1e3a5f, phone: 0x111827, glow: 0x000000, glowA: 0 },
 
       LOOPING:        { skin: 0xedb48a, hair: 0x2c1a0e, shirt: 0x1d4ed8, pants: 0x172554, shoe: 0x0f172a, eye: 0x1e3a5f, phone: 0x0f172a, glow: 0xea580c, glowA: 0.18 },
       DISTORTED:      { skin: 0xd4956e, hair: 0x1a0f08, shirt: 0x1e40af, pants: 0x0f1f3d, shoe: 0x080f1e, eye: 0x1e3a5f, phone: 0x080f1e, glow: 0xdc2626, glowA: 0.25 },
@@ -242,18 +243,20 @@ export default class Agent {
     // ── Iris ──────────────────────────────────────────────────────────────
     g.fillStyle(P.eye, 1);
     const irisR = state === 'ATTRACTED' ? 3.2*S : state === 'LOST' ? 1.8*S : 2.6*S;
-    g.fillCircle(gl + -6*S, -25*S, irisR);
-    g.fillCircle(gl +  6*S, -25*S, irisR);
+    // _eyeOffset shifts iris/pupil horizontally so agent looks toward a sound source
+    const eo = Phaser.Math.Clamp(this._eyeOffset, -2, 2) * S;
+    g.fillCircle(gl + -6*S + eo, -25*S, irisR);
+    g.fillCircle(gl +  6*S + eo, -25*S, irisR);
 
     // ── Pupil ─────────────────────────────────────────────────────────────
     g.fillStyle(0x000000, 1);
-    g.fillCircle(gl + -6*S, -25*S, irisR * 0.5);
-    g.fillCircle(gl +  6*S, -25*S, irisR * 0.5);
+    g.fillCircle(gl + -6*S + eo, -25*S, irisR * 0.5);
+    g.fillCircle(gl +  6*S + eo, -25*S, irisR * 0.5);
 
     // ── Eye shine ─────────────────────────────────────────────────────────
     g.fillStyle(0xffffff, 0.95);
-    g.fillCircle(gl + -5*S, -26*S, 1.2*S);
-    g.fillCircle(gl +  7*S, -26*S, 1.2*S);
+    g.fillCircle(gl + -5*S + eo, -26*S, 1.2*S);
+    g.fillCircle(gl +  7*S + eo, -26*S, 1.2*S);
 
     // ── Eye outline ───────────────────────────────────────────────────────
     g.lineStyle(1.2*S * 0.4, P.hair, 0.8);
@@ -483,6 +486,51 @@ export default class Agent {
   onRandomEvent(type)      { this.fsm.handleEvent(type); }
   onPlayerChoice(choice)   { this.fsm.handleEvent(choice); }
 
+  // ── Look toward a direction (eye animation on hearing notification) ──────
+  /**
+   * Snaps eyes toward 'right' or 'left', holds briefly, then returns to centre.
+   * Called when Steve hears the notification sound.
+   */
+  lookAtDirection(direction) {
+    const targetOffset = direction === 'right' ? 2 : -2;
+
+    // Cancel any running eye tween
+    if (this._eyeTween) {
+      this._eyeTween.stop();
+      this._eyeTween = null;
+    }
+
+    // Step 1 — snap eyes to the side quickly
+    this._eyeTween = this.scene.tweens.addCounter({
+      from: 0,
+      to: targetOffset,
+      duration: 120,
+      ease: 'Sine.easeOut',
+      onUpdate: (tween) => {
+        this._eyeOffset = tween.getValue();
+      },
+      onComplete: () => {
+        // Step 2 — hold for 800ms (agent is "listening / reacting")
+        this.scene.time.delayedCall(800, () => {
+          // Step 3 — return to centre smoothly
+          this._eyeTween = this.scene.tweens.addCounter({
+            from: targetOffset,
+            to: 0,
+            duration: 300,
+            ease: 'Sine.easeInOut',
+            onUpdate: (tween) => {
+              this._eyeOffset = tween.getValue();
+            },
+            onComplete: () => {
+              this._eyeOffset = 0;
+              this._eyeTween = null;
+            }
+          });
+        });
+      }
+    });
+  }
+
   // ── Bounce / victory hop ──────────────────────────────────────────────────
   bounce() {
     if (this._bouncing) return;
@@ -558,7 +606,7 @@ export default class Agent {
 
     // Perception ring
     const ringAlpha = 0.1 + (this.emotions.stress / 100) * 0.4;
-    const ringColor = state === 'RECOVERED' ? 0x16a34a : 0x7b2fff;
+    const ringColor = state === 'RECOVERED' ? 0x16a34a : 0x1e3a5f;
     this.perceptionRing.setStrokeStyle(2, ringColor, ringAlpha);
   }
 
