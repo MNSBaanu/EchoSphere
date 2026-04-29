@@ -48,6 +48,11 @@ export default class AttractionScene extends Phaser.Scene {
     this._incomingMemory    = data.memory         ?? null;
   }
 
+  preload() {
+    // Load notification sound from public/ (served as static asset by Vite)
+    this.load.audio('noti', 'noti.wav');
+  }
+
   create() {
     const { width, height } = this.scale;
 
@@ -740,6 +745,19 @@ export default class AttractionScene extends Phaser.Scene {
 
     this._phoneOn = true;
 
+    // ── Play notification sound 3 times ──────────────────────────────────
+    if (this.cache.audio.exists('noti')) {
+      let playCount = 0;
+      const playNext = () => {
+        if (playCount >= 3) return;
+        playCount++;
+        this.sound.play('noti', { volume: 0.8 });
+        // Chain next play after each beep
+        this.time.delayedCall(600, playNext);
+      };
+      playNext();
+    }
+
     // Screen lights up
     const screen = this._phone.list[1];
     if (screen) {
@@ -767,6 +785,12 @@ export default class AttractionScene extends Phaser.Scene {
 
     // Activate social icons burst
     this._burstSocialIcons();
+
+    // ── Agent hears notification — eyes snap toward phone then return ─────
+    // Phone is to the right of Steve's starting position
+    if (this.agent) {
+      this.agent.lookAtDirection('right');
+    }
 
     // Agent perceives it — FSM: IDLE → ATTRACTED
     this.agent.fsm.handleEvent('NOTIFICATION_SEEN');
@@ -1069,7 +1093,7 @@ export default class AttractionScene extends Phaser.Scene {
       closeBtn.setFillStyle(0xef4444);
     });
     
-    // Add all elements to container
+    // Add all elements to container (excluding maskShape - it's only for masking)
     this._mobileScreen.add([
       overlay,
       phoneFrame,
@@ -1082,7 +1106,6 @@ export default class AttractionScene extends Phaser.Scene {
       progressBg,
       this._progressBar,
       this._progressLabel,
-      maskShape,
       this._scrollContent,
       scrollHint,
       closeBtn,

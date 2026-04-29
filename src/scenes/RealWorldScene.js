@@ -341,13 +341,14 @@ export default class RealWorldScene extends Phaser.Scene {
     const roll = Math.random();
 
     if (roll < 0.25) {
-      // Time shifts to dusk — vision range drops
+      // Time shifts to dusk — vision range drops (visual effect disabled)
       this._timeOfDay = 'dusk';
-      this._applyDusk();
+      // Removed dusk visual overlay to prevent yellow tint
+      // this._applyDusk();
       this._log('🌅 Dusk falls — Steve\'s vision narrows');
       this.time.delayedCall(12000, () => {
         this._timeOfDay = 'day';
-        this._removeDusk();
+        // this._removeDusk();
       });
 
     } else if (roll < 0.45) {
