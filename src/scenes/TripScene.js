@@ -46,8 +46,6 @@ export default class TripScene extends Phaser.Scene {
     this._w = width;
     this._h = height;
 
-    this.cameras.main.fadeIn(800, 135, 206, 235);
-
     // ── Background (sky) ──────────────────────────────────────────────────
     this._drawBackground(width, height);
 
@@ -858,11 +856,7 @@ export default class TripScene extends Phaser.Scene {
 
       // End scene after showing results
       this.time.delayedCall(6000, () => {
-        this.cameras.main.fadeOut(1000, 135, 206, 235);
-        this.cameras.main.once("camerafadeoutcomplete", () => {
-          // Trip complete - show final message
-          this._showFinalScreen();
-        });
+        this._showFinalScreen();
       });
     });
   }
@@ -887,9 +881,6 @@ export default class TripScene extends Phaser.Scene {
       fontFamily: FONT, fontSize: "16px", color: "#e2e8f0",
       backgroundColor: "#00000099", padding: { x: 12, y: 6 }
     }).setOrigin(0.5).setDepth(100);
-
-    // Fade in
-    this.cameras.main.fadeIn(1000, 135, 206, 235);
 
     // Restart option
     this.input.keyboard.once("keydown-R", () => {

@@ -76,7 +76,7 @@ export default class AttractionScene extends Phaser.Scene {
     this._spawnDoor(height);
 
     // ── Agent starts centre-left ──────────────────────────────────────────
-    this.agent = new Agent(this, width * 0.35, height * 0.62);
+    this.agent = new Agent(this, width * 0.35, height * 0.72 - 52);
     // Agent can move freely from the start
     this._lockAgentKeys(false);
 
@@ -107,6 +107,92 @@ export default class AttractionScene extends Phaser.Scene {
     this.input.keyboard.once('keydown-F', () => {
       if (!this._ended) this._transitionToRealWorld();
     });
+
+    // ── Keyboard movement widget (top-right) ──────────────────────────────
+    this._buildKeyboardWidget(width, height);
+  }
+
+  // ── Keyboard movement widget (top-right corner) ──────────────────────────
+  _buildKeyboardWidget(width, height) {
+    const wx = width - 130;  // right-side anchor
+    const wy = 70;           // just below top bar
+    const keySize = 36;
+    const gap = 4;
+    const radius = 6;
+
+    const widget = this.add.container(wx, wy).setDepth(22);
+
+    // Panel background
+    const panelW = keySize * 3 + gap * 4;
+    const panelH = keySize * 2 + gap * 3 + 22; // extra for label
+    const panel = this.add.rectangle(0, panelH / 2, panelW, panelH, 0x0f0c29, 0.82);
+    panel.setStrokeStyle(1.5, 0x4f46e5, 0.7);
+    widget.add(panel);
+
+    // Label
+    const label = this.add.text(0, 4, 'MOVE', {
+      fontFamily: FONT, fontSize: '10px', color: '#6366f1',
+      fontStyle: 'bold', letterSpacing: 2
+    }).setOrigin(0.5, 0);
+    widget.add(label);
+
+    // Helper: draw one key
+    const makeKey = (col, row, symbol, isArrow) => {
+      // col: 0=left, 1=center, 2=right  |  row: 0=top, 1=bottom
+      const kx = (col - 1) * (keySize + gap);
+      const ky = 20 + row * (keySize + gap);
+
+      const bg = this.add.rectangle(kx, ky, keySize, keySize, 0x1e1b4b, 1);
+      bg.setStrokeStyle(1.5, 0x4f46e5, 0.9);
+
+      const txt = this.add.text(kx, ky, symbol, {
+        fontFamily: FONT, fontSize: isArrow ? '18px' : '13px',
+        color: '#e0e7ff', fontStyle: 'bold'
+      }).setOrigin(0.5);
+
+      widget.add([bg, txt]);
+      return { bg, txt };
+    };
+
+    // Top row: ↑ (center)
+    const upKey   = makeKey(1, 0, '↑', true);
+    // Bottom row: ← ↓ →
+    const leftKey  = makeKey(0, 1, '←', true);
+    const downKey  = makeKey(1, 1, '↓', true);
+    const rightKey = makeKey(2, 1, '→', true);
+
+    // Highlight keys on press using Phaser keyboard events
+    const keys = this.input.keyboard.createCursorKeys();
+    const wasd = this.input.keyboard.addKeys({
+      up: Phaser.Input.Keyboard.KeyCodes.W,
+      down: Phaser.Input.Keyboard.KeyCodes.S,
+      left: Phaser.Input.Keyboard.KeyCodes.A,
+      right: Phaser.Input.Keyboard.KeyCodes.D,
+    });
+
+    const highlight = (keyObj, on) => {
+      keyObj.bg.setFillStyle(on ? 0x4f46e5 : 0x1e1b4b);
+      keyObj.txt.setColor(on ? '#ffffff' : '#e0e7ff');
+    };
+
+    // Poll key states every frame via a lightweight timer
+    this.time.addEvent({
+      delay: 16,
+      loop: true,
+      callback: () => {
+        if (this._ended) return;
+        highlight(upKey,    keys.up.isDown    || wasd.up.isDown);
+        highlight(downKey,  keys.down.isDown  || wasd.down.isDown);
+        highlight(leftKey,  keys.left.isDown  || wasd.left.isDown);
+        highlight(rightKey, keys.right.isDown || wasd.right.isDown);
+      }
+    });
+
+    // Also show WASD label underneath
+    const wasdLabel = this.add.text(0, 20 + keySize * 2 + gap * 2 + 6, 'or  W A S D', {
+      fontFamily: FONT, fontSize: '10px', color: '#4f46e5'
+    }).setOrigin(0.5, 0);
+    widget.add(wasdLabel);
   }
 
   update() {
@@ -247,30 +333,87 @@ export default class AttractionScene extends Phaser.Scene {
       }
     }
 
-    // ── Bed (right side) ─────────────────────────────────────────────────
-    const bedX = width * 0.72;
-    const bedY = height * 0.52;
-    // Bed frame
-    g.fillStyle(0x8b6914, 1);
-    g.fillRoundedRect(bedX, bedY, width * 0.26, height * 0.22, 6);
-    // Mattress
-    g.fillStyle(0xffffff, 1);
-    g.fillRoundedRect(bedX + 6, bedY + 6, width * 0.26 - 12, height * 0.22 - 12, 4);
-    // Pillow
-    g.fillStyle(0xe8f4ff, 1);
-    g.fillRoundedRect(bedX + 12, bedY + 10, width * 0.1, height * 0.07, 8);
-    // Blanket
-    g.fillStyle(0x6366f1, 0.7);
-    g.fillRoundedRect(bedX + 6, bedY + height * 0.1, width * 0.26 - 12, height * 0.1, 4);
-    // Blanket stripes
-    g.lineStyle(2, 0x4f46e5, 0.4);
-    for (let s = 0; s < 4; s++) {
-      g.lineBetween(bedX + 6, bedY + height * 0.1 + s * 10, bedX + width * 0.26 - 6, bedY + height * 0.1 + s * 10);
+    // ── Bed (right side) — side view, against right wall ─────────────────
+    const floorY  = height * 0.72;
+    const bedX    = width * 0.72;
+    const bedW    = width * 0.26;
+    const bedH    = height * 0.20;
+    const legH    = 18;
+    const bedY    = floorY - legH - bedH;   // bed sits on floor via legs
+    const deskY   = floorY - height * 0.14 - 14; // desk surface: legs reach floor
+
+    // Floor shadow
+    g.fillStyle(0x000000, 0.08);
+    g.fillEllipse(bedX + bedW * 0.5, bedY + bedH + 10, bedW * 0.85, 14);
+
+    // Bed legs (front pair visible)
+    g.fillStyle(0x5c2d0e, 1);
+    g.fillRoundedRect(bedX + 10, bedY + bedH, 12, 18, 3);
+    g.fillRoundedRect(bedX + bedW - 22, bedY + bedH, 12, 18, 3);
+
+    // Bed frame — main box
+    g.fillStyle(0x92400e, 1);
+    g.fillRoundedRect(bedX, bedY, bedW, bedH, 6);
+
+    // Mattress (white, inset from frame)
+    g.fillStyle(0xf5f5f5, 1);
+    g.fillRoundedRect(bedX + 6, bedY + 6, bedW - 12, bedH - 10, 4);
+
+    // Blanket — covers lower 55% of mattress face
+    const blankY = bedY + bedH * 0.40;
+    const blankH = bedH * 0.52;
+    g.fillStyle(0x6366f1, 1);
+    g.fillRoundedRect(bedX + 6, blankY, bedW - 12, blankH, 4);
+    // Blanket top fold (lighter rolled strip)
+    g.fillStyle(0x818cf8, 1);
+    g.fillRoundedRect(bedX + 6, blankY, bedW - 12, 11, 4);
+    // Fold underline shadow
+    g.fillStyle(0x4338ca, 0.35);
+    g.fillRect(bedX + 6, blankY + 9, bedW - 12, 4);
+    // Horizontal crease lines on blanket
+    g.lineStyle(1.5, 0x4338ca, 0.4);
+    for (let s = 1; s < 4; s++) {
+      g.lineBetween(
+        bedX + 10, blankY + 15 + s * (blankH - 15) / 4,
+        bedX + bedW - 10, blankY + 15 + s * (blankH - 15) / 4
+      );
     }
+
+    // Two pillows side by side (upper portion of mattress face)
+    const pillowY = bedY + 8;
+    const pillowH = bedH * 0.28;
+    const pillowW = (bedW - 26) / 2;
+    // Left pillow
+    g.fillStyle(0xdbeafe, 1);
+    g.fillRoundedRect(bedX + 8, pillowY, pillowW, pillowH, 8);
+    g.fillStyle(0x93c5fd, 0.4);
+    g.fillRoundedRect(bedX + 8, pillowY + pillowH - 7, pillowW, 7, { tl: 0, tr: 0, bl: 8, br: 8 });
+    g.lineStyle(1.5, 0x93c5fd, 1);
+    g.strokeRoundedRect(bedX + 8, pillowY, pillowW, pillowH, 8);
+    // Right pillow
+    g.fillStyle(0xdbeafe, 1);
+    g.fillRoundedRect(bedX + 14 + pillowW, pillowY, pillowW, pillowH, 8);
+    g.fillStyle(0x93c5fd, 0.4);
+    g.fillRoundedRect(bedX + 14 + pillowW, pillowY + pillowH - 7, pillowW, 7, { tl: 0, tr: 0, bl: 8, br: 8 });
+    g.lineStyle(1.5, 0x93c5fd, 1);
+    g.strokeRoundedRect(bedX + 14 + pillowW, pillowY, pillowW, pillowH, 8);
+
+    // Nightstand / bedside table — left of bed
+    const nsX = bedX - 52;
+    const nsY = bedY + bedH * 0.35;
+    const nsW = 44;
+    const nsH = bedH * 0.65;
+    g.fillStyle(0xa0522d, 1);
+    g.fillRoundedRect(nsX, nsY, nsW, nsH, 4);
+    g.fillStyle(0xc8783c, 1);
+    g.fillRoundedRect(nsX + 3, nsY + 3, nsW - 6, 6, 2);
+    // Nightstand legs
+    g.fillStyle(0x8b4513, 1);
+    g.fillRect(nsX + 4, nsY + nsH, 6, 12);
+    g.fillRect(nsX + nsW - 10, nsY + nsH, 6, 12);
 
     // ── Desk / table (centre-right) ───────────────────────────────────────
     const deskX = width * 0.5;
-    const deskY = height * 0.58;
     const deskW = width * 0.22;
     const deskH = 14;
     // Desk surface
@@ -287,18 +430,54 @@ export default class AttractionScene extends Phaser.Scene {
     // ── Lamp on desk ──────────────────────────────────────────────────────
     const lampX = deskX + deskW - 30;
     const lampY = deskY - 60;
-    // Lamp base
-    g.fillStyle(0x888888, 1);
-    g.fillRect(lampX - 4, deskY, 8, deskH);
-    // Lamp pole
-    g.fillStyle(0xaaaaaa, 1);
-    g.fillRect(lampX - 2, lampY, 4, 60);
-    // Lamp shade
-    g.fillStyle(0xffd700, 0.9);
-    g.fillTriangle(lampX - 20, lampY, lampX + 20, lampY, lampX, lampY - 30);
-    // Lamp glow
-    g.fillStyle(0xfffacd, 0.25);
-    g.fillCircle(lampX, lampY + 10, 45);
+
+    // Lamp glow (soft light on desk surface)
+    g.fillStyle(0xd8b4fe, 0.18);
+    g.fillEllipse(lampX, deskY + 4, 70, 18);
+
+    // Lamp base — flat circular disc (light gray)
+    g.fillStyle(0xd1d5db, 1);
+    g.fillEllipse(lampX, deskY + deskH * 0.5, 28, 8);
+
+    // Lamp base knob — small circle joint
+    g.fillStyle(0xe5e7eb, 1);
+    g.fillCircle(lampX, deskY - 4, 6);
+
+    // Lamp pole — thin, light gray
+    g.fillStyle(0xd1d5db, 1);
+    g.fillRect(lampX - 2, lampY + 10, 4, 50);
+
+    // Shade connector (small circle at top of pole)
+    g.fillStyle(0xe5e7eb, 1);
+    g.fillCircle(lampX, lampY + 10, 5);
+
+    // Lamp shade — trapezoid: narrow at TOP, wide at BOTTOM (like the image)
+    g.fillStyle(0x7c3aed, 1);
+    g.beginPath();
+    g.moveTo(lampX - 26, lampY + 10);   // bottom-left  (wide)
+    g.lineTo(lampX + 26, lampY + 10);   // bottom-right (wide)
+    g.lineTo(lampX + 8,  lampY - 28);   // top-right    (narrow)
+    g.lineTo(lampX - 8,  lampY - 28);   // top-left     (narrow)
+    g.closePath();
+    g.fillPath();
+
+    // Shade highlight (lighter purple strip on left side)
+    g.fillStyle(0x8b5cf6, 0.5);
+    g.beginPath();
+    g.moveTo(lampX - 26, lampY + 10);
+    g.lineTo(lampX,      lampY + 10);
+    g.lineTo(lampX - 6,  lampY - 28);
+    g.lineTo(lampX - 8,  lampY - 28);
+    g.closePath();
+    g.fillPath();
+
+    // Shade shine dot (small oval highlight top-left of shade)
+    g.fillStyle(0xc4b5fd, 0.7);
+    g.fillEllipse(lampX - 10, lampY - 10, 8, 5);
+
+    // Warm glow under shade
+    g.fillStyle(0xede9fe, 0.22);
+    g.fillEllipse(lampX, lampY + 20, 60, 30);
 
     // ── Bookshelf (back wall, left-centre) ────────────────────────────────
     const shelfX = width * 0.28;
@@ -350,11 +529,7 @@ export default class AttractionScene extends Phaser.Scene {
     g.fillRect(width * 0.15 + 10, height * 0.15 + 62, 50, 6);
     g.fillRect(width * 0.15 + 18, height * 0.15 + 72, 34, 6);
 
-    // ── Rug on floor ──────────────────────────────────────────────────────
-    g.fillStyle(0x7c3aed, 0.25);
-    g.fillEllipse(width * 0.45, height * 0.8, width * 0.35, height * 0.1);
-    g.lineStyle(2, 0x6d28d9, 0.3);
-    g.strokeEllipse(width * 0.45, height * 0.8, width * 0.35, height * 0.1);
+    // ── Rug removed ───────────────────────────────────────────────────────
   }
 
   // ── Phone on table ────────────────────────────────────────────────────────
@@ -379,17 +554,15 @@ export default class AttractionScene extends Phaser.Scene {
     this._phone    = phone;
     this._phoneOn  = false;
 
-    // Label
-    this.add.text(px, py + 30, 'Phone', {
-      fontFamily: 'Inter, sans-serif', fontSize: '12px', color: '#94a3b8'
-    }).setOrigin(0.5).setDepth(7);
+    // Social media icons toggling above phone
+    this._createSocialIcons(px, py);
   }
 
   // ── Door on left ──────────────────────────────────────────────────────────
   _spawnDoor(height) {
     const dx = 55;
     const dy = height * 0.35;
-    const dw = 70;
+    const dw = 110;
     const dh = height * 0.37;
 
     this._doorPos = { x: dx + dw / 2, y: dy + dh * 0.7 };
@@ -417,16 +590,133 @@ export default class AttractionScene extends Phaser.Scene {
     g.fillStyle(0xfef9c3, 0.35);
     g.fillRect(dx, dy + dh - 4, dw, 4);
 
-    // Label
-    this.add.text(dx + dw / 2, dy + dh + 14, 'Go Outside', {
-      fontFamily: FONT_BODY, fontSize: '13px', color: '#78716c'
-    }).setOrigin(0.5).setDepth(4);
-
     // Subtle glow around door
     this._doorGlow = this.add.rectangle(dx + dw / 2, dy + dh / 2, dw + 20, dh + 20)
       .setStrokeStyle(2, 0xfbbf24, 0.3)
       .setFillStyle(0x000000, 0)
       .setDepth(3);
+  }
+
+  // ── Social media icons toggling above phone ──────────────────────────────
+  _createSocialIcons(px, py) {
+    this._socialIconsActive = false;
+
+    // All icons positioned ABOVE the phone/table level
+    // Phone is at py (~height*0.555), table surface is just below py
+    // All dy values are negative = above the phone
+    const icons = [
+      { label: '📘', color: 0x1877f2, dx: -55, dy: -65 }, // top-left   — Facebook
+      { label: '📸', color: 0xe1306c, dx:   0, dy: -75 }, // top-centre — Instagram
+      { label: '�', color: 0xfffc00, dx:  55, dy: -65 }, // top-right  — SnapchatX
+      { label: '▶️', color: 0xff0000, dx: -62, dy: -20 }, // left       — YouTube
+      { label: '🎵', color: 0x69c9d0, dx:  62, dy: -20 }, // right      — TikTok
+    ];
+
+    this._socialIcons = [];
+
+    icons.forEach((icon) => {
+      const ix = px + icon.dx;
+      const iy = py + icon.dy;
+
+      const container = this.add.container(ix, iy).setDepth(9).setAlpha(0);
+
+      // Coloured badge
+      const badge = this.add.circle(0, 0, 15, icon.color, 1);
+      badge.setStrokeStyle(2, 0xffffff, 0.5);
+
+      // Emoji label
+      const emoji = this.add.text(0, 0, icon.label, {
+        fontSize: '14px'
+      }).setOrigin(0.5);
+
+      container.add([badge, emoji]);
+      container._baseX = ix;
+      container._baseY = iy;
+      this._socialIcons.push(container);
+    });
+
+    // Pulse glow rings (created once, hidden until needed)
+    this._socialRings = icons.map((icon) => {
+      const ring = this.add.circle(
+        px + icon.dx, py + icon.dy, 15, icon.color, 0
+      ).setDepth(8);
+      return ring;
+    });
+  }
+
+  // Hide all social icons (called when agent picks up phone)
+  _hideSocialIcons() {
+    if (!this._socialIcons) return;
+    this._socialIcons.forEach((container, i) => {
+      this.tweens.killTweensOf(container);
+      this.tweens.add({
+        targets: container,
+        alpha: 0,
+        scaleX: 0.3,
+        scaleY: 0.3,
+        duration: 300,
+        delay: i * 40,
+        ease: 'Sine.easeIn'
+      });
+    });
+  }
+
+  // Called from _firePhoneNotification — show icons, then hide after delay
+  _burstSocialIcons() {
+    if (!this._socialIcons) return;
+
+    this._socialIcons.forEach((container, i) => {
+      // Kill any running tweens on this container
+      this.tweens.killTweensOf(container);
+
+      // Reset to base position, hidden
+      container.setPosition(container._baseX, container._baseY + 15);
+      container.setAlpha(0);
+      container.setScale(0.3);
+
+      // Staggered pop-in
+      this.tweens.add({
+        targets: container,
+        y: container._baseY,
+        alpha: 1,
+        scaleX: 1,
+        scaleY: 1,
+        duration: 350,
+        delay: i * 120,
+        ease: 'Back.easeOut'
+      });
+
+      // Gentle bob while visible
+      this.time.delayedCall(350 + i * 120, () => {
+        if (!container.active) return;
+        this.tweens.add({
+          targets: container,
+          y: container._baseY - 5,
+          duration: 900 + i * 80,
+          yoyo: true,
+          repeat: 4,
+          ease: 'Sine.easeInOut'
+        });
+      });
+
+      // Pulse ring
+      const ring = this._socialRings[i];
+      if (ring) {
+        this.tweens.killTweensOf(ring);
+        ring.setAlpha(0.4).setScale(1);
+        this.tweens.add({
+          targets: ring,
+          scaleX: 2.5, scaleY: 2.5,
+          alpha: 0,
+          duration: 900,
+          delay: i * 120,
+          ease: 'Sine.easeOut'
+        });
+      }
+    });
+
+    // Fade all icons out after agent picks up phone (handled in _pickUpPhone)
+    // Icons stay visible until then
   }
 
   // ── Phone notification fires ──────────────────────────────────────────────
@@ -441,62 +731,33 @@ export default class AttractionScene extends Phaser.Scene {
       this.tweens.add({ targets: screen, fillColor: 0x6366f1, duration: 300 });
     }
 
-    // Glow ring pulses
-    this._phoneGlow.setAlpha(0.4);
+    // ── BLINK the phone body ──────────────────────────────────────────────
     this.tweens.add({
-      targets: this._phoneGlow,
-      scaleX: 1.8, scaleY: 1.8, alpha: 0,
-      duration: 900, repeat: -1, ease: 'Sine.easeOut'
+      targets: this._phone,
+      alpha: 0.2,
+      duration: 180,
+      yoyo: true,
+      repeat: 7,
+      ease: 'Sine.easeInOut',
+      onComplete: () => { this._phone.setAlpha(1); }
     });
 
-    // Notification bubble above phone
-    const bx = this._phonePos.x;
-    const by = this._phonePos.y - 55;
-    const bubble = this.add.container(bx, by).setDepth(8).setAlpha(0);
-    
-    // Increase bubble size to fit text properly
-    const bg = this.add.rectangle(0, 0, 180, 40, 0xffffff, 0.97);
-    bg.setStrokeStyle(2, 0x6366f1, 1);
-    const strip = this.add.rectangle(-88, 0, 4, 40, 0x6366f1, 1);
-    
-    // Center text properly with word wrap
-    const txt = this.add.text(0, 0, '🔔 New notification!', {
-      fontFamily: FONT_BODY, 
-      fontSize: '12px', 
-      color: '#1e1b4b',
-      wordWrap: { width: 160 },
-      align: 'center'
-    }).setOrigin(0.5);
-    
-    bubble.add([bg, strip, txt]);
+    // Glow ring pulses continuously
+    this._phoneGlow.setAlpha(0.5);
+    this.tweens.add({
+      targets: this._phoneGlow,
+      scaleX: 2.0, scaleY: 2.0, alpha: 0,
+      duration: 800, repeat: -1, ease: 'Sine.easeOut'
+    });
 
-    gsap.fromTo(bubble, { alpha: 0, y: by + 10 }, { alpha: 1, y: by, duration: 0.4, ease: 'back.out(1.5)' });
+    // Activate social icons burst
+    this._burstSocialIcons();
 
     // Agent perceives it — FSM: IDLE → ATTRACTED
     this.agent.fsm.handleEvent('NOTIFICATION_SEEN');
     this._log('🔔 Phone', 'notification received!');
 
-    // Show decision node: phone or door?
-    this.time.delayedCall(1200, () => {
-      this._showDecisionNode(
-        'Kai notices the phone glowing...',
-        '📱 Check Phone',
-        '🚪 Go Outside'
-      );
-    });
-
-    // Auto-destroy bubble after 6s
-    this.time.delayedCall(6000, () => {
-      if (bubble.active) {
-        gsap.to(bubble, { alpha: 0, duration: 0.3, onComplete: () => bubble.destroy() });
-      }
-    });
-  }
-
-  // ── Placeholder methods (to be implemented) ──────────────────────────────
-  _showDecisionNode(message, option1, option2) {
-    // TODO: Implement decision node UI
-    console.log('Decision:', message, option1, option2);
+    // Agent can now walk to phone or door freely (no popup blocking movement)
   }
 
   _scheduleNextFriendMessage() {
@@ -543,6 +804,10 @@ export default class AttractionScene extends Phaser.Scene {
     // Allow multiple pickups — just open the screen each time
     this._hidePickupPrompt();
     this._log('📱 Phone', 'picked up!');
+
+    // Hide social icons now that phone is picked up
+    this._hideSocialIcons();
+
     this._showMobileScreen();
   }
 
@@ -550,34 +815,22 @@ export default class AttractionScene extends Phaser.Scene {
     if (this._pickupPromptShown) return;
     this._pickupPromptShown = true;
 
-    const { width, height } = this.scale;
-    
-    // Create pickup prompt container
     this._pickupPrompt = this.add.container(this._phonePos.x, this._phonePos.y - 50).setDepth(30);
-    
-    // Background
-    const bg = this.add.rectangle(0, 0, 140, 40, 0x1e1b4b, 0.95);
+
+    const bg = this.add.rectangle(0, 0, 100, 32, 0x1e1b4b, 0.92);
     bg.setStrokeStyle(2, 0x6366f1, 1);
-    
-    // Text
-    const txt = this.add.text(0, 0, '📱 Pick Up Phone', {
-      fontFamily: FONT, fontSize: '15px', color: '#ffffff', fontStyle: 'bold'
+
+    const hint = this.add.text(0, 0, 'Press [E]', {
+      fontFamily: FONT_BODY, fontSize: '13px', color: '#a5b4fc', fontStyle: 'bold'
     }).setOrigin(0.5);
-    
-    // Hint text
-    const hint = this.add.text(0, 16, 'Press [E]', {
-      fontFamily: FONT_BODY, fontSize: '12px', color: '#a5b4fc'
-    }).setOrigin(0.5);
-    
-    this._pickupPrompt.add([bg, txt, hint]);
-    
-    // Animate in
-    gsap.fromTo(this._pickupPrompt, 
-      { alpha: 0, y: this._phonePos.y - 40 }, 
+
+    this._pickupPrompt.add([bg, hint]);
+
+    gsap.fromTo(this._pickupPrompt,
+      { alpha: 0, y: this._phonePos.y - 40 },
       { alpha: 1, y: this._phonePos.y - 50, duration: 0.3, ease: 'back.out(1.5)' }
     );
-    
-    // Add keyboard listener for E key — use 'on' so it works every visit
+
     this._pickupKey = this.input.keyboard.on('keydown-E', () => {
       if (this._pickupPromptShown && !this._mobileScreenOpen) {
         this._pickUpPhone();
@@ -664,37 +917,6 @@ export default class AttractionScene extends Phaser.Scene {
     this._progressLabel = this.add.text(0, progressY - 15, 'Addiction: 0%', {
       fontFamily: FONT_BODY, fontSize: '12px', color: '#64748b', fontStyle: 'bold'
     }).setOrigin(0.5);
-    
-    // ── EMOTION BARS (AI VISIBILITY) ──────────────────────────────────────
-    const emotionY = -screenH / 2 + 125;
-    const emotionBarW = (screenW - 40) / 3;
-    
-    // Awareness bar
-    const awarenessLabel = this.add.text(-screenW / 2 + 20, emotionY, '👁️', {
-      fontSize: '14px'
-    }).setOrigin(0, 0.5);
-    const awarenessBg = this.add.rectangle(-screenW / 2 + 35, emotionY, emotionBarW - 20, 6, 0x1e293b, 1);
-    awarenessBg.setOrigin(0, 0.5);
-    this._awarenessBar = this.add.rectangle(-screenW / 2 + 35, emotionY, 0, 4, 0x3b82f6, 1);
-    this._awarenessBar.setOrigin(0, 0.5);
-    
-    // Stress bar
-    const stressLabel = this.add.text(-screenW / 2 + 20 + emotionBarW, emotionY, '😰', {
-      fontSize: '14px'
-    }).setOrigin(0, 0.5);
-    const stressBg = this.add.rectangle(-screenW / 2 + 35 + emotionBarW, emotionY, emotionBarW - 20, 6, 0x1e293b, 1);
-    stressBg.setOrigin(0, 0.5);
-    this._stressBar = this.add.rectangle(-screenW / 2 + 35 + emotionBarW, emotionY, 0, 4, 0xef4444, 1);
-    this._stressBar.setOrigin(0, 0.5);
-    
-    // Relationship bar
-    const relationLabel = this.add.text(-screenW / 2 + 20 + emotionBarW * 2, emotionY, '💬', {
-      fontSize: '14px'
-    }).setOrigin(0, 0.5);
-    const relationBg = this.add.rectangle(-screenW / 2 + 35 + emotionBarW * 2, emotionY, emotionBarW - 20, 6, 0x1e293b, 1);
-    relationBg.setOrigin(0, 0.5);
-    this._relationBar = this.add.rectangle(-screenW / 2 + 35 + emotionBarW * 2, emotionY, 0, 4, 0x10b981, 1);
-    this._relationBar.setOrigin(0, 0.5);
     
     // Create scrollable content container
     const contentY = -screenH / 2 + 155;
@@ -817,9 +1039,6 @@ export default class AttractionScene extends Phaser.Scene {
       progressBg,
       this._progressBar,
       this._progressLabel,
-      awarenessLabel, awarenessBg, this._awarenessBar,
-      stressLabel, stressBg, this._stressBar,
-      relationLabel, relationBg, this._relationBar,
       maskShape,
       this._scrollContent,
       scrollHint,
@@ -848,15 +1067,10 @@ export default class AttractionScene extends Phaser.Scene {
       this._closeMobileScreen();
     });
     
-    // Start emotion bar update loop
-    this._emotionUpdateTimer = this.time.addEvent({
-      delay: 100,
-      callback: this._updateEmotionBars,
-      callbackScope: this,
-      loop: true
-    });
+    // Emotion tracking happens internally via agent.usePhone()
+    // No visual bars displayed on screen
 
-    // ──// Educational notification fires after 8s of scrolling (but not in continuous scroll mode)
+    // Educational notification fires after 8s of scrolling (but not in continuous scroll mode)
     this.time.delayedCall(8000, () => {
       if (this._mobileScreenOpen && !this._ended && !this._continuousScrollMode) {
         this._showEducationalNotification();
@@ -864,27 +1078,6 @@ export default class AttractionScene extends Phaser.Scene {
     });
     
     this._log('📱 Phone', 'screen opened - AI tracking started');
-  }
-
-  _updateEmotionBars() {
-    if (!this.agent || !this._mobileScreenOpen) return;
-    
-    const barMaxW = (320 - 40) / 3 - 20;
-    
-    // Update awareness bar
-    if (this._awarenessBar) {
-      this._awarenessBar.width = (this.agent.awareness / 100) * barMaxW;
-    }
-    
-    // Update stress bar
-    if (this._stressBar) {
-      this._stressBar.width = (this.agent.emotions.stress / 100) * barMaxW;
-    }
-    
-    // Update relationship bar
-    if (this._relationBar) {
-      this._relationBar.width = (this.agent.relationshipLevel / 100) * barMaxW;
-    }
   }
 
   _updateProgressBar() {
@@ -986,10 +1179,7 @@ export default class AttractionScene extends Phaser.Scene {
       gsap.to(popup, { alpha: 0, scale: 0.8, duration: 0.3 });
       this._closeMobileScreen();
       this.time.delayedCall(200, () => {
-        this.cameras.main.fadeOut(300, 0, 0, 0);
-        this.cameras.main.once('camerafadeoutcomplete', () => {
-          this.scene.start('LearningScene');
-        });
+        this.scene.start('LearningScene');
       });
     });
 
@@ -1057,25 +1247,13 @@ export default class AttractionScene extends Phaser.Scene {
 
     this._log('🌿 Real World', 'Kai steps outside...');
 
-    if (this._emotionUpdateTimer) this._emotionUpdateTimer.remove();
-
-    // Fast flash — sunlight
-    this.cameras.main.flash(200, 255, 220, 150, false);
-
-    this.time.delayedCall(100, () => {
-      this.cameras.main.fadeOut(200, 255, 240, 200);
-    });
-
-    this.cameras.main.once('camerafadeoutcomplete', () => {
-      // Pass agent state to real world scene
-      this.scene.start('RealWorldScene', {
+    this.scene.start('RealWorldScene', {
         addictionLevel:    this.agent ? this.agent.addictionLevel    : 0,
         awareness:         this.agent ? this.agent.awareness         : 70,
         relationshipLevel: this.agent ? this.agent.relationshipLevel : 50,
         hasPhone:          this.agent ? this.agent.hasPhone          : false,
         memory:            this.agent ? [...this.agent.memory]       : [],
       });
-    });
   }
 
   // ── CONFLICT TRIGGER: Message Interruption ────────────────────────────────
@@ -1253,31 +1431,25 @@ export default class AttractionScene extends Phaser.Scene {
 
     this._doorPrompt = this.add.container(this._doorPos.x + 50, this._doorPos.y - 60).setDepth(30);
 
-    const bg = this.add.rectangle(0, 0, 160, 44, 0x1e1b4b, 0.95);
+    const bg = this.add.rectangle(0, 0, 100, 32, 0x1e1b4b, 0.92);
     bg.setStrokeStyle(2, 0xfbbf24, 1);
 
-    const txt = this.add.text(0, -6, '🚪 Open Door', {
-      fontFamily: FONT, fontSize: '15px', color: '#ffffff', fontStyle: 'bold'
+    const hint = this.add.text(0, 0, 'Press [F]', {
+      fontFamily: FONT_BODY, fontSize: '13px', color: '#fbbf24', fontStyle: 'bold'
     }).setOrigin(0.5);
 
-    const hint = this.add.text(0, 12, 'Press [F]', {
-      fontFamily: FONT_BODY, fontSize: '12px', color: '#fbbf24'
-    }).setOrigin(0.5);
-
-    this._doorPrompt.add([bg, txt, hint]);
+    this._doorPrompt.add([bg, hint]);
 
     gsap.fromTo(this._doorPrompt,
       { alpha: 0, y: this._doorPos.y - 50 },
       { alpha: 1, y: this._doorPos.y - 60, duration: 0.3, ease: 'back.out(1.5)' }
     );
 
-    // [F] key opens door
     this._doorKey = this.input.keyboard.once('keydown-F', () => {
       this._reachDoor();
     });
 
-    // If agent has phone, also show a pull-back warning (but not in continuous scroll mode)
-    if (this.agent && this.agent.hasPhone && !this._continuousScrollMode) {
+    if (this.agent && this.agent.hasPhone) {
       this._showPhonePullBack();
     }
   }
@@ -1519,10 +1691,7 @@ export default class AttractionScene extends Phaser.Scene {
       this._closeMobileScreen();
       
       this.time.delayedCall(200, () => {
-        this.cameras.main.fadeOut(300, 0, 0, 0);
-        this.cameras.main.once('camerafadeoutcomplete', () => {
-          this.scene.start('LearningScene', { fromKeyRedemption: true });
-        });
+        this.scene.start('LearningScene', { fromKeyRedemption: true });
       });
     };
     
