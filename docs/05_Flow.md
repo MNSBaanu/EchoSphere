@@ -48,7 +48,7 @@ START
   3 NPCs (Mom, Alex, Sam)
   Press T to advance conversation
   7 conversation lines
-  After last line → NPCs and Steve walk to road
+  After last line → NPCs and Steve walk together
   │
   ▼
 [EndScene]
@@ -257,6 +257,6 @@ _agentWalkToRoad():
   NPCs redraw at new position each frame (pos getter/setter)
   After duration + 1000ms → _transitionToTrip()
 
-_transitionToTrip():
+_transitionToEnd():
   500ms delay → scene.start('EndScene')
 ```

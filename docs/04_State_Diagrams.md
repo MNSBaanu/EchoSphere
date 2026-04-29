@@ -228,7 +228,6 @@
 │       ├── AttractionScene    (Scenario 1 — uses Agent)            │
 │       ├── RealWorldScene     (Scenario 2 — uses Agent + NPCs)     │
 │       ├── LearningScene      (Scenario 3 — uses Agent)            │
-│       ├── TripScene          (road trip — standalone)             │
 │       └── EndScene           (completion screen)                  │
 └──────────────────────────────────────────────────────────────────┘
 ```

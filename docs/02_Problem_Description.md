@@ -32,9 +32,15 @@ If Steve chooses to study (either from the 70% decision or after failing), he en
 | Model addiction progression | FSM with 8 states driven by emotion thresholds |
 | Show real-world consequences | NPC relationship tracking, awareness degradation |
 | Provide meaningful choices | Decision nodes at 70% addiction, door vs phone |
-| Demonstrate AI learning | Memory array storing behavioural patterns |
+| Demonstrate AI learning | Memory array storing behavioural patterns across scenes |
 | Simulate perception | Vision cone (200px, ±45°) and hearing range (150px) |
 | Reflect real-world physics | Environmental modifiers on perception (dusk, phone distraction) |
+| Natural language communication | Speech bubbles, context-sensitive NPC dialogue, 7-line conversation |
+| Searching / pathfinding | NPC seek steering, random wander, rain shelter pathfinding |
+| Emotional intelligence | EmotionSystem, NPC emotional reactions, inter-agent contagion |
+| Decision making | FSM outcome resolution, player choice nodes, NPC autonomous decisions |
+| Non-linear outcomes | Three alternative endings: RECOVERED, PARTIAL, LOST |
+| Unpredictable simulation | Random events (dusk, rain, wind, NPC approach) every 8 seconds |
 
 ## Constraints and Assumptions
 - The simulation runs in a web browser using Phaser.js

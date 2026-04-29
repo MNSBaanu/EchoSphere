@@ -447,12 +447,13 @@ export default class LearningScene extends Phaser.Scene {
   // ── Complete task ─────────────────────────────────────────────────────────
   _completeTask(task) {
     // Remove the completed card
-    gsap.to(this._taskCard, { alpha: 0, duration: 0.3, onComplete: () => {
-      if (this._taskCard) {
-        this._taskCard.destroy();
-        this._taskCard = null;
-      }
-    }});
+    const cardToDestroy = this._taskCard;
+    this._taskCard = null;
+    if (cardToDestroy) {
+      gsap.to(cardToDestroy, { alpha: 0, duration: 0.3, onComplete: () => {
+        if (cardToDestroy.active) cardToDestroy.destroy();
+      }});
+    }
 
     this._xp += task.xp;
     this._taskIdx++;
@@ -463,19 +464,16 @@ export default class LearningScene extends Phaser.Scene {
     this._xpBar.width = xpPct * this._xpBarMax;
     this._xpLabel.setText(`${this._xp} / ${totalXP} XP`);
 
-    // Completion burst (no jumping)
+    // Completion burst
     this._burstParticles(this.agent.x, this.agent.y);
 
-    // Flash card green
-    const bg = this._taskCard?.list[0];
-    if (bg) {
-      this.tweens.add({ targets: bg, fillColor: 0xd1fae5, duration: 300, yoyo: true });
-    }
-
-    
     this.time.delayedCall(1000, () => {
       this._taskCompleting = false;
-      // Start next task automatically
+      // Remove old SPACE listener before starting next task
+      if (this._studyKey) {
+        this.input.keyboard.off('keydown-SPACE', this._studyKey);
+        this._studyKey = null;
+      }
       this._startNextTask();
     });
   }
@@ -506,6 +504,18 @@ export default class LearningScene extends Phaser.Scene {
     if (this._ended) return;
     this._ended = true;
 
+    // Remove any active study key listener
+    if (this._studyKey) {
+      this.input.keyboard.off('keydown-SPACE', this._studyKey);
+      this._studyKey = null;
+    }
+
+    // Remove any lingering task card
+    if (this._taskCard) {
+      this._taskCard.destroy();
+      this._taskCard = null;
+    }
+
     const { _width: W, _height: H } = this;
 
     const card = this.add.container(W / 2, H / 2).setDepth(40);
@@ -517,7 +527,7 @@ export default class LearningScene extends Phaser.Scene {
     const sub = this.add.text(0, 10, `He earned ${this._xp} XP and grew as a person.`, {
       fontFamily: FONT_BODY, fontSize: '15px', color: '#374151'
     }).setOrigin(0.5);
-    const hint = this.add.text(0, 55, 'Click anywhere to continue →', {
+    const hint = this.add.text(0, 55, 'Click anywhere to return →', {
       fontFamily: FONT_BODY, fontSize: '12px', color: '#9ca3af'
     }).setOrigin(0.5);
     this.tweens.add({ targets: hint, alpha: 0.3, duration: 700, yoyo: true, repeat: -1 });
@@ -526,7 +536,21 @@ export default class LearningScene extends Phaser.Scene {
     gsap.fromTo(card, { alpha: 0, scale: 0.85 }, { alpha: 1, scale: 1, duration: 0.5, ease: 'back.out(1.5)' });
 
     this.input.once('pointerdown', () => {
-      this.scene.start('AttractionScene');
+      // Pass reduced addiction level back to AttractionScene
+      const reducedAddiction = this.agent ? Math.max(0, this.agent.addictionLevel - 30) : 0;
+      const improvedAwareness = this.agent ? Math.min(100, this.agent.awareness + 20) : 70;
+      const memory = this.agent ? [...this.agent.memory] : [];
+
+      // Push learning memory if not already there
+      if (!memory.includes('completed_learning')) {
+        memory.push('completed_learning');
+      }
+
+      this.scene.start('AttractionScene', {
+        addictionLevel: reducedAddiction,
+        awareness: improvedAwareness,
+        memory: memory,
+      });
     });
   }
 

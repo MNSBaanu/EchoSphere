@@ -41,6 +41,13 @@ export default class AttractionScene extends Phaser.Scene {
     this._continuousScrollMode = false;
   }
 
+  init(data = {}) {
+    // Receive state passed back from LearningScene
+    this._incomingAddiction = data.addictionLevel ?? null;
+    this._incomingAwareness = data.awareness      ?? null;
+    this._incomingMemory    = data.memory         ?? null;
+  }
+
   create() {
     const { width, height } = this.scale;
 
@@ -105,6 +112,17 @@ export default class AttractionScene extends Phaser.Scene {
     this.agent.speed = 10;
     // Agent can move freely from the start
     this._lockAgentKeys(false);
+
+    // ── Apply state from LearningScene if returning ───────────────────────
+    if (this._incomingAddiction !== null) {
+      this.agent.addictionLevel = this._incomingAddiction;
+    }
+    if (this._incomingAwareness !== null) {
+      this.agent.awareness = this._incomingAwareness;
+    }
+    if (this._incomingMemory !== null) {
+      this.agent.memory = [...this._incomingMemory];
+    }
 
     this.agent.fsm.onTransition((newState, reason) => {
       this._onStateChange(newState, reason);
