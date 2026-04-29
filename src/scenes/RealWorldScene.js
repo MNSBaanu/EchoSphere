@@ -1247,10 +1247,10 @@ export default class RealWorldScene extends Phaser.Scene {
       { npc: "mom",     text: "Hey everyone! It's such a beautiful day outside! 😊", emotion: "happy" },
       { npc: "sibling", text: "Yeah! Can we do something fun together?",               emotion: "happy" },
       { npc: "friend",  text: "I'm down for anything! What do you guys want to do?",   emotion: "happy" },
-      { npc: "mom",     text: "How about we go on a trip? We could drive to the lake!", emotion: "happy" },
-      { npc: "sibling", text: "Yes! Road trip! Can we pick up more friends on the way?", emotion: "happy" },
+      { npc: "mom",     text: "How about we spend the afternoon together? 💚",         emotion: "happy" },
+      { npc: "sibling", text: "Yes! Let's go for a walk in the park!",                 emotion: "happy" },
       { npc: "friend",  text: "That sounds awesome! I'll bring snacks! 🎉",            emotion: "happy" },
-      { npc: "mom",     text: "Perfect! Let's get ready and head to the car! 🚗",      emotion: "happy" },
+      { npc: "mom",     text: "Perfect! Real moments like these are what matter. 🌿",  emotion: "happy" },
     ];
 
     let index = 0;
@@ -1355,7 +1355,7 @@ export default class RealWorldScene extends Phaser.Scene {
     const kaiTarget = positions[1];
 
     // Show message
-    this._createSpeechBubble(this.agent.x, this.agent.y - 110, "Let's all go to the car! 🚗", 0x4ade80, "happy");
+    this._createSpeechBubble(this.agent.x, this.agent.y - 110, "Let's head out together! 🌿", 0x4ade80, "happy");
 
     // Calculate duration based on distance
     const distance = Phaser.Math.Distance.Between(this.agent.x, this.agent.y, kaiTarget.x, kaiTarget.y);
@@ -1438,8 +1438,8 @@ export default class RealWorldScene extends Phaser.Scene {
       const excitedLines = [
         "This is going to be so fun! 😊",
         "Can't wait! 🎉",
-        "Road trip time! 🚗",
-        "Let's go! 💚"
+        "Together at last! 💚",
+        "Let's go! 🌿"
       ];
       
       this.time.delayedCall(500 + index * 800, () => {
@@ -1459,12 +1459,12 @@ export default class RealWorldScene extends Phaser.Scene {
 
     // Wait for everyone to arrive, then transition
     this.time.delayedCall(duration + 1000, () => {
-      this._transitionToTrip();
+      this._transitionToEnd();
     });
   }
 
   // ── End — transition to EndScene ─────────────────────────────────────────
-  _transitionToTrip() {
+  _transitionToEnd() {
     if (this._ended) return;
     this._ended = true;
 

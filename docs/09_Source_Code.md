@@ -312,7 +312,6 @@ _giveAdvice(npc) {
 | `src/scenes/AttractionScene.js` | ~1500 | Scenario 1 — digital attraction |
 | `src/scenes/RealWorldScene.js` | ~1577 | Scenario 2 — social interaction |
 | `src/scenes/LearningScene.js` | ~550 | Scenario 3 — study path |
-| `src/scenes/TripScene.js` | ~900 | Road trip scene |
 | `src/scenes/EndScene.js` | ~100 | Completion screen |
 | `src/main.js` | ~25 | Phaser game configuration |
-| **Total** | **~5600** | |
+| **Total** | **~4700** | |
