@@ -1,4 +1,4 @@
-import Phaser from 'phaser';
+﻿import Phaser from 'phaser';
 
 const FONT = 'Inter, sans-serif';
 
@@ -70,7 +70,7 @@ export default class EndScene extends Phaser.Scene {
 
     // ── Story summary ─────────────────────────────────────────────────────
     const lines = [
-      'Kai faced the pull of the digital world,',
+      'Steve faced the pull of the digital world,',
       'but chose to reconnect with what truly matters.',
       '',
       'Real moments. Real people. Real life.',

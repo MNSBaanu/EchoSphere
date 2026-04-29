@@ -7,7 +7,7 @@ const FONT_BODY = 'Inter, sans-serif';
 
 const FEED_ITEMS = [
   { icon: '❤️', text: 'Mia liked your photo!' },
-  { icon: '🔥', text: 'Kai: bro this is fire!!' },
+  { icon: '🔥', text: 'Steve: bro this is fire!!' },
   { icon: '😍', text: '47 people loved your post' },
   { icon: '⭐', text: 'You earned a new badge!' },
   { icon: '🎉', text: 'Mia: omg you are so funny' },
@@ -967,7 +967,7 @@ export default class AttractionScene extends Phaser.Scene {
     const allFeedItems = [
       ...FEED_ITEMS,
       { icon: '💬', text: 'Mia commented: "This is amazing!"' },
-      { icon: '❤️', text: 'Kai liked your story' },
+      { icon: '❤️', text: 'Steve liked your story' },
       { icon: '🎊', text: 'You have 25 new followers!' },
       { icon: '⚡', text: 'Your post got 500 views!' },
       { icon: '🌟', text: 'Featured in trending!' },
@@ -1270,7 +1270,7 @@ export default class AttractionScene extends Phaser.Scene {
         alpha: 0, y: height / 2 - 90, duration: 0.3,
         onComplete: () => popup.destroy()
       });
-      this._log('Notif', 'Kai dismissed the class reminder');
+      this._log('Notif', 'Steve dismissed the class reminder');
       
       // Set continuous scroll mode flag to prevent distortion transition
       this._continuousScrollMode = true;
@@ -1321,7 +1321,7 @@ export default class AttractionScene extends Phaser.Scene {
     if (this._ended) return;
     this._ended = true;
 
-    this._log('🌿 Real World', 'Kai steps outside...');
+    this._log('🌿 Real World', 'Steve steps outside...');
 
     this.scene.start('RealWorldScene', {
         addictionLevel:    this.agent ? this.agent.addictionLevel    : 0,

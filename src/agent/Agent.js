@@ -1,8 +1,8 @@
-import FSM from './FSM.js';
+﻿import FSM from './FSM.js';
 import EmotionSystem from './EmotionSystem.js';
 
 /**
- * Agent — "Kai", teen boy character
+ * Agent — "Steve", teen boy character
  * Drawn with Phaser Graphics at 3× scale for crisp visuals.
  * Movement: keyboard arrow keys / WASD — player controlled.
  * FSM still reacts to events (notifications walked into, random events, etc.)

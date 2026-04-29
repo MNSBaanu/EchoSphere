@@ -1,8 +1,8 @@
-# 11. Conclusion
+﻿# 11. Conclusion
 
 ## Summary
 
-EchoSphere successfully demonstrates the application of multiple AI techniques to a meaningful real-world problem — digital addiction among teenagers. The simulation models the psychological journey of an agent named Kai through three interconnected scenarios, each showcasing distinct AI capabilities.
+EchoSphere successfully demonstrates the application of multiple AI techniques to a meaningful real-world problem — digital addiction among teenagers. The simulation models the psychological journey of an agent named Steve through three interconnected scenarios, each showcasing distinct AI capabilities.
 
 ## AI Traits Achieved
 
@@ -10,13 +10,13 @@ EchoSphere successfully demonstrates the application of multiple AI techniques t
 The `EmotionSystem` class models three quantifiable emotions (stress, happiness, loneliness) that drift toward baseline values and are modified by events. These emotions directly drive FSM state transitions, creating emergent behaviour that mirrors real psychological responses to digital stimulation. The system demonstrates that AI agents can exhibit nuanced emotional responses rather than binary on/off states.
 
 ### 2. Learning and Memory ✅
-The agent's `memory` array stores behavioural patterns that persist across scene transitions. Kai learns from his mistakes — Mom's advice reduces addiction permanently, repeated bad interactions with NPCs lead to avoidance behaviour, and compulsive patterns are recognised and logged. This demonstrates a simple but effective learning system that modifies future behaviour based on past experience.
+The agent's `memory` array stores behavioural patterns that persist across scene transitions. Steve learns from his mistakes — Mom's advice reduces addiction permanently, repeated bad interactions with NPCs lead to avoidance behaviour, and compulsive patterns are recognised and logged. This demonstrates a simple but effective learning system that modifies future behaviour based on past experience.
 
 ### 3. Visual Perception with Real-World Physics ✅
 The vision cone system (200px range, ±45° angle) combined with omnidirectional hearing (150px) models realistic human perception. Environmental modifiers — dusk reducing vision by 45%, phone distraction reducing it by 40% — demonstrate real-world physics applied to AI perception. The hunch level system (0–4) models the documented physical effect of prolonged phone use on posture.
 
 ### 4. Autonomous Agent Behaviour ✅
-NPCs exhibit autonomous wandering, goal-directed pathfinding using seek steering, and decision-making about when to approach Kai. The random world events system (dusk, rain, wind, NPC approach) creates an unpredictable environment that the agent must navigate. This demonstrates multi-agent systems where multiple autonomous entities interact simultaneously.
+NPCs exhibit autonomous wandering, goal-directed pathfinding using seek steering, and decision-making about when to approach Steve. The random world events system (dusk, rain, wind, NPC approach) creates an unpredictable environment that the agent must navigate. This demonstrates multi-agent systems where multiple autonomous entities interact simultaneously.
 
 ### 5. State-Based Decision Making ✅
 The Finite State Machine with 8 states and event-driven transitions models the progression of digital addiction with psychological authenticity. The same event produces different responses depending on the current state — a hallmark of intelligent, context-aware behaviour. Three possible outcomes (RECOVERED, PARTIAL, LOST) based on accumulated behaviour counters demonstrate that the AI's decisions have meaningful consequences.

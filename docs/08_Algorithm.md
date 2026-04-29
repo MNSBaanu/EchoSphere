@@ -1,4 +1,4 @@
-# 8. Algorithms — Flowcharts and Pseudocode
+﻿# 8. Algorithms — Flowcharts and Pseudocode
 
 ## 8.1 Main Game Loop Algorithm
 
@@ -199,7 +199,7 @@ BEGIN
     IF (canSee OR canHear) AND NOT npc.perceived:
       npc.perceived = TRUE
       IF npc.id NOT IN learnedNPCs:
-        LOG "Kai noticed [npc.name]"
+        LOG "Steve noticed [npc.name]"
       END IF
     ELSE IF NOT canSee AND NOT canHear:
       npc.perceived = FALSE

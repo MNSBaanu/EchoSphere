@@ -1,4 +1,4 @@
-# 7. Intelligence Traits
+﻿# 7. Intelligence Traits
 
 EchoSphere demonstrates five distinct AI intelligence traits across its three scenarios.
 
@@ -72,7 +72,7 @@ The agent maintains a `memory` array that stores behavioural patterns learned du
 | `'social_neglect'` | ignoredMessages ≥ 2 | Logged, informs FSM |
 | `'compulsive_scrolling'` | scrollCount > 50 | Logged, informs FSM |
 | `'mom_advice'` | Mom gives advice | -20 addiction, +15 awareness, advice not repeated |
-| `'avoid_[npcId]'` | 2 bad interactions with NPC | Kai avoids that NPC in future |
+| `'avoid_[npcId]'` | 2 bad interactions with NPC | Steve avoids that NPC in future |
 
 **Implementation:**
 ```javascript
@@ -94,7 +94,7 @@ _giveAdvice(npc) {
   this._adviceGiven = true;
   if (this.agent && !this.agent.memory.includes('mom_advice')) {
     this.agent.memory.push('mom_advice');
-    this._log('🧠 Kai learned: mom_advice — will not ignore Mom again');
+    this._log('🧠 Steve learned: mom_advice — will not ignore Mom again');
   }
   this._addictionLevel = Math.max(0, this._addictionLevel - 20);
   this._awareness = Math.min(100, this._awareness + 15);
@@ -104,7 +104,7 @@ _giveAdvice(npc) {
 npc._badInteractions = (npc._badInteractions || 0) + 1;
 if (npc._badInteractions >= 2 && npc.id !== 'mom') {
   this._avoidedNPC = npc.id;
-  this._log(`🧠 Kai learned: avoid ${npc.name} after repeated conflict`);
+  this._log(`🧠 Steve learned: avoid ${npc.name} after repeated conflict`);
   if (this.agent) this.agent.memory.push(`avoid_${npc.id}`);
 }
 ```
@@ -128,7 +128,7 @@ this.agent.memory = [...this._memory];
 **Location:** `src/scenes/RealWorldScene.js` (`_updateVisionCone`, `_updatePerception`)
 
 **Description:**  
-Kai has a realistic perception system with a directional vision cone and an omnidirectional hearing range. These are modelled using trigonometry and are affected by environmental conditions (time of day, phone use).
+Steve has a realistic perception system with a directional vision cone and an omnidirectional hearing range. These are modelled using trigonometry and are affected by environmental conditions (time of day, phone use).
 
 **Vision Cone Parameters:**
 - Range: 200px (base)
@@ -164,7 +164,7 @@ _updatePerception() {
     if ((canSee || canHear) && !npc._perceived) {
       npc._perceived = true;
       if (!this._learnedNPCs.has(npc.id)) {
-        this._log(`👁 Kai noticed ${npc.name}`);
+        this._log(`👁 Steve noticed ${npc.name}`);
       }
     }
   });
@@ -181,7 +181,7 @@ The vision cone models how humans have a limited field of view (~180° in realit
 **Location:** `src/scenes/RealWorldScene.js` (`_updateNPCWander`, `_npcDecideToApproach`, `_steerNPCToward`)
 
 **Description:**  
-NPCs exhibit autonomous behaviour including random wandering, goal-directed pathfinding toward Kai, and decision-making about when to approach. This uses a simple seek steering behaviour.
+NPCs exhibit autonomous behaviour including random wandering, goal-directed pathfinding toward Steve, and decision-making about when to approach. This uses a simple seek steering behaviour.
 
 **Wander Behaviour:**
 ```javascript
@@ -295,7 +295,7 @@ The agent's appearance changes with each FSM state — skin tone darkens, postur
 **Location:** `src/scenes/RealWorldScene.js`
 
 **Vision Cone Physics:**
-The vision cone uses trigonometric angle calculation to determine if an NPC falls within Kai's field of view. This models the physical limitation of human peripheral vision.
+The vision cone uses trigonometric angle calculation to determine if an NPC falls within Steve's field of view. This models the physical limitation of human peripheral vision.
 
 ```javascript
 // Angle difference between facing direction and direction to NPC
