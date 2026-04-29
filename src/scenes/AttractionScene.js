@@ -73,6 +73,8 @@ export default class AttractionScene extends Phaser.Scene {
     this._doorPrompt        = null;
     this._pickupKey         = null;
     this._doorKey           = null;
+    this._decisionShown     = false;
+    this._failShown         = false;
     this.agent              = null;
 
     // ── Room environment (side view) ─────────────────────────────────────
@@ -1099,8 +1101,7 @@ export default class AttractionScene extends Phaser.Scene {
       if (this._mobileScreenOpen && !this._ended && !this._continuousScrollMode) {
         this._showEducationalNotification();
       }
-    });
-    
+    });    
     this._log('📱 Phone', 'screen opened - AI tracking started');
   }
 
@@ -1123,6 +1124,127 @@ export default class AttractionScene extends Phaser.Scene {
     // Update label text
     if (this._progressLabel) {
       this._progressLabel.setText(`Addiction: ${Math.round(progress)}%`);
+    }
+
+    // ── At 70% — show Learn vs Continue decision ──────────────────────────
+    if (progress >= 70 && !this._decisionShown) {
+      this._decisionShown = true;
+      this._showLearnOrScrollDecision();
+    }
+
+    // ── At 100% — show Fail notification ─────────────────────────────────
+    if (progress >= 100 && !this._failShown) {
+      this._failShown = true;
+      this._showFailNotification();
+    }
+  }
+
+  // ── Decision popup at 70%: Learn or Keep Scrolling ───────────────────────
+  _showLearnOrScrollDecision() {
+    if (!this._mobileScreen || !this._mobileScreenOpen) return;
+
+    const { width, height } = this.scale;
+    const popup = this.add.container(width / 2, height / 2 - 40).setDepth(140).setAlpha(0);
+
+    const cardW = 320, cardH = 180;
+    const bg = this.add.rectangle(0, 0, cardW, cardH, 0x1e1b4b, 1);
+    bg.setStrokeStyle(3, 0xfbbf24, 1);
+
+    const icon = this.add.text(0, -65, '⚠️', { fontSize: '28px' }).setOrigin(0.5);
+
+    const title = this.add.text(0, -35, 'You\'ve been scrolling a lot...', {
+      fontFamily: FONT, fontSize: '16px', color: '#fbbf24', fontStyle: 'bold'
+    }).setOrigin(0.5);
+
+    const body = this.add.text(0, -8, 'Your class starts soon. What will you do?', {
+      fontFamily: FONT_BODY, fontSize: '13px', color: '#e2e8f0',
+      wordWrap: { width: cardW - 40 }, align: 'center'
+    }).setOrigin(0.5);
+
+    // Learn button
+    const learnBtn = this.add.rectangle(-75, 55, 130, 40, 0x10b981, 1);
+    learnBtn.setStrokeStyle(2, 0x059669, 1);
+    learnBtn.setInteractive({ useHandCursor: true });
+    const learnTxt = this.add.text(-75, 55, '📚 Go Learn', {
+      fontFamily: FONT, fontSize: '14px', color: '#ffffff', fontStyle: 'bold'
+    }).setOrigin(0.5);
+
+    // Keep scrolling button
+    const scrollBtn = this.add.rectangle(75, 55, 130, 40, 0x64748b, 1);
+    scrollBtn.setStrokeStyle(2, 0x475569, 1);
+    scrollBtn.setInteractive({ useHandCursor: true });
+    const scrollTxt = this.add.text(75, 55, '📱 Keep Scrolling', {
+      fontFamily: FONT, fontSize: '13px', color: '#ffffff'
+    }).setOrigin(0.5);
+
+    popup.add([bg, icon, title, body, learnBtn, learnTxt, scrollBtn, scrollTxt]);
+    gsap.fromTo(popup, { alpha: 0, scale: 0.85 }, { alpha: 1, scale: 1, duration: 0.4, ease: 'back.out(1.5)' });
+
+    learnBtn.on('pointerover', () => learnBtn.setFillStyle(0x059669));
+    learnBtn.on('pointerout',  () => learnBtn.setFillStyle(0x10b981));
+    scrollBtn.on('pointerover', () => scrollBtn.setFillStyle(0x475569));
+    scrollBtn.on('pointerout',  () => scrollBtn.setFillStyle(0x64748b));
+
+    learnBtn.on('pointerdown', () => {
+      gsap.to(popup, { alpha: 0, scale: 0.85, duration: 0.3, onComplete: () => popup.destroy() });
+      this._closeMobileScreen();
+      this.time.delayedCall(200, () => this.scene.start('LearningScene'));
+    });
+
+    scrollBtn.on('pointerdown', () => {
+      gsap.to(popup, { alpha: 0, scale: 0.85, duration: 0.3, onComplete: () => popup.destroy() });
+      this._continuousScrollMode = true;
+      this._startContinuousScrolling();
+    });
+  }
+
+  // ── Fail notification at 100% ─────────────────────────────────────────────
+  _showFailNotification() {
+    if (!this._mobileScreen || !this._mobileScreenOpen) return;
+
+    const { width, height } = this.scale;
+    const popup = this.add.container(width / 2, height / 2 - 60).setDepth(140).setAlpha(0);
+
+    const cardW = 280, cardH = 160;
+    const card = this.add.rectangle(0, 0, cardW, cardH, 0xffffff, 1);
+    card.setStrokeStyle(3, 0xef4444, 1);
+
+    const accent = this.add.rectangle(0, -cardH / 2, cardW, 6, 0xef4444, 1);
+
+    const iconBg = this.add.circle(0, -35, 25, 0xfee2e2, 1);
+    const iconT  = this.add.text(0, -35, '❌', { fontSize: '20px' }).setOrigin(0.5);
+
+    const titleT = this.add.text(0, 0, 'Results Failed', {
+      fontFamily: FONT, fontSize: '18px', color: '#ef4444', fontStyle: 'bold'
+    }).setOrigin(0.5);
+
+    const bodyT = this.add.text(0, 28, 'You missed your class.\nYour addiction level is at 100%.', {
+      fontFamily: FONT_BODY, fontSize: '13px', color: '#374151',
+      wordWrap: { width: cardW - 40 }, align: 'center'
+    }).setOrigin(0.5);
+
+    const okBtn = this.add.rectangle(0, 65, 80, 32, 0xef4444, 1);
+    okBtn.setStrokeStyle(2, 0xdc2626, 1);
+    okBtn.setInteractive({ useHandCursor: true });
+    const okTxt = this.add.text(0, 65, 'OK', {
+      fontFamily: FONT, fontSize: '14px', color: '#ffffff', fontStyle: 'bold'
+    }).setOrigin(0.5);
+
+    popup.add([card, accent, iconBg, iconT, titleT, bodyT, okBtn, okTxt]);
+    gsap.fromTo(popup, { alpha: 0, scale: 0.85 }, { alpha: 1, scale: 1, duration: 0.4, ease: 'back.out(1.5)' });
+
+    okBtn.on('pointerover', () => okBtn.setFillStyle(0xdc2626));
+    okBtn.on('pointerout',  () => okBtn.setFillStyle(0xef4444));
+    okBtn.on('pointerdown', () => {
+      gsap.to(popup, { alpha: 0, scale: 0.85, duration: 0.3, onComplete: () => {
+        popup.destroy();
+        this._showLearningKey();
+      }});
+    });
+
+    // Affect agent state
+    if (this.agent) {
+      this.agent.addictionLevel = Math.min(100, this.agent.addictionLevel + 10);
     }
   }
 
