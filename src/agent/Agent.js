@@ -275,7 +275,7 @@ export default class Agent {
       g.beginPath(); g.arc(gl, -14*S, 4*S, Phaser.Math.DegToRad(20), Phaser.Math.DegToRad(160), false); g.strokePath();
     } else if (state === 'LOST' || state === 'BREAKING_POINT') {
       // Frown — arc curving upward
-      g.beginPath(); g.arc(gl, -18*S, 4*S, Phaser.Math.DegToRad(200), Phaser.Math.DegToRad(340), false); g.strokePath();
+      g.beginPath(); g.arc(gl, -14*S, 4*S, Phaser.Math.DegToRad(200), Phaser.Math.DegToRad(340), false); g.strokePath();
     } else if (state === 'ATTRACTED') {
       // Slight smile
       g.beginPath(); g.arc(gl, -14.5*S, 3.5*S, Phaser.Math.DegToRad(25), Phaser.Math.DegToRad(155), false); g.strokePath();
