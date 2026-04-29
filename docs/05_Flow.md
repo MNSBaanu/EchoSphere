@@ -44,7 +44,25 @@ The learning scene requires Steve to complete two tasks by pressing the spacebar
 
 *[Screenshot: Completed learning tasks with success notification]*
 
-## 5.4 The Real World: Social Interactions and Perception
+## 5.4 The Failure Path: Learning from Mistakes
+
+If Steve chooses "Later" and dismisses the educational opportunity, or if he never gets the chance to accept it, his addiction continues to spiral upward. The agent demonstrates **compulsive behavior patterns** as the social media feed takes complete control, auto-scrolling faster and faster.
+
+*[Screenshot: Feed scrolling rapidly out of control with addiction at 100%]*
+
+When Steve's addiction reaches 100%, a failure notification appears, informing him that he has missed his class and reached maximum addiction. This represents a **critical learning moment** where the agent must confront the consequences of its choices.
+
+*[Screenshot: Failure notification showing "Results Failed" with 100% addiction message]*
+
+However, the story doesn't end in failure. After acknowledging the consequences, a **learning key** appears, offering Steve a chance at redemption. This demonstrates the agent's capacity for **recovery and second chances** - a crucial aspect of intelligent behavior and growth.
+
+*[Screenshot: Learning key appearing with "Return to Studies" message and redemption opportunity]*
+
+The learning key represents **hope and resilience**. Even after complete failure, the intelligent agent can recognize its mistakes and choose to learn from them. This path leads to the same learning scene, but with added context of having learned from failure rather than proactive choice.
+
+*[Screenshot: Steve clicking the learning key to access the redemption learning opportunity]*
+
+## 5.5 The Real World: Social Interactions and Perception
 
 Whether Steve learns from the educational content or leaves his room directly, he eventually enters the real world - a park setting with three important people: his mother, and friends Alex and Sam. This scene demonstrates the agent's **social intelligence** and **perception systems**.
 
@@ -58,7 +76,7 @@ The NPCs exhibit **emotional intelligence** by responding differently based on S
 
 *[Screenshot: NPC showing emotional response (happy or concerned) based on Steve's actions]*
 
-## 5.5 Learning from Social Feedback
+## 5.6 Learning from Social Feedback
 
 The agent's **learning system** becomes particularly evident in social interactions. If Steve ignores people while using his phone, the NPCs remember this behavior and become less willing to interact. Conversely, positive interactions are remembered and lead to warmer future encounters.
 
@@ -68,7 +86,7 @@ Steve's mother can provide advice about phone usage if his addiction level is hi
 
 *[Screenshot: Mother giving advice with dialogue bubble about phone usage]*
 
-## 5.6 The Conversation Flow: Natural Language Communication
+## 5.7 The Conversation Flow: Natural Language Communication
 
 The real world scene includes a structured conversation between Steve and his family/friends. This demonstrates **natural language communication** as the agent processes and responds to social dialogue. The conversation progresses through seven exchanges, each building on the previous interaction.
 
@@ -78,7 +96,7 @@ The agent must use **temporal reasoning** to understand when to advance the conv
 
 *[Screenshot: Steve actively participating in group conversation with engaged body language]*
 
-## 5.7 The Journey's End: Integration and Growth
+## 5.8 The Journey's End: Integration and Growth
 
 After completing the social interaction, Steve and his companions walk together toward their destination. This represents the **successful integration** of digital awareness with real-world relationships. The agent has demonstrated growth through learning and social engagement.
 
@@ -88,7 +106,7 @@ The story concludes with Steve having learned valuable lessons about balancing d
 
 *[Screenshot: Final scene showing "Journey Complete" with Steve having achieved balance]*
 
-## 5.8 Intelligence Traits Demonstrated Throughout the Story
+## 5.9 Intelligence Traits Demonstrated Throughout the Story
 
 Throughout this narrative journey, Steve (the intelligent agent) consistently demonstrates the six key intelligence traits:
 
