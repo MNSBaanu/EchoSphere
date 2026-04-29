@@ -1093,7 +1093,7 @@ export default class AttractionScene extends Phaser.Scene {
       closeBtn.setFillStyle(0xef4444);
     });
     
-    // Add all elements to container
+    // Add all elements to container (excluding maskShape - it's only for masking)
     this._mobileScreen.add([
       overlay,
       phoneFrame,
@@ -1106,7 +1106,6 @@ export default class AttractionScene extends Phaser.Scene {
       progressBg,
       this._progressBar,
       this._progressLabel,
-      maskShape,
       this._scrollContent,
       scrollHint,
       closeBtn,
