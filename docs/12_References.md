@@ -1,65 +1,133 @@
-# 12. References
-
-## Academic References
-
-1. **Millington, I. & Funge, J.** (2009). *Artificial Intelligence for Games* (2nd ed.). Morgan Kaufmann. — Foundational reference for FSM design, steering behaviours, and agent architecture.
-
-2. **Buckland, M.** (2004). *Programming Game AI by Example*. Wordware Publishing. — Informed the event-driven FSM implementation and NPC seek steering algorithm.
-
-3. **Russell, S. & Norvig, P.** (2020). *Artificial Intelligence: A Modern Approach* (4th ed.). Pearson. — PEAS framework, agent types, and environment classification.
-
-4. **Ortony, A., Clore, G. L. & Collins, A.** (1988). *The Cognitive Structure of Emotions*. Cambridge University Press. — OCC model of emotions that informed the EmotionSystem design.
-
-5. **Picard, R. W.** (1997). *Affective Computing*. MIT Press. — Concept of quantifiable emotional states in computational systems.
-
-6. **Reynolds, C. W.** (1987). Flocks, herds and schools: A distributed behavioral model. *ACM SIGGRAPH Computer Graphics*, 21(4), 25–34. — Basis for autonomous agent movement and perception.
-
-7. **Twenge, J. M.** (2017). *iGen: Why Today's Super-Connected Kids Are Growing Up Less Rebellious, More Tolerant, Less Happy — and Completely Unprepared for Adulthood*. Atria Books. — Research on smartphone use and teenage mental health.
-
-8. **Alter, A.** (2017). *Irresistible: The Rise of Addictive Technology and the Business of Keeping Us Hooked*. Penguin Press. — Variable reward schedules and digital addiction mechanics.
-
-9. **Wooldridge, M.** (2009). *An Introduction to MultiAgent Systems* (2nd ed.). Wiley. — Multi-agent system design principles applied to NPC interactions.
-
-10. **Yannakakis, G. N. & Togelius, J.** (2018). *Artificial Intelligence and Games*. Springer. — Game AI techniques including FSMs, behaviour trees, and procedural content.
+# 10 — References
 
 ---
 
-## Technical References
+## 10.1 Core Technologies
 
-11. **Phaser.js Documentation** (2024). Phaser 3 API Documentation. Retrieved from https://newdocs.phaser.io/docs/3.60.0 — Primary reference for game engine implementation.
+**Phaser.js 3**
+Richard Davey. *Phaser — A fast, fun and free open source HTML5 game framework.*
+https://phaser.io/
+Version 3.x — Used for scene management, graphics rendering, input handling, tweens, and physics.
 
-12. **GreenSock Animation Platform (GSAP)** (2024). GSAP Documentation. Retrieved from https://gsap.com/docs/v3/ — Animation library used for smooth transitions and effects.
+**GSAP (GreenSock Animation Platform)**
+GreenSock. *GSAP — Professional-grade JavaScript animation.*
+https://greensock.com/gsap/
+Used for UI transitions, card pop-ins, mobile screen animations, and NPC speech bubbles.
 
-13. **MDN Web Docs** (2024). JavaScript Reference. Retrieved from https://developer.mozilla.org/en-US/docs/Web/JavaScript — JavaScript ES6+ features including getters/setters, arrow functions, and destructuring.
+**Tailwind CSS**
+Adam Wathan et al. *Tailwind CSS — A utility-first CSS framework.*
+https://tailwindcss.com/
+Used for HUD overlay, emotion meters, decision panel, dialogue box, and notification popup.
 
-14. **Vite Documentation** (2024). Vite Guide. Retrieved from https://vitejs.dev/guide/ — Build tool configuration and development server setup.
-
----
-
-## Online Resources
-
-15. **Phaser.io Examples** (2024). Phaser 3 Examples. Retrieved from https://phaser.io/examples — Code examples for graphics, tweens, and input handling.
-
-16. **Stack Overflow** (2024). Various answers on Phaser.js scene management and JavaScript patterns. Retrieved from https://stackoverflow.com — Consulted for specific implementation challenges.
-
-17. **World Health Organization** (2022). *International Classification of Diseases (ICD-11): Gaming Disorder*. Retrieved from https://www.who.int — Classification of gaming/digital addiction as a recognised disorder.
-
-18. **American Psychological Association** (2023). *Social Media and Youth Mental Health*. Retrieved from https://www.apa.org — Research supporting the simulation's psychological model.
-
----
-
-## Tools Used
-
-| Tool | Version | Purpose |
-|------|---------|---------|
-| Phaser.js | 3.x | 2D game engine |
-| GSAP | 3.x | Animation library |
-| Vite | 5.x | Build tool |
-| JavaScript | ES2022 | Programming language |
-| Tailwind CSS | 3.x | UI styling |
-| VS Code / Kiro | Latest | Development environment |
-| Node.js | 18+ | Runtime environment |
+**Vite**
+Evan You. *Vite — Next Generation Frontend Tooling.*
+https://vitejs.dev/
+Used as the build tool and development server.
 
 ---
 
-*All references accessed during the period of project development (2024–2025).*
+## 10.2 AI & Agent Theory
+
+**Russell, S. & Norvig, P.**
+*Artificial Intelligence: A Modern Approach.* 4th Edition.
+Pearson, 2020.
+Referenced for: PEAS framework, rational agent design, FSM-based agent architectures, perception and action models.
+
+**Wooldridge, M.**
+*An Introduction to MultiAgent Systems.* 2nd Edition.
+Wiley, 2009.
+Referenced for: agent autonomy, reactive vs deliberative agents, environment classification (partially observable, stochastic, sequential, dynamic).
+
+**Millington, I. & Funge, J.**
+*Artificial Intelligence for Games.* 2nd Edition.
+CRC Press, 2009.
+Referenced for: Finite State Machine implementation, steering behaviors (seek, wander), pathfinding concepts.
+
+---
+
+## 10.3 Digital Addiction Research
+
+**Twenge, J. M., & Campbell, W. K.**
+*Associations between screen time and lower psychological well-being among children and adolescents.*
+Preventive Medicine Reports, 12, 271–283. 2018.
+Referenced for: the documented relationship between screen time and stress, loneliness, and reduced happiness in teenagers.
+
+**Alter, A.**
+*Irresistible: The Rise of Addictive Technology and the Business of Keeping Us Hooked.*
+Penguin Press, 2017.
+Referenced for: variable reward schedules in social media (slot machine model), infinite scroll mechanics, and the loss of agency in addictive behavior.
+
+**Anderson, E. L., Steen, E., & Stavropoulos, V.**
+*Internet use and Problematic Internet Use: a systematic review of longitudinal research trends in adolescence and emergent adulthood.*
+International Journal of Adolescence and Youth, 22(4), 430–454. 2017.
+Referenced for: habit formation loop (attraction → looping → distortion) and the role of social reinforcement in digital addiction.
+
+---
+
+## 10.4 Emotional Intelligence in AI
+
+**Picard, R. W.**
+*Affective Computing.*
+MIT Press, 1997.
+Referenced for: the concept of machines tracking and responding to emotional states; basis for the EmotionSystem (stress, happiness, loneliness) implementation.
+
+**Bates, J.**
+*The Role of Emotion in Believable Agents.*
+Communications of the ACM, 37(7), 122–125. 1994.
+Referenced for: emotion-driven behavior in game agents; emotional state influencing decision-making and visual expression.
+
+---
+
+## 10.5 Game Development & Simulation
+
+**Shaker, N., Togelius, J., & Nelson, M. J.**
+*Procedural Content Generation in Games.*
+Springer, 2016. Available at: http://pcgbook.com/
+Referenced for: random event generation, emergent narrative, and non-deterministic simulation design.
+
+**Yannakakis, G. N., & Togelius, J.**
+*Artificial Intelligence and Games.*
+Springer, 2018. Available at: http://gameaibook.org/
+Referenced for: agent-based game AI, FSM design patterns, NPC behavior trees, and perception systems.
+
+---
+
+## 10.6 Web Standards & APIs
+
+**MDN Web Docs**
+Mozilla Foundation. *Web APIs — HTML5 Canvas, DOM, localStorage.*
+https://developer.mozilla.org/
+Referenced for: DOM manipulation (HUD bars, decision panel), event listeners, and browser API usage.
+
+**ECMAScript 2022 Specification**
+ECMA International. *ECMAScript Language Specification.*
+https://tc39.es/ecma262/
+Referenced for: ES6 module syntax, arrow functions, destructuring, and class-based OOP used throughout the codebase.
+
+---
+
+## 10.7 Visual Design References
+
+**Google Fonts — Inter & Sora**
+https://fonts.google.com/
+Typography used throughout the UI for readability and modern aesthetic.
+
+**Tailwind CSS Color Palette**
+https://tailwindcss.com/docs/customizing-colors
+Color system reference for indigo, violet, emerald, amber, and slate tones used in scene environments and UI components.
+
+---
+
+## 10.8 Project-Specific Documentation
+
+**EchoSphere SCENARIOS.md**
+Internal project document. Describes the full scenario flow, scene-by-scene breakdown, and AI trait mapping.
+`EchoSphere/SCENARIOS.md`
+
+**EchoSphere AI_IMPLEMENTATION_SUMMARY.md**
+Internal project document. Documents all implemented AI features, variable behaviors, and viva talking points.
+`EchoSphere/AI_IMPLEMENTATION_SUMMARY.md`
+
+**EchoSphere README.md**
+Internal project document. Overview, story flow, controls, and technology stack.
+`EchoSphere/README.md`
