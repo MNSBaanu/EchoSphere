@@ -77,6 +77,8 @@ export default class AttractionScene extends Phaser.Scene {
 
     // ── Agent starts centre-left ──────────────────────────────────────────
     this.agent = new Agent(this, width * 0.35, height * 0.72 - 52);
+    // Faster movement in Scenario 1
+    this.agent.speed = 10;
     // Agent can move freely from the start
     this._lockAgentKeys(false);
 
@@ -84,8 +86,8 @@ export default class AttractionScene extends Phaser.Scene {
       this._onStateChange(newState, reason);
     });
 
-    // ── Notification fires after 2s (but not if continuous scroll mode is already active)
-    this.time.delayedCall(2000, () => {
+    // ── Notification fires immediately on scene load
+    this.time.delayedCall(300, () => {
       if (!this._continuousScrollMode) {
         this._firePhoneNotification();
       }
@@ -674,25 +676,25 @@ export default class AttractionScene extends Phaser.Scene {
       container.setAlpha(0);
       container.setScale(0.3);
 
-      // Staggered pop-in
+      // Staggered pop-in (faster stagger)
       this.tweens.add({
         targets: container,
         y: container._baseY,
         alpha: 1,
         scaleX: 1,
         scaleY: 1,
-        duration: 350,
-        delay: i * 120,
+        duration: 200,
+        delay: i * 60,
         ease: 'Back.easeOut'
       });
 
       // Gentle bob while visible
-      this.time.delayedCall(350 + i * 120, () => {
+      this.time.delayedCall(200 + i * 60, () => {
         if (!container.active) return;
         this.tweens.add({
           targets: container,
           y: container._baseY - 5,
-          duration: 900 + i * 80,
+          duration: 700 + i * 60,
           yoyo: true,
           repeat: 4,
           ease: 'Sine.easeInOut'
@@ -708,8 +710,8 @@ export default class AttractionScene extends Phaser.Scene {
           targets: ring,
           scaleX: 2.5, scaleY: 2.5,
           alpha: 0,
-          duration: 900,
-          delay: i * 120,
+          duration: 600,
+          delay: i * 60,
           ease: 'Sine.easeOut'
         });
       }
@@ -722,6 +724,8 @@ export default class AttractionScene extends Phaser.Scene {
   // ── Phone notification fires ──────────────────────────────────────────────
   _firePhoneNotification() {
     if (this._ended) return;
+    if (this._notificationFired) return; // only fire once
+    this._notificationFired = true;
 
     this._phoneOn = true;
 
