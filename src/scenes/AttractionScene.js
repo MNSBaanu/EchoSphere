@@ -74,8 +74,7 @@ export default class AttractionScene extends Phaser.Scene {
     this._pickupKey         = null;
     this._doorKey           = null;
     this._decisionShown     = false;
-    this._failShown         = false;
-    this.agent              = null;
+    this._failShown         = false;    this.agent              = null;
 
     // ── Room environment (side view) ─────────────────────────────────────
     this._drawRoom(width, height);
@@ -249,7 +248,7 @@ export default class AttractionScene extends Phaser.Scene {
     }
 
     // ── AI-DRIVEN PHONE USAGE ────────────────────────────────────────────
-    if (this._mobileScreenOpen && !this._ended && this.agent) {
+    if (this._mobileScreenOpen && !this._ended && this.agent && !this._decisionPending) {
       // Agent uses phone - updates addiction & awareness
       this.agent.usePhone();
       
@@ -1095,13 +1094,6 @@ export default class AttractionScene extends Phaser.Scene {
     
     // Emotion tracking happens internally via agent.usePhone()
     // No visual bars displayed on screen
-
-    // Educational notification fires after 8s of scrolling (but not in continuous scroll mode)
-    this.time.delayedCall(8000, () => {
-      if (this._mobileScreenOpen && !this._ended && !this._continuousScrollMode) {
-        this._showEducationalNotification();
-      }
-    });    
     this._log('📱 Phone', 'screen opened - AI tracking started');
   }
 
@@ -1126,10 +1118,11 @@ export default class AttractionScene extends Phaser.Scene {
       this._progressLabel.setText(`Addiction: ${Math.round(progress)}%`);
     }
 
-    // ── At 70% — show Learn vs Continue decision ──────────────────────────
+    // ── At 70% — show the learning notification ──────────────────────────
     if (progress >= 70 && !this._decisionShown) {
       this._decisionShown = true;
-      this._showLearnOrScrollDecision();
+      this._decisionPending = true; // pause progress while popup is open
+      this._showEducationalNotification();
     }
 
     // ── At 100% — show Fail notification ─────────────────────────────────
@@ -1137,65 +1130,6 @@ export default class AttractionScene extends Phaser.Scene {
       this._failShown = true;
       this._showFailNotification();
     }
-  }
-
-  // ── Decision popup at 70%: Learn or Keep Scrolling ───────────────────────
-  _showLearnOrScrollDecision() {
-    if (!this._mobileScreen || !this._mobileScreenOpen) return;
-
-    const { width, height } = this.scale;
-    const popup = this.add.container(width / 2, height / 2 - 40).setDepth(140).setAlpha(0);
-
-    const cardW = 320, cardH = 180;
-    const bg = this.add.rectangle(0, 0, cardW, cardH, 0x1e1b4b, 1);
-    bg.setStrokeStyle(3, 0xfbbf24, 1);
-
-    const icon = this.add.text(0, -65, '⚠️', { fontSize: '28px' }).setOrigin(0.5);
-
-    const title = this.add.text(0, -35, 'You\'ve been scrolling a lot...', {
-      fontFamily: FONT, fontSize: '16px', color: '#fbbf24', fontStyle: 'bold'
-    }).setOrigin(0.5);
-
-    const body = this.add.text(0, -8, 'Your class starts soon. What will you do?', {
-      fontFamily: FONT_BODY, fontSize: '13px', color: '#e2e8f0',
-      wordWrap: { width: cardW - 40 }, align: 'center'
-    }).setOrigin(0.5);
-
-    // Learn button
-    const learnBtn = this.add.rectangle(-75, 55, 130, 40, 0x10b981, 1);
-    learnBtn.setStrokeStyle(2, 0x059669, 1);
-    learnBtn.setInteractive({ useHandCursor: true });
-    const learnTxt = this.add.text(-75, 55, '📚 Go Learn', {
-      fontFamily: FONT, fontSize: '14px', color: '#ffffff', fontStyle: 'bold'
-    }).setOrigin(0.5);
-
-    // Keep scrolling button
-    const scrollBtn = this.add.rectangle(75, 55, 130, 40, 0x64748b, 1);
-    scrollBtn.setStrokeStyle(2, 0x475569, 1);
-    scrollBtn.setInteractive({ useHandCursor: true });
-    const scrollTxt = this.add.text(75, 55, '📱 Keep Scrolling', {
-      fontFamily: FONT, fontSize: '13px', color: '#ffffff'
-    }).setOrigin(0.5);
-
-    popup.add([bg, icon, title, body, learnBtn, learnTxt, scrollBtn, scrollTxt]);
-    gsap.fromTo(popup, { alpha: 0, scale: 0.85 }, { alpha: 1, scale: 1, duration: 0.4, ease: 'back.out(1.5)' });
-
-    learnBtn.on('pointerover', () => learnBtn.setFillStyle(0x059669));
-    learnBtn.on('pointerout',  () => learnBtn.setFillStyle(0x10b981));
-    scrollBtn.on('pointerover', () => scrollBtn.setFillStyle(0x475569));
-    scrollBtn.on('pointerout',  () => scrollBtn.setFillStyle(0x64748b));
-
-    learnBtn.on('pointerdown', () => {
-      gsap.to(popup, { alpha: 0, scale: 0.85, duration: 0.3, onComplete: () => popup.destroy() });
-      this._closeMobileScreen();
-      this.time.delayedCall(200, () => this.scene.start('LearningScene'));
-    });
-
-    scrollBtn.on('pointerdown', () => {
-      gsap.to(popup, { alpha: 0, scale: 0.85, duration: 0.3, onComplete: () => popup.destroy() });
-      this._continuousScrollMode = true;
-      this._startContinuousScrolling();
-    });
   }
 
   // ── Fail notification at 100% ─────────────────────────────────────────────
@@ -1321,7 +1255,7 @@ export default class AttractionScene extends Phaser.Scene {
 
     // Accept — go to learning scene
     acceptBtn.on('pointerdown', () => {
-      this._ended = true;
+      this._decisionPending = false;
       gsap.to(popup, { alpha: 0, scale: 0.8, duration: 0.3 });
       this._closeMobileScreen();
       this.time.delayedCall(200, () => {
@@ -1331,6 +1265,7 @@ export default class AttractionScene extends Phaser.Scene {
 
     // Decline — dismiss and keep scrolling
     declineBtn.on('pointerdown', () => {
+      this._decisionPending = false;
       gsap.to(popup, {
         alpha: 0, y: height / 2 - 90, duration: 0.3,
         onComplete: () => popup.destroy()
