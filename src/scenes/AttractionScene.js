@@ -5,14 +5,6 @@ import { gsap } from 'gsap';
 const FONT      = 'Inter, sans-serif';
 const FONT_BODY = 'Inter, sans-serif';
 
-const FRIEND_MESSAGES = [
-  { speaker: 'Mia', text: 'omg did you see that new trend?? 😭' },
-  { speaker: 'Mia', text: 'you HAVE to check this out lol' },
-  { speaker: 'Kai', text: 'bro this video is everything 🔥' },
-  { speaker: 'Mia', text: 'reply!! i sent you something funny' },
-  { speaker: 'Mia', text: 'hellooo?? you there?' },
-];
-
 const FEED_ITEMS = [
   { icon: '❤️', text: 'Mia liked your photo!' },
   { icon: '🔥', text: 'Kai: bro this is fire!!' },
@@ -51,6 +43,37 @@ export default class AttractionScene extends Phaser.Scene {
 
   create() {
     const { width, height } = this.scale;
+
+    // ── Reset all state (scene may be restarted from LearningScene) ───────
+    this._msgIndex          = 0;
+    this._pendingFriendMsg  = false;
+    this._decisionPending   = false;
+    this._ended             = false;
+    this._logLines          = [];
+    this._engageStreak      = 0;
+    this._phonePickedUp     = false;
+    this._doorReached       = false;
+    this._pickupPromptShown = false;
+    this._doorPromptShown   = false;
+    this._mobileScreenOpen  = false;
+    this._scrollOffset      = 0;
+    this._autoScrollEnabled = false;
+    this._autoScrollSpeed   = 0;
+    this._conflictTriggered = false;
+    this._messageQueue      = [];
+    this._lastMessageTime   = 0;
+    this._continuousScrollMode = false;
+    this._notificationFired = false;
+    this._walkingToPhone    = false;
+    this._walkingToDoor     = false;
+    this._phonePos          = null;
+    this._doorPos           = null;
+    this._mobileScreen      = null;
+    this._pickupPrompt      = null;
+    this._doorPrompt        = null;
+    this._pickupKey         = null;
+    this._doorKey           = null;
+    this.agent              = null;
 
     // ── Room environment (side view) ─────────────────────────────────────
     this._drawRoom(width, height);
@@ -92,9 +115,6 @@ export default class AttractionScene extends Phaser.Scene {
         this._firePhoneNotification();
       }
     });
-
-    // ── Friend messages ───────────────────────────────────────────────────
-    this._scheduleNextFriendMessage();
 
     // ── UI ────────────────────────────────────────────────────────────────
     this._buildChoiceButtons();
@@ -201,15 +221,13 @@ export default class AttractionScene extends Phaser.Scene {
     if (this._ended) return;
     if (this.agent) this.agent.update();
 
-    // Check proximity to phone — show prompt when near, hide when away or screen open
+    // Check proximity to phone — show prompt when on same X column, hide when away
     if (!this._mobileScreenOpen && this._phonePos && this.agent) {
-      const dx = this._phonePos.x - this.agent.x;
-      const dy = this._phonePos.y - this.agent.y;
-      const dist = Math.sqrt(dx * dx + dy * dy);
+      const dx = Math.abs(this._phonePos.x - this.agent.x);
 
-      if (dist < 60 && !this._pickupPromptShown) {
+      if (dx < 40 && !this._pickupPromptShown) {
         this._showPickupPrompt();
-      } else if ((dist >= 60 || this._mobileScreenOpen) && this._pickupPromptShown) {
+      } else if ((dx >= 40 || this._mobileScreenOpen) && this._pickupPromptShown) {
         this._hidePickupPrompt();
       }
     } else if (this._mobileScreenOpen && this._pickupPromptShown) {
@@ -254,16 +272,6 @@ export default class AttractionScene extends Phaser.Scene {
         }
       }
 
-      // ── CONFLICT TRIGGER: Message interruption (but not in continuous scroll mode)
-      if (this.agent.addictionLevel > 70 && !this._conflictTriggered && !this._continuousScrollMode) {
-        const now = this.time.now;
-        if (now - this._lastMessageTime > 3000) { // Random event every 3s
-          if (Math.random() < 0.3) { // 30% chance
-            this._triggerConflict();
-          }
-          this._lastMessageTime = now;
-        }
-      }
     }
 
     // Auto-walk to phone if agent chose phone path
@@ -749,7 +757,7 @@ export default class AttractionScene extends Phaser.Scene {
   }
 
   _scheduleNextFriendMessage() {
-    // TODO: Implement friend message scheduling
+    // Removed — no random friend messages
   }
 
   _buildChoiceButtons() {
@@ -803,21 +811,49 @@ export default class AttractionScene extends Phaser.Scene {
     if (this._pickupPromptShown) return;
     this._pickupPromptShown = true;
 
-    this._pickupPrompt = this.add.container(this._phonePos.x, this._phonePos.y - 50).setDepth(30);
+    this._pickupPrompt = this.add.container(this._phonePos.x, this._phonePos.y - 55).setDepth(30);
 
-    const bg = this.add.rectangle(0, 0, 100, 32, 0x1e1b4b, 0.92);
+    // Key badge background
+    const bg = this.add.rectangle(0, 0, 110, 36, 0x1e1b4b, 0.95);
     bg.setStrokeStyle(2, 0x6366f1, 1);
 
-    const hint = this.add.text(0, 0, 'Press [E]', {
-      fontFamily: FONT_BODY, fontSize: '13px', color: '#a5b4fc', fontStyle: 'bold'
+    // [E] key box
+    const keyBox = this.add.rectangle(-22, 0, 26, 24, 0x6366f1, 1);
+    keyBox.setStrokeStyle(1, 0x818cf8, 1);
+    const keyLetter = this.add.text(-22, 0, 'E', {
+      fontFamily: FONT_BODY, fontSize: '14px', color: '#ffffff', fontStyle: 'bold'
     }).setOrigin(0.5);
 
-    this._pickupPrompt.add([bg, hint]);
+    const label = this.add.text(14, 0, 'Pick up', {
+      fontFamily: FONT_BODY, fontSize: '12px', color: '#a5b4fc'
+    }).setOrigin(0, 0.5);
 
-    gsap.fromTo(this._pickupPrompt,
-      { alpha: 0, y: this._phonePos.y - 40 },
-      { alpha: 1, y: this._phonePos.y - 50, duration: 0.3, ease: 'back.out(1.5)' }
-    );
+    // Arrow pointing down to phone
+    const arrow = this.add.text(0, 22, '▼', {
+      fontFamily: FONT_BODY, fontSize: '10px', color: '#6366f1'
+    }).setOrigin(0.5);
+
+    this._pickupPrompt.add([bg, keyBox, keyLetter, label, arrow]);
+
+    // Bounce in
+    this._pickupPrompt.setAlpha(0).setScale(0.8);
+    gsap.to(this._pickupPrompt, { alpha: 1, duration: 0.2, ease: 'power2.out' });
+    this.tweens.add({
+      targets: this._pickupPrompt,
+      scaleX: 1, scaleY: 1,
+      duration: 200,
+      ease: 'Back.easeOut'
+    });
+
+    // Gentle float
+    this.tweens.add({
+      targets: this._pickupPrompt,
+      y: this._phonePos.y - 60,
+      duration: 600,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut'
+    });
 
     this._pickupKey = this.input.keyboard.on('keydown-E', () => {
       if (this._pickupPromptShown && !this._mobileScreenOpen) {
@@ -1184,11 +1220,6 @@ export default class AttractionScene extends Phaser.Scene {
       
       // Start continuous scrolling mode
       this._startContinuousScrolling();
-      
-      // Show "results failed" notification after delay
-      this.time.delayedCall(8000, () => {
-        this._showResultsFailedNotification();
-      });
     });
   }
 
@@ -1242,168 +1273,6 @@ export default class AttractionScene extends Phaser.Scene {
         hasPhone:          this.agent ? this.agent.hasPhone          : false,
         memory:            this.agent ? [...this.agent.memory]       : [],
       });
-  }
-
-  // ── CONFLICT TRIGGER: Message Interruption ────────────────────────────────
-  _triggerConflict() {
-    if (this._conflictTriggered || !this._mobileScreenOpen) return;
-    this._conflictTriggered = true;
-    
-    const messages = [
-      { from: 'Mom', text: 'Where are you? We need you at dinner.' },
-      { from: 'Best Friend', text: 'Hey, you okay? You\'ve been quiet...' },
-      { from: 'Dad', text: 'Can you help me with something?' },
-      { from: 'Mia', text: 'Are you ignoring me? 😢' },
-    ];
-    
-    const msg = Phaser.Utils.Array.GetRandom(messages);
-    
-    this._log('💬 Conflict', `Message from ${msg.from}`);
-    
-    // Show message popup
-    this._showMessageChoice(msg.from, msg.text);
-    
-    // Play notification sound (if available)
-    // this.sound.play('notification');
-  }
-
-  _showMessageChoice(from, text) {
-    if (!this._mobileScreen) return;
-    
-    const { width, height } = this.scale;
-    
-    // Create message popup
-    this._messagePopup = this.add.container(0, 0).setDepth(110);
-    
-    // Semi-transparent overlay
-    const popupOverlay = this.add.rectangle(0, 0, width, height, 0x000000, 0.6);
-    popupOverlay.setInteractive();
-    
-    // Message card
-    const cardW = 300;
-    const cardH = 200;
-    const card = this.add.rectangle(0, 0, cardW, cardH, 0x1e1b4b, 1);
-    card.setStrokeStyle(3, 0x6366f1, 1);
-    
-    // Notification icon
-    const icon = this.add.text(0, -70, '📱', {
-      fontSize: '32px'
-    }).setOrigin(0.5);
-    
-    // From label
-    const fromLabel = this.add.text(0, -40, from, {
-      fontFamily: FONT, fontSize: '18px', color: '#ffffff', fontStyle: 'bold'
-    }).setOrigin(0.5);
-    
-    // Message text
-    const msgText = this.add.text(0, -10, text, {
-      fontFamily: FONT_BODY, fontSize: '14px', color: '#e2e8f0',
-      wordWrap: { width: cardW - 40 }, align: 'center'
-    }).setOrigin(0.5);
-    
-    // Reply button
-    const replyBtn = this.add.rectangle(-70, 50, 120, 40, 0x10b981, 1);
-    replyBtn.setStrokeStyle(2, 0x059669, 1);
-    replyBtn.setInteractive({ useHandCursor: true });
-    
-    const replyTxt = this.add.text(-70, 50, '✓ Reply', {
-      fontFamily: FONT, fontSize: '16px', color: '#ffffff', fontStyle: 'bold'
-    }).setOrigin(0.5);
-    
-    // Ignore button
-    const ignoreBtn = this.add.rectangle(70, 50, 120, 40, 0x64748b, 1);
-    ignoreBtn.setStrokeStyle(2, 0x475569, 1);
-    ignoreBtn.setInteractive({ useHandCursor: true });
-    
-    const ignoreTxt = this.add.text(70, 50, '✕ Ignore', {
-      fontFamily: FONT, fontSize: '16px', color: '#ffffff', fontStyle: 'bold'
-    }).setOrigin(0.5);
-    
-    // Button interactions
-    replyBtn.on('pointerdown', () => {
-      if (this.agent) {
-        this.agent.respondToMessage('reply');
-      }
-      this._closeMessagePopup();
-      this._log('💬 Choice', 'Replied to message - relationship improved');
-    });
-    
-    replyBtn.on('pointerover', () => {
-      replyBtn.setFillStyle(0x059669);
-    });
-    
-    replyBtn.on('pointerout', () => {
-      replyBtn.setFillStyle(0x10b981);
-    });
-    
-    ignoreBtn.on('pointerdown', () => {
-      if (this.agent) {
-        this.agent.respondToMessage('ignore');
-      }
-      this._closeMessagePopup();
-      this._log('💬 Choice', 'Ignored message - relationship damaged');
-      
-      // Allow another conflict trigger
-      this.time.delayedCall(5000, () => {
-        this._conflictTriggered = false;
-      });
-    });
-    
-    ignoreBtn.on('pointerover', () => {
-      ignoreBtn.setFillStyle(0x475569);
-    });
-    
-    ignoreBtn.on('pointerout', () => {
-      ignoreBtn.setFillStyle(0x64748b);
-    });
-    
-    this._messagePopup.add([
-      popupOverlay,
-      card,
-      icon,
-      fromLabel,
-      msgText,
-      replyBtn,
-      replyTxt,
-      ignoreBtn,
-      ignoreTxt
-    ]);
-    
-    this._messagePopup.setPosition(width / 2, height / 2);
-    this._messagePopup.setAlpha(0);
-    
-    // Animate in
-    gsap.to(this._messagePopup, {
-      alpha: 1,
-      duration: 0.3,
-      ease: 'power2.out'
-    });
-    
-    this._messagePopup.setScale(0.8);
-    gsap.to(this._messagePopup, {
-      scaleX: 1,
-      scaleY: 1,
-      duration: 0.3,
-      ease: 'back.out(1.5)'
-    });
-  }
-
-  _closeMessagePopup() {
-    if (!this._messagePopup) return;
-    
-    gsap.to(this._messagePopup, {
-      alpha: 0,
-      scaleX: 0.8,
-      scaleY: 0.8,
-      duration: 0.2,
-      ease: 'power2.in',
-      onComplete: () => {
-        if (this._messagePopup) {
-          this._messagePopup.destroy();
-          this._messagePopup = null;
-        }
-      }
-    });
   }
 
   _reachDoor() {
@@ -1529,89 +1398,6 @@ export default class AttractionScene extends Phaser.Scene {
   }
 
   // Show results failed notification
-  _showResultsFailedNotification() {
-    if (!this._mobileScreen || !this._mobileScreenOpen) return;
-    
-    this._log('Results Failed', 'Agent missed the class and feels sad');
-    
-    const { width, height } = this.scale;
-    
-    // Create sad notification popup
-    const popup = this.add.container(width / 2, height / 2 - 60).setDepth(130).setAlpha(0);
-    
-    // Dim overlay
-    const dim = this.add.rectangle(0, 0, 320, 600, 0x000000, 0.7);
-    
-    // Notification card with red accent
-    const cardW = 280, cardH = 150;
-    const card = this.add.rectangle(0, 0, cardW, cardH, 0xffffff, 1);
-    card.setStrokeStyle(3, 0xef4444, 1);
-    
-    // Red top accent
-    const accent = this.add.rectangle(0, -cardH / 2, cardW, 6, 0xef4444, 1);
-    
-    // Sad icon
-    const iconBg = this.add.circle(0, -30, 25, 0xfee2e2, 1);
-    const iconT = this.add.text(0, -30, 'Failed', {
-      fontFamily: FONT, fontSize: '16px', color: '#ef4444', fontStyle: 'bold'
-    }).setOrigin(0.5);
-    
-    // Title
-    const titleT = this.add.text(0, 5, 'Results Failed', {
-      fontFamily: FONT, fontSize: '18px', color: '#ef4444', fontStyle: 'bold'
-    }).setOrigin(0.5);
-    
-    // Body text
-    const bodyT = this.add.text(0, 30, 'You didn\'t attend the class.\nYour addiction level has increased.', {
-      fontFamily: FONT_BODY, fontSize: '13px', color: '#374151',
-      wordWrap: { width: cardW - 40 }, align: 'center'
-    }).setOrigin(0.5);
-    
-    // OK button
-    const okBtn = this.add.rectangle(0, 55, 70, 30, 0xef4444, 1);
-    okBtn.setStrokeStyle(2, 0xdc2626, 1);
-    okBtn.setInteractive({ useHandCursor: true });
-    
-    const okTxt = this.add.text(0, 55, 'OK', {
-      fontFamily: FONT, fontSize: '14px', color: '#ffffff', fontStyle: 'bold'
-    }).setOrigin(0.5);
-    
-    popup.add([dim, card, accent, iconBg, iconT, titleT, bodyT, okBtn, okTxt]);
-    
-    // Animate in
-    gsap.fromTo(popup,
-      { alpha: 0, scale: 0.8 },
-      { alpha: 1, scale: 1, duration: 0.4, ease: 'back.out(1.5)' }
-    );
-    
-    // Button interaction
-    okBtn.on('pointerdown', () => {
-      gsap.to(popup, {
-        alpha: 0, scale: 0.8, duration: 0.3,
-        onComplete: () => {
-          popup.destroy();
-          // Show key icon for learning scene transition
-          this._showLearningKey();
-        }
-      });
-    });
-    
-    okBtn.on('pointerover', () => {
-      okBtn.setFillStyle(0xdc2626);
-    });
-    
-    okBtn.on('pointerout', () => {
-      okBtn.setFillStyle(0xef4444);
-    });
-    
-    // Make agent sad (affect emotions)
-    if (this.agent) {
-      this.agent.emotions.happiness -= 20;
-      this.agent.emotions.stress += 15;
-      this.agent.addictionLevel += 10;
-    }
-  }
-
   // Show learning key icon for transition to Learning Scene
   _showLearningKey() {
     if (!this._mobileScreen || !this._mobileScreenOpen) return;
