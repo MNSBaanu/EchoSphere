@@ -9,7 +9,6 @@ const FONT_BODY = 'Inter, sans-serif';
 const STUDY_TASKS = [
   { subject: '📐 Mathematics',  task: 'Solving quadratic equations',   xp: 30 },
   { subject: '🔬 Science',      task: 'Reading about photosynthesis',  xp: 25 },
-  { subject: ' Coding',       task: 'Writing a Python function',     xp: 35 },
 ];
 
 export default class LearningScene extends Phaser.Scene {
@@ -431,7 +430,7 @@ export default class LearningScene extends Phaser.Scene {
     if (!this._taskProgress || this._taskCompleting) return;
 
     const currentW = this._taskProgress.width;
-    const newW = Math.min(this._taskProgressMax, currentW + 18);
+    const newW = Math.min(this._taskProgressMax, currentW + this._taskProgressMax * 0.5);
     this._taskProgress.width = newW;
 
     // Agent shows focus while studying (no jumping)
