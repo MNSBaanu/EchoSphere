@@ -1463,17 +1463,13 @@ export default class RealWorldScene extends Phaser.Scene {
     });
   }
 
-  // ── Transition to trip scene ──────────────────────────────────────────────
+  // ── End — transition to EndScene ─────────────────────────────────────────
   _transitionToTrip() {
     if (this._ended) return;
     this._ended = true;
 
     this.time.delayedCall(500, () => {
-      this.scene.start("TripScene", {
-        addictionLevel: this._addictionLevel,
-        awareness: this._awareness,
-        relationshipLevel: this._relationshipLevel
-      });
+      this.scene.start('EndScene');
     });
   }
 
