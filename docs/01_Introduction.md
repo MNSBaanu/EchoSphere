@@ -6,38 +6,12 @@
 
 ---
 
-EchoSphere is a 2D browser-based intelligent agent simulation built using Phaser.js 3, JavaScript ES6+, and GSAP. It is designed within the field of Artificial Intelligence, focusing on agent behaviour, decision-making, and emotional intelligence. The simulation places the player in control of an autonomous agent named Steve — a teenage student — who must navigate a series of interconnected scenarios that model the real-world problem of digital addiction and its impact on academic performance and social relationships.
+EchoSphere is a 2D browser-based intelligent agent simulation built using Phaser.js 3 and JavaScript. The simulation is set around a teenage student named Steve, who is controlled by the player using keyboard inputs. The story explores a problem that is very common today — digital addiction and how it affects a teenager's relationships, studies, and mental health.
 
-## Agent Behaviour and Goal
+The simulation takes place across three connected scenes. It starts in Steve's bedroom, where a phone notification arrives almost immediately. The player must decide whether to pick up the phone or walk outside. If Steve picks up the phone, a social media feed opens and his addiction level begins to rise. At 70% addiction, a study reminder appears giving Steve a chance to stop. At 100%, he fails his exam. If the player chooses to go outside instead, Steve enters the real world where he meets his mother, his friend Alex, and his sibling Sam. These characters move on their own, react to Steve's phone use, and hold conversations with him. Random events like dusk, rain, and wind also occur, making each run different. A third scene — the study room — gives Steve the chance to complete academic tasks, earn XP, and recover from addiction before returning to the start.
 
-Steve is an intelligent software agent pursuing a goal — maintaining real-world relationships and academic performance — amidst various obstacles. The primary obstacle is digital addiction: a phone notification arrives almost immediately, and every decision the player makes has measurable consequences. Steve encounters three other agents (Mom, Alex, and Sam) who act as friends, offering support, advice, and social interaction. The environment is partially observable, stochastic, and dynamic: NPCs move autonomously, random events alter the world, and the agent's internal state evolves continuously based on accumulated behaviour.
+The core of the simulation is a Finite State Machine with eight states that tracks Steve's psychological journey from IDLE through ATTRACTED, LOOPING, DISTORTED, and BREAKING_POINT, ending in one of three outcomes — RECOVERED, PARTIAL, or LOST — depending on the choices made throughout. The simulation is not linear, meaning different decisions lead to different endings.
 
-## State-Based Behaviour
+To demonstrate intelligent agent behaviour, EchoSphere includes six AI traits. Steve has a vision cone and hearing range that model real-world perception, and environmental conditions like dusk or phone distraction reduce what he can see. When the notification sound plays, Steve's eyes automatically shift toward the phone and then return to normal, showing he has heard it. His emotions — stress, happiness, and loneliness — change based on events and directly drive his state transitions. The NPCs communicate through speech bubbles and change what they say depending on Steve's behaviour. Steve also learns from experience: Mom's advice permanently reduces his addiction and is never repeated, and after repeated bad interactions with an NPC, Steve learns to avoid them. The NPCs use pathfinding to walk toward Steve or seek shelter during rain. Finally, the FSM makes decisions based on accumulated behaviour to determine which ending Steve reaches.
 
-The simulation is driven by a **Finite State Machine with eight states**: IDLE → ATTRACTED → LOOPING → DISTORTED → BREAKING_POINT → RECOVERED / PARTIAL / LOST. Steve undergoes state transitions in response to events — picking up the phone, receiving notifications, interacting with NPCs, and accumulating stress. The simulation is **not linear**: it reaches alternative endings depending on the events and actions of all agents. Random happenings (dusk, rain, wind, spontaneous NPC approaches) make the outcome unpredictable.
-
-## Intelligence Traits
-
-EchoSphere demonstrates all six required AI intelligence traits:
-
-1. **Perceptions** — Steve has a directional vision cone (200px, ±45°) and omnidirectional hearing range (150px). Environmental conditions (dusk, phone distraction) reduce what he can perceive, modelling real-world physics.
-
-2. **Emotional Intelligence** — Steve's EmotionSystem tracks stress, happiness, and loneliness. These emotions drive FSM transitions. NPCs respond to Steve's emotional state and to each other — when one NPC is angry, others show concern and offer support.
-
-3. **Natural Language Communication** — Agents communicate through speech bubbles (callout signs of text). NPCs have context-sensitive dialogue sets that change based on Steve's addiction level and phone use. A structured 7-line multi-agent greeting conversation plays out in the outdoor scenario.
-
-4. **Learning** — Steve's `memory` array stores behavioural patterns that persist across scenes. He learns from Mom's advice (reducing addiction permanently), recognises compulsive patterns, and avoids NPCs after repeated bad interactions — not making the same mistake twice.
-
-5. **Searching / Pathfinding** — NPCs use seek steering to pathfind toward Steve, wander randomly between targets, and seek shelter during rain events. The walk-to-road sequence is a coordinated multi-agent pathfinding sequence.
-
-6. **Decision Making** — The FSM evaluates accumulated behaviour counters and emotional state to determine which of three endings Steve reaches. Player decision nodes at key moments (door vs phone, study vs scroll) and NPC autonomous decisions create a non-linear, unpredictable simulation.
-
-## Real-World Physics
-
-The simulation implements real-world physics including: trigonometric vision cone calculation, omnidirectional hearing range, environmental modifiers on perception (dusk reduces vision by 45%, phone distraction by 40%), posture compression modelling the physical effects of phone use, and seek steering with normalised direction vectors.
-
-## Technical Foundation
-
-The simulation is built entirely in JavaScript using Phaser.js 3 for rendering and game logic, GSAP for animations, and Vite as the build tool. All graphics are procedurally drawn using the Phaser Graphics API — no external image assets are required. The architecture separates concerns cleanly: `Agent.js` handles the player character and AI variables, `FSM.js` manages state transitions, `EmotionSystem.js` models emotional states, and six scene classes handle the distinct scenarios.
-
-The result is a demonstrable AI simulation where every system — from the emotion drift model to the NPC seek-steering algorithm — reflects a deliberate and technically grounded application of artificial intelligence principles to a problem that is both socially relevant and academically meaningful.
+EchoSphere was built entirely in JavaScript using Phaser.js 3 for the game engine, GSAP for animations, and Vite as the build tool. All characters and environments are drawn using the Phaser Graphics API with no external image files.

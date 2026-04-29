@@ -1,262 +1,102 @@
-﻿# 5. Flow — Scene and System Flows
+﻿# 5. Flow — Steve's Digital Addiction Journey
 
-## 5.1 Overall Game Flow
+This document tells the complete story of Steve's journey through the EchoSphere simulation, showing how an intelligent agent navigates the challenges of digital addiction while demonstrating key AI traits like perception, learning, and emotional intelligence.
 
-```
-START
-  │
-  ▼
-[BootScene]
-  Title screen with EchoSphere branding
-  Click anywhere to begin
-  │
-  ▼
-[AttractionScene] ─────────────────────────────────────────────────┐
-  Steve's bedroom                                                     │
-  Phone notification fires at 300ms                                 │
-  Social media icons appear                                         │
-  │                                                                 │
-  ├── Player walks to DOOR ──────────────────────────────────────► [RealWorldScene]
-  │   (press near door)                                             │
-  │                                                                 │
-  └── Player walks to PHONE                                         │
-      (press E near phone)                                          │
-      │                                                             │
-      ▼                                                             │
-      Mobile Screen Opens                                           │
-      Feed scrolling begins                                         │
-      Addiction level rises                                         │
-      │                                                             │
-      ├── At 70% addiction:                                         │
-      │   Learning notification popup                               │
-      │   ├── "Accept" → [LearningScene] ──────────────────────────┤
-      │   └── "Later" → Continue scrolling                         │
-      │                                                             │
-      └── At 100% addiction:                                        │
-          Fail notification popup                                   │
-          OK → Learning Key appears                                 │
-          Click Key → [LearningScene] ───────────────────────────► │
-                                                                    │
-[LearningScene]                                                     │
-  Study room                                                        │
-  2 tasks (SPACE to fill progress)                                  │
-  Complete all → Success card                                       │
-  Click → Return to [AttractionScene] ◄──────────────────────────┘
-  
-[RealWorldScene]
-  Outdoor park
-  3 NPCs (Mom, Alex, Sam)
-  Press T to advance conversation
-  7 conversation lines
-  After last line → NPCs and Steve walk together
-  │
-  ▼
-[EndScene]
-  Journey Complete screen
-  No restart — permanent end
-```
+## 5.1 The Beginning: Steve's Bedroom
 
----
+The story begins in Steve's bedroom, a familiar space that represents the modern teenager's digital sanctuary. Steve appears as a simple character with expressive eyes that can move and respond to stimuli, demonstrating the agent's **perception** abilities.
 
-## 5.2 Addiction Progression Flow (AttractionScene)
+*[Screenshot: Steve standing in his bedroom with basic furniture and a door visible]*
 
-```
-Phone Picked Up
-      │
-      ▼
-┌─────────────────────────────────────────────────────┐
-│  Every Frame (while mobile screen open):             │
-│                                                      │
-│  agent.usePhone()                                    │
-│    addictionLevel += 0.15                            │
-│    awareness      -= 0.12                            │
-│    stress         += 0.08                            │
-│                                                      │
-│  _updateProgressBar()                                │
-│    progress = addictionLevel                         │
-│    bar colour: green → yellow → red                  │
-│                                                      │
-│  if addictionLevel > 50 AND not auto-scroll:         │
-│    enable auto-scroll                                │
-│                                                      │
-│  if auto-scroll enabled:                             │
-│    speed = (addictionLevel - 50) / 50 × 2           │
-│    scrollOffset += speed                             │
-└─────────────────────────────────────────────────────┘
-      │
-      ├── addictionLevel ≥ 70 AND not _decisionShown:
-      │     _decisionPending = true  (PAUSE progress)
-      │     Show educational notification popup
-      │     ├── Accept → LearningScene
-      │     └── Later  → _decisionPending = false (RESUME)
-      │                   _continuousScrollMode = true
-      │
-      └── addictionLevel ≥ 100 AND not _failShown:
-            Show fail notification
-            OK → Show learning key
-            Click key → LearningScene
-```
+Within moments of the scene starting, Steve's phone buzzes with a notification. The agent's **auditory perception** is triggered as the notification sound plays three times in succession. Steve's eyes automatically snap toward the phone, showing **intelligent response to stimuli**. This eye movement demonstrates the agent's ability to direct attention based on environmental cues.
 
----
+*[Screenshot: Steve's eyes looking toward the phone, with a notification popup visible]*
 
-## 5.3 NPC Perception and Interaction Flow (RealWorldScene)
+At this critical moment, Steve faces his first decision. He can either walk to the door to leave his room and engage with the real world, or approach his phone to check the notification. This choice represents the central conflict of digital addiction versus real-world engagement.
 
-```
-Every Frame:
-      │
-      ▼
-_updatePerception()
-  For each NPC:
-    dx = npc.x - agent.x
-    dy = npc.y - agent.y
-    dist = √(dx² + dy²)
-    angleToNPC = atan2(dy, dx)
-    angleDiff = |Wrap(angleToNPC - facingAngle)|
-    
-    canSee = dist < visionRange AND angleDiff < halfCone
-    canHear = dist < hearingRange
-    
-    if (canSee OR canHear) AND not perceived:
-      npc._perceived = true
-      log "Steve noticed [NPC name]"
-      
-_updatePlayerProximity()
-  For each NPC:
-    if dist < 90 AND npc._perceived:
-      show interact prompt [T]
-      
-Player presses T:
-  if _convActive: → advance greeting conversation
-  else if near NPC: → _npcSpeak(npc)
-  
-_npcSpeak(npc):
-  if _convActive: return (blocked)
-  if _avoidedNPC === npc.id: return (learned avoidance)
-  if mom AND addiction > 60 AND not _adviceGiven:
-    → _giveAdvice() (learning event)
-  else:
-    if phone visible AND addiction > 50:
-      npc.emotion = angry/sad
-      use angryLines
-      _playerIgnoreCount++
-      if _badInteractions ≥ 2: learn to avoid NPC
-    else:
-      npc.emotion = happy
-      if returning visit: use returnLines
-      else: use normal lines
-      _playerEngageCount++
-      _learnedNPCs.add(npc.id)
-```
+*[Screenshot: Steve positioned between the door and phone, showing the two possible paths]*
 
----
+## 5.2 The Digital Trap: Phone Addiction Spiral
 
-## 5.4 Learning System Flow
+If Steve chooses to check his phone, the mobile screen opens to reveal a social media feed filled with colorful posts and engaging content. The agent begins demonstrating **decision-making** as it processes the addictive nature of the content.
 
-```
-Agent Memory Array: []
+*[Screenshot: Mobile screen open showing social media feed with various posts]*
 
-Event: addictionLevel > 80
-  → memory.push('high_addiction')
-  → console: "Agent learned: high_addiction pattern"
+As Steve scrolls through the feed, his addiction level gradually increases, shown by a progress bar that changes from green to yellow to red. The agent's **learning system** tracks patterns of behavior, noting increased stress levels and decreased awareness. This represents the agent's ability to **monitor and adapt to changing internal states**.
 
-Event: ignoredMessages ≥ 2
-  → memory.push('social_neglect')
-  → console: "Agent learned: social_neglect pattern"
+*[Screenshot: Progress bar showing increasing addiction level with red coloring]*
 
-Event: scrollCount > 50
-  → memory.push('compulsive_scrolling')
-  → console: "Agent learned: compulsive_scrolling pattern"
+The scrolling becomes increasingly compulsive. Once Steve reaches 50% addiction, the feed begins auto-scrolling, representing how social media algorithms take control. The agent demonstrates **pattern recognition** by identifying this loss of control and adjusting its behavior accordingly.
 
-Event: Mom gives advice (RealWorldScene)
-  → memory.push('mom_advice')
-  → addictionLevel -= 20
-  → awareness += 15
-  → _adviceGiven = true (won't repeat)
-  → console: "Steve learned: mom_advice"
+*[Screenshot: Feed auto-scrolling rapidly with addiction level at high percentage]*
 
-Event: 2 bad interactions with same NPC
-  → memory.push('avoid_[npcId]')
-  → _avoidedNPC = npc.id
-  → console: "Steve learned: avoid [name]"
+## 5.3 The Learning Opportunity: Educational Intervention
 
-Memory persists across scenes:
-  AttractionScene → RealWorldScene:
-    data.memory = [...agent.memory]
-  RealWorldScene reads:
-    this._memory = data.memory
-    this.agent.memory = [...this._memory]
-```
+When Steve's addiction reaches 70%, an educational notification appears offering a chance to learn about digital wellness. This moment showcases the agent's **decision-making capabilities** as it must choose between immediate gratification and long-term benefit.
 
----
+*[Screenshot: Educational notification popup with "Accept" and "Later" options]*
 
-## 5.5 Emotion System Flow
+If Steve accepts the learning opportunity, he transitions to a study room environment. Here, the agent demonstrates **goal-oriented behavior** by completing educational tasks about digital addiction and healthy phone usage.
 
-```
-Every Frame:
-  EmotionSystem.update()
-    stress     → drift toward baseline 10  (rate: 0.008/frame)
-    happiness  → drift toward baseline 60  (rate: 0.005/frame)
-    loneliness → drift toward baseline 20  (rate: 0.005/frame)
+*[Screenshot: Study room with educational tasks and progress indicators]*
 
-Events that modify emotions:
-  NOTIFICATION_SEEN:   happiness +8,  stress +2
-  FRIEND_MESSAGE:      happiness +10, loneliness -8
-  FRIEND_IGNORED:      loneliness +8, happiness -5
-  PLAYER_ENGAGE:       happiness +8,  stress +3
-  PLAYER_RESIST:       happiness -5,  loneliness +3
-  RANDOM_GOOD:         stress -5,     loneliness -5, happiness +3
-  RANDOM_BAD:          happiness +15, stress +8
+The learning scene requires Steve to complete two tasks by pressing the spacebar to fill progress bars. This represents **focused attention and task completion**, key traits of intelligent behavior. Upon completion, Steve receives positive reinforcement and gains valuable knowledge that reduces his addiction level.
 
-FSM checks emotions each frame:
-  LOOPING state:
-    stress ≥ 65 → transition to DISTORTED
-  DISTORTED state:
-    stress ≥ 85 → transition to BREAKING_POINT
-  BREAKING_POINT resolution:
-    happiness > 45 AND resistCount ≥ engageCount → RECOVERED
-    loneliness > 70 OR ignoredFriends ≥ 3 → LOST
-    else → PARTIAL
-```
+*[Screenshot: Completed learning tasks with success notification]*
 
----
+## 5.4 The Real World: Social Interactions and Perception
 
-## 5.6 Greeting Conversation Flow (RealWorldScene)
+Whether Steve learns from the educational content or leaves his room directly, he eventually enters the real world - a park setting with three important people: his mother, and friends Alex and Sam. This scene demonstrates the agent's **social intelligence** and **perception systems**.
 
-```
-Scene loads → 3 second delay → _startGreetings()
+*[Screenshot: Park scene with Steve and three NPCs positioned around the area]*
 
-_convActive = true  (blocks all other NPC speech)
+Steve's **visual perception** system activates as he notices each person within his cone of vision. The agent demonstrates **spatial awareness** by calculating distances and angles to determine who he can see and hear. When Steve gets close enough to someone, an interaction prompt appears, showing **contextual decision-making**.
 
-Hint text: "Press [T] to start conversation (0/7)"
+*[Screenshot: Steve approaching an NPC with interaction prompt visible]*
 
-Player presses T:
-  index = 0, waiting = false
-  → showMessage(0): Mom speaks
-  → waiting = true
-  → hint: "Press [T] for next (1/7)"
+The NPCs exhibit **emotional intelligence** by responding differently based on Steve's behavior. If Steve has been using his phone excessively, they show disappointment or concern. If he engages positively, they respond with happiness and warmth. This demonstrates **dynamic relationship modeling** and **emotional state tracking**.
 
-Player presses T again:
-  → clearAllBubbles() (destroy previous)
-  → showMessage(1): Sibling speaks
-  → waiting = true
-  → hint: "Press [T] for next (2/7)"
+*[Screenshot: NPC showing emotional response (happy or concerned) based on Steve's actions]*
 
-... continues for all 7 lines ...
+## 5.5 Learning from Social Feedback
 
-Player presses T on last line (index = 7):
-  → clearAllBubbles()
-  → _convActive = false
-  → _convTHandler = null
-  → remove T key listener
-  → 400ms delay → _agentWalkToRoad()
+The agent's **learning system** becomes particularly evident in social interactions. If Steve ignores people while using his phone, the NPCs remember this behavior and become less willing to interact. Conversely, positive interactions are remembered and lead to warmer future encounters.
 
-_agentWalkToRoad():
-  Lock agent keys
-  Tween Steve to position[1]
-  Tween each NPC to their position
-  NPCs redraw at new position each frame (pos getter/setter)
-  After duration + 1000ms → _transitionToTrip()
+*[Screenshot: NPC dialogue showing different responses based on previous interactions]*
 
-_transitionToEnd():
-  500ms delay → scene.start('EndScene')
-```
+Steve's mother can provide advice about phone usage if his addiction level is high. This represents **knowledge transfer** and **behavioral modification** through social learning. The agent processes this advice and adjusts its internal state, reducing addiction and increasing awareness.
+
+*[Screenshot: Mother giving advice with dialogue bubble about phone usage]*
+
+## 5.6 The Conversation Flow: Natural Language Communication
+
+The real world scene includes a structured conversation between Steve and his family/friends. This demonstrates **natural language communication** as the agent processes and responds to social dialogue. The conversation progresses through seven exchanges, each building on the previous interaction.
+
+*[Screenshot: Group conversation with multiple dialogue bubbles showing natural communication flow]*
+
+The agent must use **temporal reasoning** to understand when to advance the conversation and how to maintain social engagement. Each response demonstrates **contextual understanding** and **appropriate social behavior**.
+
+*[Screenshot: Steve actively participating in group conversation with engaged body language]*
+
+## 5.7 The Journey's End: Integration and Growth
+
+After completing the social interaction, Steve and his companions walk together toward their destination. This represents the **successful integration** of digital awareness with real-world relationships. The agent has demonstrated growth through learning and social engagement.
+
+*[Screenshot: Steve walking with NPCs showing unified movement and positive social bonding]*
+
+The story concludes with Steve having learned valuable lessons about balancing digital engagement with real-world relationships. The agent has successfully demonstrated multiple intelligence traits including perception, learning, emotional intelligence, decision-making, and social communication.
+
+*[Screenshot: Final scene showing "Journey Complete" with Steve having achieved balance]*
+
+## 5.8 Intelligence Traits Demonstrated Throughout the Story
+
+Throughout this narrative journey, Steve (the intelligent agent) consistently demonstrates the six key intelligence traits:
+
+**Perceptions**: Visual cone detection of NPCs, auditory response to notifications, spatial awareness of environment
+**Emotional Intelligence**: Reading and responding to NPC emotions, adjusting behavior based on social feedback
+**Natural Language Communication**: Engaging in structured dialogue, understanding conversational context
+**Learning**: Remembering past interactions, avoiding repeated mistakes, processing educational content
+**Decision Making**: Choosing between phone and real-world engagement, selecting appropriate responses
+**Pathfinding**: Navigating between locations, moving toward interaction points and goals
+
+This complete story flow shows how an intelligent agent can navigate complex social and technological challenges while demonstrating sophisticated AI behaviors in a relatable, real-world context.
