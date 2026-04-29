@@ -1457,87 +1457,59 @@ export default class AttractionScene extends Phaser.Scene {
   // Show results failed notification
   // Show learning key icon for transition to Learning Scene
   _showLearningKey() {
-    if (!this._mobileScreen || !this._mobileScreenOpen) return;
-    
     this._log('🔑 Learning Key', 'Agent has learned from mistakes - key to learning appears');
     
     const { width, height } = this.scale;
-    const screenW = 320;
-    const screenH = 600;
     
-    // Create key icon container
-    this._learningKey = this.add.container(0, 0).setDepth(130).setAlpha(0);
+    // Create key icon container — shown over the main scene (not inside phone screen)
+    this._learningKey = this.add.container(width / 2, height / 2).setDepth(130).setAlpha(0);
     
-    // Key background circle
-    const keyBg = this.add.circle(0, -100, 35, 0x10b981, 0.9);
-    keyBg.setStrokeStyle(3, 0x059669, 1);
-    
+    // Dark overlay
+    const overlay = this.add.rectangle(0, 0, width, height, 0x000000, 0.7);
+    overlay.setInteractive(); // block clicks through
+
+    // Card background
+    const card = this.add.rectangle(0, 0, 340, 200, 0x0f172a, 1);
+    card.setStrokeStyle(3, 0x10b981, 1);
+
     // Key icon
-    const keyIcon = this.add.text(0, -100, '🔑', {
-      fontSize: '32px'
+    const keyIcon = this.add.text(0, -60, '🔑', { fontSize: '40px' }).setOrigin(0.5);
+    
+    // Title
+    const keyLabel = this.add.text(0, -15, 'Return to Studies', {
+      fontFamily: FONT, fontSize: '20px', color: '#10b981', fontStyle: 'bold'
     }).setOrigin(0.5);
     
-    // Key text label
-    const keyLabel = this.add.text(0, -60, 'Return to Studies', {
-      fontFamily: FONT, fontSize: '14px', color: '#10b981', fontStyle: 'bold'
+    const keySubLabel = this.add.text(0, 15, 'You can still learn from your mistakes!', {
+      fontFamily: FONT_BODY, fontSize: '13px', color: '#94a3b8'
     }).setOrigin(0.5);
-    
-    const keySubLabel = this.add.text(0, -45, 'Click to learn from mistakes', {
-      fontFamily: FONT_BODY, fontSize: '11px', color: '#64748b'
-    }).setOrigin(0.5);
-    
-    this._learningKey.add([keyBg, keyIcon, keyLabel, keySubLabel]);
-    
-    // Position relative to phone screen
-    this._learningKey.setPosition(width / 2, height / 2);
-    
-    // Make interactive
+
+    // Button
+    const keyBg = this.add.rectangle(0, 60, 200, 44, 0x10b981, 1);
+    keyBg.setStrokeStyle(2, 0x059669, 1);
     keyBg.setInteractive({ useHandCursor: true });
-    keyIcon.setInteractive({ useHandCursor: true });
+    const btnTxt = this.add.text(0, 60, '📚 Go to Learning', {
+      fontFamily: FONT, fontSize: '15px', color: '#ffffff', fontStyle: 'bold'
+    }).setOrigin(0.5);
     
-    // Animate in with bounce
+    this._learningKey.add([overlay, card, keyIcon, keyLabel, keySubLabel, keyBg, btnTxt]);
+    
+    // Animate in
     gsap.fromTo(this._learningKey,
-      { alpha: 0, scale: 0.5 },
-      { alpha: 1, scale: 1, duration: 0.6, ease: 'back.out(1.8)' }
+      { alpha: 0, scale: 0.85 },
+      { alpha: 1, scale: 1, duration: 0.5, ease: 'back.out(1.8)' }
     );
     
-    // Pulse animation to draw attention
-    gsap.to(keyBg, {
-      scaleX: 1.1, scaleY: 1.1, duration: 1,
-      yoyo: true, repeat: -1, ease: 'sine.inOut'
-    });
-    
-    // Click handlers
-    const goToLearning = () => {
-      this._log('🔑 Learning', 'Agent chooses to return to studies - learned from mistakes');
-      
-      // End the scene and transition to Learning Scene
-      this._ended = true;
-      
-      // Fade out animation
-      gsap.to(this._learningKey, {
-        alpha: 0, scale: 0.8, duration: 0.3
-      });
-      
-      this._closeMobileScreen();
-      
-      this.time.delayedCall(200, () => {
-        this.scene.start('LearningScene', { fromKeyRedemption: true });
-      });
-    };
-    
-    keyBg.on('pointerdown', goToLearning);
-    keyIcon.on('pointerdown', goToLearning);
-    
     // Hover effects
-    keyBg.on('pointerover', () => {
-      keyBg.setFillStyle(0x059669);
-      keyBg.setScale(1.15);
-    });
+    keyBg.on('pointerover', () => keyBg.setFillStyle(0x059669));
+    keyBg.on('pointerout',  () => keyBg.setFillStyle(0x10b981));
     
-    keyBg.on('pointerout', () => {
-      keyBg.setFillStyle(0x10b981);
-      keyBg.setScale(1);
+    // Click handler
+    keyBg.on('pointerdown', () => {
+      gsap.to(this._learningKey, { alpha: 0, scale: 0.85, duration: 0.3, onComplete: () => {
+        if (this._learningKey) { this._learningKey.destroy(); this._learningKey = null; }
+        this.scene.start('LearningScene', { fromKeyRedemption: true });
+      }});
     });
   }
 }
