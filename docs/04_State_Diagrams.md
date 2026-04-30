@@ -1,233 +1,224 @@
-﻿# 4. State Diagrams — UML Diagrams
+﻿# 4. State Diagrams
 
-## 4.1 Agent FSM State Transition Diagram
+## 4.1 Agent FSM — Full State Transitions
 
-```
-                    ┌─────────────────────────────────────────────────────────┐
-                    │                    FSM STATES                           │
-                    └─────────────────────────────────────────────────────────┘
+```mermaid
+stateDiagram-v2
+    [*] --> IDLE
 
-                              [NOTIFICATION_SEEN]
-              ┌──────────┐  ─────────────────────►  ┌────────────┐
-              │          │                           │            │
-              │   IDLE   │                           │  ATTRACTED │
-              │          │  ◄─────────────────────── │            │
-              └──────────┘    [RANDOM_GOOD /          └────────────┘
-                               timer reset]                │
-                                                           │ engageCount ≥ 5
-                                                           │ OR timer > 600
-                                                           │ (no resistance)
-                                                           ▼
-                                                    ┌────────────┐
-                                                    │            │
-                                                    │  LOOPING   │
-                                                    │            │
-                                                    └────────────┘
-                                                           │
-                                                           │ stress ≥ 65
-                                                           ▼
-                                                    ┌────────────┐
-                                                    │            │
-                                                    │ DISTORTED  │
-                                                    │            │
-                                                    └────────────┘
-                                                           │
-                                                           │ stress ≥ 85
-                                                           ▼
-                                                    ┌──────────────┐
-                                                    │              │
-                                                    │BREAKING_POINT│
-                                                    │              │
-                                                    └──────────────┘
-                                                           │
-                              ┌────────────────────────────┼────────────────────────┐
-                              │                            │                        │
-                              ▼                            ▼                        ▼
-                       ┌──────────┐               ┌──────────────┐          ┌──────────┐
-                       │          │               │              │          │          │
-                       │RECOVERED │               │   PARTIAL    │          │   LOST   │
-                       │          │               │              │          │          │
-                       └──────────┘               └──────────────┘          └──────────┘
-                    (resist ≥ engage             (default mixed           (ignoredFriends ≥ 3
-                     AND happiness > 45)          behaviour)               OR loneliness > 70)
+    IDLE --> ATTRACTED : Notification seen
+    IDLE --> ATTRACTED : Idle too long (curiosity)
+    IDLE --> IDLE : Random good event
+
+    ATTRACTED --> LOOPING : Engaged 5+ times
+    ATTRACTED --> LOOPING : No resistance after 600 frames
+    ATTRACTED --> LOOPING : Player kept engaging (4+ times)
+    ATTRACTED --> LOOPING : Viral post spike
+    ATTRACTED --> ATTRACTED : Notification seen again
+    ATTRACTED --> ATTRACTED : Player resisted
+    ATTRACTED --> ATTRACTED : Friend message received
+    ATTRACTED --> ATTRACTED : Random good event
+
+    LOOPING --> DISTORTED : Stress reaches 65
+    LOOPING --> LOOPING : Friend ignored
+    LOOPING --> LOOPING : Random bad event
+    LOOPING --> LOOPING : Player resisted
+
+    DISTORTED --> BREAKING_POINT : Stress reaches 85
+    DISTORTED --> DISTORTED : Friend ignored
+    DISTORTED --> DISTORTED : Player resisted
+
+    BREAKING_POINT --> RECOVERED : Resisted more than engaged
+    BREAKING_POINT --> LOST : Ignored 3+ friends
+    BREAKING_POINT --> PARTIAL : Mixed behavior
+
+    RECOVERED --> [*]
+    PARTIAL --> [*]
+    LOST --> [*]
 ```
 
-### State Descriptions
+---
 
-| State | Description | Visual Indicator |
-|-------|-------------|-----------------|
-| **IDLE** | Agent is calm, not yet engaged | Upright posture, neutral expression |
-| **ATTRACTED** | Agent notices phone, curiosity engaged | Slight smile, eyes wider |
-| **LOOPING** | Habit forming, compulsive checking | Slight hunch, darker skin tone |
-| **DISTORTED** | Reality distorted, stress rising | More hunched, darker appearance |
-| **BREAKING_POINT** | Critical stress, about to break | Fully hunched, frown, glitch effect |
-| **RECOVERED** | Agent chose real world | Green shirt, upright, smile |
-| **PARTIAL** | Mixed outcome | Yellow/amber shirt |
-| **LOST** | Fully addicted | Dark grey, minimal expression |
+## 4.2 Scene Flow
 
-### Transition Triggers
+```mermaid
+flowchart TD
+    A([Boot]) --> B[Bedroom]
+    B --> C{Phone or Door?}
+    C -->|Press E — Phone| D[Social Media Feed]
+    C -->|Press F — Door| G[Real World]
+    D --> E{Addiction?}
+    E -->|50%| D2[Auto-Scroll On]
+    E -->|70%| F{Learn Now?}
+    E -->|100%| H[Fail + Learning Key]
+    D2 --> E
+    F -->|Yes| L[Learning Scene]
+    F -->|No| D
+    H --> L
+    L --> G
+    G --> I([End])
+```
 
+---
+
+## 4.3 AttractionScene — Phone States
+
+```mermaid
+stateDiagram-v2
+    [*] --> Idle
+    Idle --> PhoneOpen : Press E near phone
+    Idle --> DoorExit : Press F near door
+
+    PhoneOpen --> ManualScroll : Addiction 0–49%
+    ManualScroll --> AutoScroll : Addiction hits 50%
+    AutoScroll --> ManualScroll : Phone closed
+
+    AutoScroll --> EducationPopup : Addiction hits 70%
+    EducationPopup --> LearningScene : Accept
+    EducationPopup --> ContinuousScroll : Later
+
+    ContinuousScroll --> FailPopup : Addiction hits 100%
+    AutoScroll --> FailPopup : Addiction hits 100%
+    FailPopup --> LearningScene : Click learning key
+
+    DoorExit --> [*] : Go to RealWorldScene
+    LearningScene --> [*] : Scene transition
+```
+
+---
+
+## 4.4 NPC Behavior — States
+
+```mermaid
+stateDiagram-v2
+    [*] --> Wandering
+
+    Wandering --> Perceived : Steve enters vision cone or hearing range
+    Wandering --> Seeking : Random approach triggered
+
+    Perceived --> Speaking : Steve presses T nearby
+    Seeking --> Speaking : NPC reaches Steve
+
+    Speaking --> HappyTalk : Phone hidden, low addiction
+    Speaking --> AngryTalk : Phone visible, high addiction
+    Speaking --> GiveAdvice : Mom + addiction over 60%
+    Speaking --> Avoided : 2+ bad interactions learned
+
+    HappyTalk --> Cooldown : 3.5s
+    AngryTalk --> Cooldown : 3.5s
+    GiveAdvice --> Cooldown : Reduces addiction
+    Avoided --> Wandering : No interaction
+
+    Cooldown --> Wandering : Resume
+```
+
+---
+
+## 4.5 LearningScene — Task States
+
+```mermaid
+stateDiagram-v2
+    [*] --> Task1Active
+    Task1Active --> Task1Active : SPACE pressed, filling bar
+    Task1Active --> Task1Done : Bar full
+    Task1Done --> Task2Active : Next task loads
+    Task2Active --> Task2Active : SPACE pressed, filling bar
+    Task2Active --> Task2Done : Bar full
+    Task2Done --> SuccessCard : Both tasks complete
+    SuccessCard --> [*] : Return with improved stats
+```
+
+---
+
+## 4.6 Emotion System — States
+
+```mermaid
+stateDiagram-v2
+    [*] --> Baseline
+
+    Baseline --> Rising : Negative event
+    Baseline --> Falling : Positive event
+
+    Rising --> FSMCheck : Stress updated
+    Falling --> FSMCheck : Emotions updated
+
+    FSMCheck --> DISTORTED : Stress hits 65
+    FSMCheck --> BREAKING_POINT : Stress hits 85
+    FSMCheck --> Drifting : No threshold hit
+
+    DISTORTED --> Drifting
+    BREAKING_POINT --> Drifting
+    Drifting --> Baseline : Slowly returns to normal
+```
+
+---
+
+## 4.7 Memory & Learning — States
+
+```mermaid
+stateDiagram-v2
+    [*] --> Monitoring
+
+    Monitoring --> Detected : Behavior threshold crossed
+    Detected --> Stored : Pattern added to memory
+    Stored --> Applied : Behavior changes
+
+    Applied --> Monitoring : Continue watching
+
+    note right of Detected
+        Triggers:
+        Addiction over 80
+        Ignored 2+ messages
+        Scrolled 50+ times
+        Mom gave advice
+        2 bad NPC interactions
+        Completed learning tasks
+    end note
+```
+
+---
+
+## 4.8 Eye Movement — States
+
+```mermaid
+stateDiagram-v2
+    [*] --> Center
+    Center --> SnapRight : Notification sound plays
+    SnapRight --> Holding : Eyes locked on phone
+    Holding --> Returning : 800ms passed
+    Returning --> Center : Eyes back to normal
+    Center --> AgentResponds : FSM triggered
+    AgentResponds --> [*]
+```
+
+---
+
+## Reference Tables
+
+### FSM States
+| State | Meaning | Visual |
+|-------|---------|--------|
+| IDLE | Calm, not engaged | Upright, neutral |
+| ATTRACTED | Phone caught attention | Slight smile |
+| LOOPING | Habit forming | Slight hunch |
+| DISTORTED | Stressed, losing grip | More hunched |
+| BREAKING_POINT | Critical moment | Fully hunched, frown |
+| RECOVERED | Chose real world | Upright, green shirt |
+| PARTIAL | Mixed outcome | Neutral |
+| LOST | Fully addicted | Hunched, grey |
+
+### Addiction Thresholds
+| Level | Effect |
+|-------|--------|
+| 50% | Auto-scroll activates |
+| 70% | Educational popup shown |
+| 100% | Failure — learning key appears |
+
+### Scene Transitions
 | From | To | Trigger |
 |------|----|---------|
-| IDLE | ATTRACTED | NOTIFICATION_SEEN event |
-| IDLE | IDLE | RANDOM_GOOD (timer reset) |
-| ATTRACTED | LOOPING | engageCount ≥ 5 OR timer > 600 with no resistance |
-| LOOPING | DISTORTED | stress ≥ 65 |
-| DISTORTED | BREAKING_POINT | stress ≥ 85 |
-| BREAKING_POINT | RECOVERED | resistCount ≥ engageCount AND happiness > 45 |
-| BREAKING_POINT | LOST | ignoredFriends ≥ 3 OR loneliness > 70 |
-| BREAKING_POINT | PARTIAL | Default (mixed behaviour) |
-
----
-
-## 4.2 Scene Flow Diagram
-
-```
-┌──────────┐
-│BootScene │
-│ (Title)  │
-└──────────┘
-      │
-      │ Click anywhere
-      ▼
-┌──────────────────┐
-│ AttractionScene  │◄──────────────────────────────────┐
-│ (Scenario 1)     │                                   │
-│                  │                                   │
-│ Phone on table   │                                   │
-│ Door on left     │                                   │
-└──────────────────┘                                   │
-      │                    │                           │
-      │ Walk to door        │ Pick up phone             │
-      │ (press near door)   │ (press E near phone)      │
-      ▼                    ▼                           │
-┌──────────────┐    ┌──────────────────┐               │
-│RealWorldScene│    │  Mobile Screen   │               │
-│ (Scenario 2) │    │  (Feed Scroll)   │               │
-│              │    │                  │               │
-│ 3 NPCs       │    │ Addiction rises  │               │
-│ Conversation │    │                  │               │
-│ Random events│    │ At 70%:          │               │
-└──────────────┘    │ Decision popup   │               │
-      │             │                  │               │
-      │ Walk to road│ Accept → Learn   │               │
-      │ (after conv)│ Decline → Scroll │               │
-      ▼             │                  │               │
-┌──────────┐        │ At 100%:         │               │
-│ EndScene │        │ Fail popup       │               │
-│ (The End)│        │ → Learning Key   │               │
-└──────────┘        └──────────────────┘               │
-                           │                           │
-                           │ Accept learning /          │
-                           │ Click learning key         │
-                           ▼                           │
-                    ┌──────────────────┐               │
-                    │  LearningScene   │               │
-                    │  (Scenario 3)    │               │
-                    │                  │               │
-                    │ 2 study tasks    │               │
-                    │ SPACE to fill    │               │
-                    │ progress bar     │               │
-                    │                  │               │
-                    │ Complete → card  │               │
-                    │ Click → return   │───────────────┘
-                    └──────────────────┘
-```
-
----
-
-## 4.3 NPC Behaviour State Diagram (RealWorldScene)
-
-```
-                    ┌──────────┐
-                    │ WANDERING│ ◄──── Default state
-                    │ (neutral)│       Picks new target every 4s
-                    └──────────┘
-                         │
-              ┌──────────┴──────────┐
-              │                     │
-              │ Steve in range        │ Random event:
-              │ (vision/hearing)    │ "approach" triggered
-              ▼                     ▼
-        ┌──────────┐         ┌──────────────┐
-        │ PERCEIVED│         │  SEEKING     │
-        │ (neutral)│         │  PLAYER      │
-        └──────────┘         └──────────────┘
-              │                     │
-              │ Steve presses T       │ Arrives within 80px
-              │ (proximity)         │
-              ▼                     ▼
-        ┌──────────┐         ┌──────────────┐
-        │ SPEAKING │◄────────│   SPEAKING   │
-        │ (happy / │         │   (happy /   │
-        │  angry / │         │    angry)    │
-        │  sad)    │         └──────────────┘
-        └──────────┘
-              │
-              │ 3.5s auto-dismiss
-              ▼
-        ┌──────────┐
-        │ NEUTRAL  │ ──────► Back to WANDERING
-        └──────────┘
-```
-
----
-
-## 4.4 Class Diagram
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                         Agent                                    │
-├─────────────────────────────────────────────────────────────────┤
-│ + x, y : number                                                  │
-│ + addictionLevel : number (0-100)                                │
-│ + awareness : number (0-100)                                     │
-│ + curiosity : number (0-100)                                     │
-│ + relationshipLevel : number (0-100)                             │
-│ + memory : string[]                                              │
-│ + hunchLevel : number (0-4)                                      │
-│ + hasPhone : boolean                                             │
-│ + speed : number                                                 │
-│ + keysLocked : boolean                                           │
-├─────────────────────────────────────────────────────────────────┤
-│ + update() : void                                                │
-│ + usePhone(deltaTime) : void                                     │
-│ + onScroll() : void                                              │
-│ + respondToMessage(action) : void                                │
-│ + bounce() : void                                                │
-│ - _handleInput() : void                                          │
-│ - _perceive() : void                                             │
-│ - _updateAIVariables() : void                                    │
-│ - _drawCharacter(state) : void                                   │
-│ - _updateVisuals() : void                                        │
-└─────────────────────────────────────────────────────────────────┘
-         │ has-a                    │ has-a
-         ▼                         ▼
-┌──────────────────┐    ┌──────────────────────┐
-│      FSM         │    │    EmotionSystem      │
-├──────────────────┤    ├──────────────────────┤
-│ + state : string │    │ + stress : number     │
-│ + engageCount    │    │ + happiness : number  │
-│ + resistCount    │    │ + loneliness : number │
-│ + ignoredFriends │    ├──────────────────────┤
-├──────────────────┤    │ + update() : void     │
-│ + update()       │    │ + applyEvent(delta)   │
-│ + handleEvent()  │    │ - _drift()            │
-│ + forceState()   │    └──────────────────────┘
-│ + onTransition() │
-│ - _transition()  │
-│ - _resolveOutcome│
-└──────────────────┘
-
-┌──────────────────────────────────────────────────────────────────┐
-│                    Scene Hierarchy                                │
-├──────────────────────────────────────────────────────────────────┤
-│  Phaser.Scene                                                     │
-│       │                                                           │
-│       ├── BootScene          (title screen)                       │
-│       ├── AttractionScene    (Scenario 1 — uses Agent)            │
-│       ├── RealWorldScene     (Scenario 2 — uses Agent + NPCs)     │
-│       ├── LearningScene      (Scenario 3 — uses Agent)            │
-│       └── EndScene           (completion screen)                  │
-└──────────────────────────────────────────────────────────────────┘
-```
+| Boot | Bedroom | Click screen |
+| Bedroom | Real World | Press F at door |
+| Bedroom | Learning | Accept popup or learning key |
+| Learning | Bedroom | Complete both tasks |
+| Real World | End | Finish conversation |

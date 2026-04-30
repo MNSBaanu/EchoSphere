@@ -6,10 +6,10 @@ EchoSphere demonstrates **six distinct AI intelligence traits** across its three
 
 ## 7.1 Trait 1: Perceptions — Vision, Hearing, and Sensing
 
-**Location:** `src/scenes/RealWorldScene.js` (`_updateVisionCone`, `_updatePerception`), `src/agent/Agent.js` (`_perceive`)
+**Location:** `src/scenes/RealWorldScene.js` (`_updateVisionCone`, `_updatePerception`), `src/agent/Agent.js` (`lookAtDirection`), `src/scenes/AttractionScene.js` (`_firePhoneNotification`)
 
 **Description:**
-Steve has a realistic multi-modal perception system. He can **see** NPCs within a directional vision cone, **hear** NPCs within an omnidirectional hearing range, and **sense** notifications by proximity. These are modelled using trigonometry and are affected by real-world environmental conditions — time of day and phone distraction both reduce what Steve can perceive.
+Steve has a realistic multi-modal perception system. He can **see** NPCs within a directional vision cone, **hear** NPCs within an omnidirectional hearing range, **sense** notifications by proximity, and **respond with eye movement** to audio stimuli. These are modelled using trigonometry and are affected by real-world environmental conditions — time of day and phone distraction both reduce what Steve can perceive.
 
 **Vision Cone Parameters:**
 - Range: 200px (base)
@@ -21,13 +21,45 @@ Steve has a realistic multi-modal perception system. He can **see** NPCs within 
 - Range: 150px (omnidirectional — no angle restriction)
 - Models how sound travels in all directions regardless of facing
 
-**Notification Sensing:**
-- Range: 90px proximity radius
-- Triggers FSM event `NOTIFICATION_SEEN` when Steve walks near a notification object
+**Audio-Visual Response System:**
+- **Notification Sound**: 3-loop audio notification (noti.wav) plays when phone buzzes
+- **Eye Movement**: Steve's eyes automatically snap toward sound source, hold for 800ms, then return to center
+- **Directional Response**: Eyes move left/right based on sound source location
 
 **Implementation:**
 ```javascript
-// RealWorldScene.js — Perception calculation
+// Agent.js — Eye movement response to audio stimuli
+lookAtDirection(direction) {
+  const offset = direction === 'right' ? 15 : -15;
+  this._eyeOffset = offset;
+  
+  // Hold eye position for 800ms, then return to center
+  this.scene.time.delayedCall(800, () => {
+    this._eyeOffset = 0;
+  });
+}
+
+// AttractionScene.js — Audio notification with eye response
+_firePhoneNotification() {
+  // Play notification sound 3 times with 600ms gaps
+  if (this.cache.audio.exists('noti')) {
+    let playCount = 0;
+    const playNext = () => {
+      if (playCount >= 3) return;
+      playCount++;
+      this.sound.play('noti', { volume: 0.8 });
+      this.time.delayedCall(600, playNext);
+    };
+    playNext();
+  }
+  
+  // Agent hears notification — eyes snap toward phone then return
+  if (this.agent) {
+    this.agent.lookAtDirection('right'); // Phone is to the right
+  }
+}
+
+// RealWorldScene.js — Perception calculation with environmental modifiers
 _updatePerception() {
   const facingAngle = this.agent._facingRight ? 0 : Math.PI;
   const halfCone = Phaser.Math.DegToRad(this.VISION_ANGLE / 2); // 45°
@@ -52,22 +84,10 @@ _updatePerception() {
     }
   });
 }
-
-// Agent.js — Notification sensing by proximity
-_perceive() {
-  this.scene.notifications.forEach(n => {
-    const dist = Phaser.Math.Distance.Between(this.x, this.y, n.x, n.y);
-    if (dist < 90) {
-      this.fsm.handleEvent('NOTIFICATION_SEEN'); // triggers FSM transition
-      this._perceptionCooldown = 50;
-      n._seen = true;
-    }
-  });
-}
 ```
 
 **Real-World Physics:**
-The vision cone uses trigonometric angle calculation to determine if an NPC falls within Steve's field of view, modelling the physical limitation of human peripheral vision. The dusk modifier models reduced visibility in low light. The phone distraction modifier models how divided attention narrows effective perception — a documented cognitive phenomenon.
+The vision cone uses trigonometric angle calculation to determine if an NPC falls within Steve's field of view, modelling the physical limitation of human peripheral vision. The dusk modifier models reduced visibility in low light. The phone distraction modifier models how divided attention narrows effective perception — a documented cognitive phenomenon. The eye movement system models natural human response to audio stimuli.
 
 **Stacked Environmental Modifiers:**
 ```
@@ -189,9 +209,9 @@ const GREET_CONV = [
   { npc: 'sibling', text: "Yay! Can we play now? 🎉",               emotion: 'happy' },
   { npc: 'friend',  text: "Finally! We have been waiting! 😄",      emotion: 'happy' },
   { npc: 'mom',     text: "It is such a beautiful day outside.",     emotion: 'happy' },
-  { npc: 'sibling', text: "Let us go on a trip together! 🚗",       emotion: 'happy' },
-  { npc: 'friend',  text: "Road trip! That sounds amazing! 🎵",     emotion: 'happy' },
-  { npc: 'mom',     text: "Together, we can go anywhere. 💚",       emotion: 'happy' },
+  { npc: 'sibling', text: "Can we play something together?",         emotion: 'happy' },
+  { npc: 'friend',  text: "We were about to start without you!",    emotion: 'happy' },
+  { npc: 'mom',     text: "Let's head out together! 💚",            emotion: 'happy' },
 ];
 ```
 
@@ -229,10 +249,10 @@ The notification bell icon in RealWorldScene represents incoming social media me
 
 ## 7.4 Trait 4: Learning and Memory
 
-**Location:** `src/agent/Agent.js` (`_updateAIVariables`), `src/scenes/RealWorldScene.js` (`_npcSpeak`, `_giveAdvice`)
+**Location:** `src/agent/Agent.js` (`_updateAIVariables`), `src/scenes/RealWorldScene.js` (`_npcSpeak`, `_giveAdvice`), `src/scenes/LearningScene.js`, `src/scenes/AttractionScene.js` (`_showLearningKey`)
 
 **Description:**
-The agent maintains a `memory` array that stores behavioural patterns learned during gameplay. These memories **persist across scene transitions** and modify future behaviour — the agent does not repeat the same mistakes. Steve learns from advice, recognises his own compulsive patterns, and avoids NPCs who have reacted badly to him.
+The agent maintains a `memory` array that stores behavioural patterns learned during gameplay. These memories **persist across scene transitions** and modify future behaviour — the agent does not repeat the same mistakes. Steve learns from advice, recognises his own compulsive patterns, avoids NPCs who have reacted badly to him, and can learn from educational content in the LearningScene. The system includes both **proactive learning** (accepting educational opportunities) and **redemptive learning** (learning from failure).
 
 **Patterns Learned:**
 
@@ -243,6 +263,47 @@ The agent maintains a `memory` array that stores behavioural patterns learned du
 | `'compulsive_scrolling'` | scrollCount > 50 | Logged, informs FSM outcome |
 | `'mom_advice'` | Mom gives advice | -20 addiction, +15 awareness, advice not repeated |
 | `'avoid_[npcId]'` | 2 bad interactions with NPC | Steve avoids that NPC in future |
+| `'educational_completion'` | LearningScene tasks completed | -30-40 addiction, +25-35 awareness |
+| `'redemption_learning'` | Learning after 100% failure | Recovery from complete addiction failure |
+
+**Learning Opportunities System:**
+```javascript
+// AttractionScene.js — Educational notification at 70% addiction
+_showEducationalNotification() {
+  // Popup with Accept/Later choice
+  // Accept → LearningScene (proactive learning)
+  // Later → Continue scrolling (missed opportunity)
+}
+
+// AttractionScene.js — Redemption system at 100% addiction
+_showLearningKey() {
+  // After failure notification, learning key appears
+  // Offers second chance through education
+  // Click → LearningScene (redemptive learning)
+}
+```
+
+**LearningScene Educational System:**
+```javascript
+// LearningScene.js — Task-based learning with measurable outcomes
+_completeTask(taskIndex) {
+  this._tasks[taskIndex].completed = true;
+  this._tasks[taskIndex].progress = 100;
+  
+  if (this._tasks.every(task => task.completed)) {
+    // All tasks completed — apply learning benefits
+    const reductionAmount = Phaser.Math.Between(30, 40);
+    const awarenessGain = Phaser.Math.Between(25, 35);
+    
+    // Transfer improved state back to AttractionScene
+    this.scene.start('AttractionScene', {
+      addictionLevel: Math.max(0, this._addictionLevel - reductionAmount),
+      awareness: Math.min(100, this._awareness + awarenessGain),
+      memory: [...this._memory, 'educational_completion']
+    });
+  }
+}
+```
 
 **Implementation:**
 ```javascript
@@ -292,12 +353,27 @@ this.scene.start('RealWorldScene', {
   awareness: this._awareness,
 });
 
-// RealWorldScene reads and restores memory
-this.agent.memory = [...this._memory];
+// AttractionScene → LearningScene data transfer
+this.scene.start('LearningScene', {
+  addictionLevel: this.agent.addictionLevel,
+  awareness: this.agent.awareness,
+  memory: [...this.agent.memory]
+});
+
+// LearningScene → AttractionScene with improved metrics
+this.scene.start('AttractionScene', {
+  addictionLevel: reducedAddiction,
+  awareness: improvedAwareness,
+  memory: [...this._memory, 'educational_completion']
+});
 ```
 
-**Learning in LearningScene:**
-When Steve completes study tasks, he earns XP and the simulation reinforces positive behaviour — returning to AttractionScene with reduced addiction and increased awareness, demonstrating that learning has tangible consequences.
+**Learning Pathways:**
+1. **Proactive Learning**: Accept educational notification at 70% → LearningScene → Return with benefits
+2. **Redemptive Learning**: Reach 100% failure → Learning key → LearningScene → Recovery
+3. **Social Learning**: Receive advice from Mom → Immediate addiction/awareness adjustment
+4. **Behavioral Learning**: Recognize patterns → Avoid repeating mistakes with NPCs
+5. **Experiential Learning**: Track compulsive behaviors → Inform FSM outcomes
 
 ---
 
@@ -398,11 +474,12 @@ Decision making operates at two levels: **player-driven decisions** at key narra
 
 | Decision Point | Options | Consequence |
 |----------------|---------|-------------|
-| Start of AttractionScene | Walk to door OR pick up phone | Determines Scenario 2 vs addiction path |
-| At 70% addiction | Accept learning OR continue scrolling | Triggers LearningScene or continues addiction |
-| At 100% addiction | Click learning key | Forces LearningScene path |
-| In RealWorldScene | Engage NPCs (T) OR ignore them | Affects relationship level and FSM outcome |
+| Start of AttractionScene | Walk to door (F key) OR pick up phone (E key) | Determines RealWorldScene vs addiction path |
+| At 70% addiction | Accept learning OR Later (continue scrolling) | Triggers LearningScene or continuous scroll mode |
+| At 100% addiction | Click learning key | Forces redemptive LearningScene path |
+| In RealWorldScene | Engage NPCs (T key) OR ignore them | Affects relationship level and FSM outcome |
 | Notification bell | Click OR ignore | Increases addiction and triggers NPC sadness |
+| LearningScene tasks | Complete (SPACE) OR abandon | Determines learning benefits and return state |
 
 **FSM Autonomous Decision Making:**
 ```javascript
@@ -495,12 +572,19 @@ this.container.setScale(this._facingRight ? 1 : -1, hunchScaleY);
 
 ## 7.8 Trait Coverage Summary
 
-| Required Trait | Implemented | Location |
-|----------------|-------------|----------|
-| Perceptions (see, hear, sense) | ✅ Vision cone + hearing range + proximity sensing | `RealWorldScene.js`, `Agent.js` |
-| Emotional intelligence | ✅ EmotionSystem + NPC emotional reactions + inter-agent contagion | `EmotionSystem.js`, `FSM.js`, `RealWorldScene.js` |
-| Natural language communication | ✅ Speech bubbles, 7-line dialogue, context-sensitive NPC lines | `RealWorldScene.js` |
-| Learning | ✅ Memory array, advice retention, NPC avoidance, cross-scene persistence | `Agent.js`, `RealWorldScene.js` |
-| Searching / Pathfinding | ✅ Seek steering, random wander, rain shelter pathfinding | `RealWorldScene.js` |
-| Decision making | ✅ FSM outcome resolution, player choice nodes, NPC autonomous decisions | `FSM.js`, `AttractionScene.js`, `RealWorldScene.js` |
-| Real-world physics | ✅ Vision cone, hearing range, dusk/distraction modifiers, posture model | `RealWorldScene.js`, `Agent.js` |
+| Required Trait | Implemented | Location | Key Features |
+|----------------|-------------|----------|--------------|
+| **Perceptions** (see, hear, sense) | ✅ | `RealWorldScene.js`, `Agent.js`, `AttractionScene.js` | Vision cone + hearing range + proximity sensing + eye movement response to audio |
+| **Emotional intelligence** | ✅ | `EmotionSystem.js`, `FSM.js`, `RealWorldScene.js` | EmotionSystem + NPC emotional reactions + inter-agent contagion + context-sensitive responses |
+| **Natural language communication** | ✅ | `RealWorldScene.js` | Speech bubbles, 7-line dialogue, context-sensitive NPC lines, group conversations |
+| **Learning** | ✅ | `Agent.js`, `RealWorldScene.js`, `LearningScene.js`, `AttractionScene.js` | Memory array, advice retention, NPC avoidance, educational tasks, redemption system |
+| **Searching / Pathfinding** | ✅ | `RealWorldScene.js` | Seek steering, random wander, rain shelter pathfinding, group movement coordination |
+| **Decision making** | ✅ | `FSM.js`, `AttractionScene.js`, `RealWorldScene.js`, `LearningScene.js` | FSM outcome resolution, educational choices, redemption opportunities, NPC autonomous decisions |
+| **Real-world physics** | ✅ | `RealWorldScene.js`, `Agent.js` | Vision cone trigonometry, hearing range, dusk/distraction modifiers, posture compression, eye movement |
+
+**Additional Intelligence Features:**
+- **Adaptive Behavior**: Auto-scroll system that adapts to addiction level
+- **State Persistence**: Memory and learning transfer across scenes  
+- **Recovery Mechanisms**: Multiple pathways for learning and redemption
+- **Environmental Awareness**: Dusk effects, weather responses, spatial navigation
+- **Multi-Modal Interaction**: Visual, auditory, and proximity-based perception systems
