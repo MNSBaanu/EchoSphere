@@ -121,8 +121,8 @@ export default class RealWorldScene extends Phaser.Scene {
       fontFamily: FONT, fontSize: "16px", color: "#86efac", fontStyle: "bold"
     }).setOrigin(0.5, 0).setDepth(21);
 
-    this.add.text(width - 24, 14, "[N] skip", {
-      fontFamily: FONT, fontSize: "14px", color: "#4ade80"
+    this.add.text(width - 24, 14, "↑↓←→/WASD  ·  [T] Talk", {
+      fontFamily: FONT, fontSize: "13px", color: "#4ade80"
     }).setOrigin(1, 0).setDepth(21);
 
     // ── Spawn NPCs ────────────────────────────────────────────────────────
@@ -173,11 +173,6 @@ export default class RealWorldScene extends Phaser.Scene {
 
     // ── NPC autonomous wander ─────────────────────────────────────────────
     this._npcs.forEach(npc => this._startNPCWander(npc));
-
-    // ── Skip key ──────────────────────────────────────────────────────────
-    this.input.keyboard.once("keydown-N", () => {
-      if (!this._ended) this._endScene();
-    });
   }
 
   update() {

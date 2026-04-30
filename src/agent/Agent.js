@@ -412,6 +412,12 @@ export default class Agent {
     this.x += this.vx;
     this.y += this.vy;
 
+    // ── Hard boundary clamp (all scenes) ─────────────────────────────────
+    const margin = 24;
+    const topBarH = 52;
+    this.x = Phaser.Math.Clamp(this.x, margin, width  - margin);
+    this.y = Phaser.Math.Clamp(this.y, topBarH + margin, height - margin);
+
     // ── Rubber-band boundary (Scene 2) ────────────────────────────────────
     if (this.rubberBand) {
       const margin = 60;

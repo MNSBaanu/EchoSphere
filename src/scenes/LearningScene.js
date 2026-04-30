@@ -17,7 +17,6 @@ export default class LearningScene extends Phaser.Scene {
     this._ended   = false;
     this._taskIdx = 0;
     this._xp      = 0;
-    this._isSitting = false;
     this._chair = null;
   }
 
@@ -46,7 +45,7 @@ export default class LearningScene extends Phaser.Scene {
       fontFamily: FONT, fontSize: '14px', color: '#4ade80', fontStyle: 'bold'
     }).setOrigin(0.5, 0).setDepth(11);
 
-    this.add.text(width - 24, 14, '[N] skip', {
+    this.add.text(width - 24, 14, '↑↓←→/WASD  ·  [SPACE] Study', {
       fontFamily: FONT, fontSize: '13px', color: '#818cf8'
     }).setOrigin(1, 0).setDepth(11);
 
@@ -63,16 +62,6 @@ export default class LearningScene extends Phaser.Scene {
 
     // ── Start first task after a moment ──────────────────────────────────
     this.time.delayedCall(1500, () => this._startNextTask());
-
-    // ── Dev skip ──────────────────────────────────────────────────────────
-    this.input.keyboard.once('keydown-N', () => {
-      if (!this._ended) this._endScene('good');
-    });
-
-    // ── Sit/Stand functionality ─────────────────────────────────────────────
-    this.input.keyboard.on('keydown-C', () => {
-      if (!this._ended) this._toggleSitting();
-    });
   }
 
   update() {
@@ -589,28 +578,5 @@ export default class LearningScene extends Phaser.Scene {
     };
   }
 
-  // ── Toggle sitting/standing ─────────────────────────────────────────────────
-  _toggleSitting() {
-    if (this._isSitting) {
-      // Stand up
-      this._isSitting = false;
-      this.agent.y = this._groundY - 60;
-      this.agent.fsm.forceState('IDLE');
-          } else {
-      // Sit down
-      this._isSitting = true;
-      this.agent.x = this._chair.x - 20;
-      this.agent.y = this._groundY - 60;
-      this.agent.fsm.forceState('IDLE');
-            
-      // Add sitting animation
-      this.tweens.add({
-        targets: this.agent,
-        x: this._chair.x - 20,
-        duration: 300,
-        ease: 'power2.out'
-      });
-    }
-    
-  }
 }
+

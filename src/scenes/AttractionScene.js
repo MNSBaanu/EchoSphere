@@ -101,8 +101,8 @@ export default class AttractionScene extends Phaser.Scene {
     this.add.text(width / 2, 14, 'SCENARIO 1 — THE ATTRACTION', {
       fontFamily: FONT, fontSize: '16px', color: '#a5b4fc', fontStyle: 'bold'
     }).setOrigin(0.5, 0).setDepth(21);
-    this.add.text(width - 24, 14, 'Real World  ·  [F] or [N] skip', {
-      fontFamily: FONT, fontSize: '15px', color: '#818cf8'
+    this.add.text(width - 24, 14, '↑↓←→/WASD  ·  [E] Pick up  ·  [ESC] Close  ·  [F] Door', {
+      fontFamily: FONT, fontSize: '13px', color: '#818cf8'
     }).setOrigin(1, 0).setDepth(21);
 
     // ── Phone on table ────────────────────────────────────────────────────
@@ -143,16 +143,6 @@ export default class AttractionScene extends Phaser.Scene {
     // ── UI ────────────────────────────────────────────────────────────────
     this._buildChoiceButtons();
     this._logContainer = this.add.container(16, height - 16).setDepth(25);
-
-    // ── Skip keys ─────────────────────────────────────────────────────────
-    this.input.keyboard.once('keydown-N', () => {
-      if (!this._ended) this._transitionToRealWorld();
-    });
-    
-    // F key for quick access to Real World
-    this.input.keyboard.once('keydown-F', () => {
-      if (!this._ended) this._transitionToRealWorld();
-    });
 
     // ── Keyboard movement widget (top-right) ──────────────────────────────
     this._buildKeyboardWidget(width, height);
@@ -613,6 +603,22 @@ export default class AttractionScene extends Phaser.Scene {
       .setStrokeStyle(2, 0xfbbf24, 0.3)
       .setFillStyle(0x000000, 0)
       .setDepth(3);
+
+    // ── "Real World" label above door ─────────────────────────────────────
+    const labelY = dy - 32;
+    const labelW = dw + 24;
+
+    // Border / badge background
+    const labelBg = this.add.graphics().setDepth(4);
+    labelBg.fillStyle(0x1e1b4b, 0.88);
+    labelBg.fillRoundedRect(dx - 6, labelY - 12, labelW, 26, 6);
+    labelBg.lineStyle(2, 0xfbbf24, 0.85);
+    labelBg.strokeRoundedRect(dx - 6, labelY - 12, labelW, 26, 6);
+
+    // Label text
+    this.add.text(dx + dw / 2, labelY + 1, '🌿  Real World', {
+      fontFamily: FONT_BODY, fontSize: '13px', fontStyle: 'bold', color: '#fbbf24'
+    }).setOrigin(0.5, 0.5).setDepth(5);
   }
 
   // ── Social media icons toggling above phone ──────────────────────────────
