@@ -121,7 +121,7 @@ export default class RealWorldScene extends Phaser.Scene {
       fontFamily: FONT, fontSize: "16px", color: "#86efac", fontStyle: "bold"
     }).setOrigin(0.5, 0).setDepth(21);
 
-    this.add.text(width - 24, 14, "↑↓←→/WASD  ·  [T] Talk", {
+    this.add.text(width - 24, 14, "↑↓←→/WASD", {
       fontFamily: FONT, fontSize: "13px", color: "#4ade80"
     }).setOrigin(1, 0).setDepth(21);
 
@@ -973,18 +973,10 @@ export default class RealWorldScene extends Phaser.Scene {
   }
 
   _showInteractPrompt(npc) {
-    if (npc._interactPrompt) return;
+    if (npc._talkKey) return;
     if (this._convActive) return; // block during greeting conversation
 
-    const prompt = this.add.container(npc.x, npc.y - 80).setDepth(15);
-    const bg = this.add.rectangle(0, 0, 130, 32, 0x14532d, 0.95);
-    bg.setStrokeStyle(2, 0x4ade80, 1);
-    const txt = this.add.text(0, 0, "Press [T] to talk", {
-      fontFamily: FONT, fontSize: "12px", color: "#ffffff"
-    }).setOrigin(0.5);
-    prompt.add([bg, txt]);
-
-    npc._interactPrompt = prompt;
+    npc._interactPrompt = true;
 
     // Register T key for this NPC (only fires if conversation is not active)
     npc._talkKey = this.input.keyboard.on("keydown-T", () => {
@@ -998,10 +990,7 @@ export default class RealWorldScene extends Phaser.Scene {
   }
 
   _hideInteractPrompt(npc) {
-    if (npc._interactPrompt) {
-      npc._interactPrompt.destroy();
-      npc._interactPrompt = null;
-    }
+    npc._interactPrompt = null;
     if (npc._talkKey) {
       this.input.keyboard.off("keydown-T", npc._talkKey);
       npc._talkKey = null;
@@ -1253,14 +1242,6 @@ export default class RealWorldScene extends Phaser.Scene {
     let waiting = false;
     this._convActive = true; // block all other NPC speech while conversation runs
 
-    // Hint text at bottom
-    this._convHint = this.add.text(this._w / 2, this._h - 40,
-      `Press [T] to start conversation  (0/${conversation.length})`, {
-        fontFamily: FONT, fontSize: "14px", color: "#ffffff",
-        backgroundColor: "#00000088", padding: { x: 12, y: 6 }
-      }).setOrigin(0.5).setDepth(25);
-    this.tweens.add({ targets: this._convHint, alpha: 0.4, duration: 700, yoyo: true, repeat: -1 });
-
     const clearAllBubbles = () => {
       // Destroy every NPC bubble — no leftovers
       this._npcs.forEach(n => {
@@ -1287,10 +1268,6 @@ export default class RealWorldScene extends Phaser.Scene {
       npc.emotion = emotion;
       if (npc.drawNPC) npc.drawNPC(emotion);
 
-      if (this._convHint) {
-        this._convHint.setText(`Press [T] for next  (${i + 1}/${conversation.length})`);
-      }
-
       waiting = true;
     };
 
@@ -1313,7 +1290,6 @@ export default class RealWorldScene extends Phaser.Scene {
           this._convActive = false;
           this._convTHandler = null;
           clearAllBubbles();
-          if (this._convHint) { this._convHint.destroy(); this._convHint = null; }
           this.input.keyboard.off("keydown-T", onT);
           this.time.delayedCall(400, () => {
             if (!this._ended) this._agentWalkToRoad();
