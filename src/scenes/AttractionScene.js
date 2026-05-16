@@ -46,6 +46,16 @@ export default class AttractionScene extends Phaser.Scene {
     this._incomingAddiction = data.addictionLevel ?? null;
     this._incomingAwareness = data.awareness      ?? null;
     this._incomingMemory    = data.memory         ?? null;
+    this._returnedFromLearning = data.allowLearningRetry === true;
+  }
+
+  _getLearningSceneData(extra = {}) {
+    return {
+      addictionLevel: this.agent ? this.agent.addictionLevel : 0,
+      awareness: this.agent ? this.agent.awareness : 70,
+      memory: this.agent ? [...this.agent.memory] : [],
+      ...extra,
+    };
   }
 
   preload() {
@@ -86,7 +96,9 @@ export default class AttractionScene extends Phaser.Scene {
     this._pickupKey         = null;
     this._doorKey           = null;
     this._decisionShown     = false;
-    this._failShown         = false;    this.agent              = null;
+    this._failShown         = false;
+    this._learningKeyShown  = false;
+    this.agent              = null;
 
     // ── Room environment (side view) ─────────────────────────────────────
     this._drawRoom(width, height);
@@ -133,12 +145,14 @@ export default class AttractionScene extends Phaser.Scene {
       this._onStateChange(newState, reason);
     });
 
-    // ── Notification fires immediately on scene load
-    this.time.delayedCall(300, () => {
-      if (!this._continuousScrollMode) {
-        this._firePhoneNotification();
-      }
-    });
+    // ── Notification on load (skip if returning from Learning — already notified)
+    if (!this._returnedFromLearning) {
+      this.time.delayedCall(300, () => {
+        if (!this._continuousScrollMode) {
+          this._firePhoneNotification();
+        }
+      });
+    }
 
     // ── UI ────────────────────────────────────────────────────────────────
     this._buildChoiceButtons();
@@ -1306,7 +1320,7 @@ export default class AttractionScene extends Phaser.Scene {
       gsap.to(popup, { alpha: 0, scale: 0.8, duration: 0.3 });
       this._closeMobileScreen();
       this.time.delayedCall(200, () => {
-        this.scene.start('LearningScene');
+        this.scene.start('LearningScene', this._getLearningSceneData());
       });
     });
 
@@ -1504,6 +1518,8 @@ export default class AttractionScene extends Phaser.Scene {
   // Show results failed notification
   // Show learning key icon for transition to Learning Scene
   _showLearningKey() {
+    if (this._learningKeyShown) return;
+    this._learningKeyShown = true;
     this._log('🔑 Learning Key', 'Agent has learned from mistakes - key to learning appears');
     
     const { width, height } = this.scale;
@@ -1555,7 +1571,7 @@ export default class AttractionScene extends Phaser.Scene {
     keyBg.on('pointerdown', () => {
       gsap.to(this._learningKey, { alpha: 0, scale: 0.85, duration: 0.3, onComplete: () => {
         if (this._learningKey) { this._learningKey.destroy(); this._learningKey = null; }
-        this.scene.start('LearningScene', { fromKeyRedemption: true });
+        this.scene.start('LearningScene', this._getLearningSceneData({ fromKeyRedemption: true }));
       }});
     });
   }

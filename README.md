@@ -90,7 +90,7 @@ AttractionScene (Bedroom)
      │
      └── Door → [F] → RealWorldScene
                         │
-                        ├── Move near NPCs → [T] talk (no on-screen label)
+                        ├── Move near NPCs → [T] talk (hint in nav bar)
                         ├── Auto 7-line group conversation → [T] advance
                         └── Group walks to road → EndScene
 
@@ -131,7 +131,7 @@ LearningScene
 - **Perception:** Steve must perceive NPCs (see or hear) before interaction; vision shrinks at dusk and when phone-distracted.
 - **Learning:** Mom’s advice once; avoid NPC after 2 bad interactions; memory carries from other scenes.
 - **Events:** Random dusk, rain, wind, NPC approach, and hearing events.
-- **UI:** No “Press [T] to talk” labels — `[T]` still works when near NPCs or during the group conversation.
+- **UI:** `[T] Talk` shown in the top nav bar; no floating prompts above NPCs.
 
 ---
 
