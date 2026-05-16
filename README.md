@@ -1,4 +1,4 @@
-﻿# 🌐 EchoSphere: The World You Shape
+﻿# EchoSphere: The World You Shape
 
 > An interactive, AI-driven agent simulation about a teenage student navigating digital addiction — and finding his way back to real-world connections.
 
@@ -6,103 +6,39 @@
 
 ---
 
-## 🎯 What Is This?
+## What Is This?
 
-**EchoSphere** is a browser-based intelligent agent simulation built with Phaser.js. You follow **Steve**, a teen whose choices between his phone and the real world shape his emotional state, relationships, and behaviour.
+**EchoSphere** is a browser-based intelligent agent simulation built with **Phaser.js 3**. You follow **Steve**, an AI agent whose behaviour is driven by perception, internal state, decisions, and memory — not by a fixed script.
 
-The simulation is **not linear**. It uses a behaviour-driven AI system — Steve's FSM state, addiction level, awareness, and memory all influence what happens next. Every run can end differently.
-
----
-
-## 🗺️ Scene Flow
-
-```
-Boot Screen
-     │
-     ▼
-Scenario 1: The Attraction (Bedroom)
-     │
-     ├── 📱 Walk to Phone → Press [E] to pick up
-     │        │
-     │        ▼
-     │   Social Media Feed opens
-     │   Addiction level rises each frame
-     │        │
-     │        ├── At 70% addiction → Learning notification popup
-     │        │        ├── Accept  → Scenario 3: Learning Path
-     │        │        └── Later   → Keep scrolling
-     │        │
-     │        └── At 100% addiction → Fail notification
-     │                 └── OK → Learning Key → Scenario 3: Learning Path
-     │
-     └── 🚪 Walk to Door → Scenario 2: Real World
-                                  │
-                             Press [T] to advance conversation
-                             with Mom, Alex, and Sam (7 lines)
-                                  │
-                             After conversation → group walks to road
-                                  │
-                                  ▼
-                             End Screen (Journey Complete)
-
-Scenario 3: Learning Path
-     │
-     Complete 2 study tasks with [SPACE]
-     │
-     ▼
-     Return to Scenario 1
-```
+The simulation is **non-linear**: FSM state, addiction level, awareness, emotions, and memory all influence what happens next. Different runs can produce different outcomes.
 
 ---
 
-## 🎬 Scenes
+## AI Agent Model
 
-| # | Key | Scene | Description |
-|---|---|---|---|
-| 0 | `BootScene` | Boot Screen | Animated title screen with info panel |
-| 1 | `AttractionScene` | The Attraction | Bedroom — phone or door decision |
-| 2 | `RealWorldScene` | Real World | Outdoor park with NPCs, vision cone, weather |
-| 3 | `LearningScene` | Learning Path | Study room — complete tasks to earn XP |
-| 4 | `TripScene` | Road Trip | Driving scene (accessible via code) |
-| 5 | `EndScene` | Journey Complete | Final end screen |
+Steve follows the core intelligent-agent cycle:
 
----
+| Phase | In EchoSphere |
+|--------|----------------|
+| **Sense** | Vision cone, hearing range, phone notifications (audio + proximity), eye movement toward sound |
+| **Think** | Processes inputs using addiction, awareness, emotions, and FSM state |
+| **Act** | Movement, phone use, scrolling, NPC dialogue, autonomous NPC movement |
+| **Learn** | `memory[]` stores patterns; behaviour adjusts across scenes |
 
-## 🧠 AI Intelligence Traits
+### Intelligence traits
 
-| Trait | How It Works |
-|---|---|
-| **Perception** | Vision cone (90°, 200px) calculated each frame using trigonometry. Hearing range (150px) omnidirectional. Range shrinks at dusk (×0.55) and when phone is visible (×0.6). NPCs only interactable when perceived. |
-| **Emotional Intelligence** | `stress`, `happiness`, `loneliness` drift toward baseline each frame and are modified by events. Emotions drive FSM transitions (stress ≥ 65 → DISTORTED, stress ≥ 85 → BREAKING_POINT). NPC faces redraw live per emotion. |
-| **Learning & Memory** | `agent.memory[]` stores patterns (`high_addiction`, `social_neglect`, `compulsive_scrolling`, `mom_advice`, `avoid_[npc]`). Steve avoids NPCs after repeated conflict. Mom's advice given only once. Memory persists across scenes. |
-| **Decision Making** | Phone vs door; 70% addiction decision popup (learn or scroll); behaviour-based FSM outcomes (RECOVERED / PARTIAL / LOST). |
-| **Autonomous Behaviour** | NPCs wander autonomously (new target every 4s). NPCs seek Steve via steering when ignored. Rain sends all NPCs to bench shelter. Group walks to road after conversation. |
-| **State-Based Behaviour** | FSM with 8 states and event-driven transitions. Same event produces different responses depending on current state. |
+| Trait | Implementation |
+|--------|----------------|
+| **Perception** | 90° vision cone (200px), 150px hearing; reduced at dusk (×0.55) and when distracted by phone (×0.6) |
+| **Emotional intelligence** | `stress`, `happiness`, `loneliness` with baseline drift; drives FSM transitions; NPC emotional reactions and contagion |
+| **Natural language communication** | Speech bubbles; context-sensitive lines (`normal` / `angry` / advice); 7-line group conversation |
+| **Learning & memory** | Patterns: `high_addiction`, `social_neglect`, `compulsive_scrolling`, `mom_advice`, `avoid_[npc]`, `educational_completion`; persists across scenes |
+| **Searching & pathfinding** | NPC wander targets, seek steering toward Steve, rain shelter pathfinding, group walk to road |
+| **Decision making** | Phone vs door; learn vs scroll at 70%; redemption at 100%; engage vs ignore NPCs; FSM outcomes |
+| **State-based behaviour** | FSM with event-driven transitions; same event, different response per state |
 
----
+### FSM states
 
-## 🤖 How the AI Core Works
-
-### Addiction Variable (drives everything)
-```
-Phone use:  addictionLevel += 0.15 / frame
-Scrolling:  addictionLevel += 0.3 / scroll
-Idle:       addictionLevel -= 0.02 / frame
-```
-
-### Auto-Scroll (agent loses control)
-```
-addiction > 50%  →  auto-scroll activates
-speed = ((addiction - 50) / 50) × 2
-```
-
-### Decision Triggers
-```
-addiction ≥ 70%  →  Learning notification popup (progress pauses)
-addiction ≥ 100% →  Fail notification → Learning Key
-```
-
-### FSM States
 ```
 IDLE → ATTRACTED → LOOPING → DISTORTED → BREAKING_POINT
                                               │
@@ -110,147 +46,168 @@ IDLE → ATTRACTED → LOOPING → DISTORTED → BREAKING_POINT
                            RECOVERED       PARTIAL          LOST
 ```
 
-### Hunch System
-Steve's posture degrades visually as addiction rises:
-- 0–20%: upright
-- 20–40%: slight lean
-- 40–60%: noticeable hunch
-- 60–80%: heavy hunch
-- 80–100%: fully hunched
+Transitions are triggered by **events** (notifications, scrolling, friend messages, player choices), not time alone.
 
----
+### Core variables
 
-## 🌿 Real World — Intelligence Highlights
+| Variable | Role |
+|----------|------|
+| `addictionLevel` (0–100) | Drives phone behaviour, auto-scroll, hunch, learning triggers |
+| `awareness` (0–100) | Decreases with phone use; recovers when idle |
+| `memory[]` | Stores learned patterns; influences future behaviour |
+| Emotions | `stress`, `happiness`, `loneliness` — affect FSM and NPC interaction |
 
-### Vision Cone
-- 90° field of view, 200px range
-- Calculated using `Math.atan2` and `Phaser.Math.Angle.Wrap` each frame
-- Shrinks at dusk (×0.55) and when phone is visible (×0.6)
-
-### Hearing Range
-- 150px radius, direction-independent
-- NPCs within range can be heard even outside the vision cone
-
-### NPC Emotional Intelligence
-- NPCs react to Steve's phone use with angry/sad expressions
-- Angry NPC triggers chain reaction — others respond with concern
-- NPC faces redraw live (eyebrows, iris colour, mouth shape)
-- Contagious happiness: happy NPCs make others happy
-
-### Learning
-- Steve remembers NPCs he's spoken to (different dialogue on return visits)
-- After 2 bad interactions with same NPC → Steve avoids them permanently
-- Mom gives advice once → `mom_advice` stored in memory → addiction −20, awareness +15
-
-### Conversation System
-- 7-line scripted conversation with Mom, Alex, and Sam
-- Press **[T]** to advance one message at a time
-- Previous bubble is cleared before next appears (one message at a time)
-- After all 7 lines → group walks to road → End Screen
-
----
-
-## 📱 Scenario 1 — Addiction Flow
+**Addiction rules**
 
 ```
-Phone picked up
-      │
-      ▼
-Feed scrolling → addiction rises
-      │
-      ├── addiction > 50% → auto-scroll enables
-      │
-      ├── addiction ≥ 70% → PAUSE progress
-      │        Learning notification appears
-      │        ├── Accept → LearningScene
-      │        └── Later  → continuous scroll mode
-      │
-      └── addiction ≥ 100% → Fail notification
-               OK → Learning Key appears
-               Click → LearningScene
+Phone use (open feed):  addiction += 0.15 / frame
+Scroll (wheel):         addiction += 0.3 per scroll
+Idle (no phone):        addiction -= 0.02 / frame
+
+addiction > 50%  →  auto-scroll (agent loses control)
+addiction ≥ 70%  →  learning notification (progress pauses)
+addiction ≥ 100% →  fail notification → learning key (redemption)
 ```
 
----
+**Appearance**
 
-## � Scenario 3 — Learning Path
-
-- Two study tasks: **Mathematics** and **Science**
-- Press **[SPACE]** to fill the progress bar (50% per press → 2 presses to complete)
-- Completing a task earns XP and triggers a particle burst
-- After both tasks → success card → click to return to Scenario 1
+- Outfit colours stay **fixed** (initial palette) across all FSM states.
+- **Expression** and **posture hunch** still reflect addiction and emotional state.
 
 ---
 
-## 🛠️ Tech Stack
+## Scene flow
+
+```
+BootScene
+     │
+     ▼
+AttractionScene (Bedroom)
+     │
+     ├── Phone → [E] pick up → social feed
+     │        ├── ≥70% addiction → Accept → LearningScene  OR  Later → keep scrolling
+     │        └── ≥100% addiction → Fail → Learning key → LearningScene
+     │
+     └── Door → [F] → RealWorldScene
+                        │
+                        ├── Move near NPCs → [T] talk (no on-screen label)
+                        ├── Auto 7-line group conversation → [T] advance
+                        └── Group walks to road → EndScene
+
+LearningScene
+     │
+     Complete 2 tasks ([SPACE]) → return to AttractionScene (improved stats)
+```
+
+### Registered scenes
+
+| Key | Scene | Description |
+|-----|--------|-------------|
+| `BootScene` | Boot | Title screen and project info |
+| `AttractionScene` | The Attraction | Bedroom — phone vs door |
+| `LearningScene` | Learning Path | Study room — Mathematics & Science tasks |
+| `RealWorldScene` | Real World | Park with Mom, Alex, Sam; perception, weather, dialogue |
+| `EndScene` | Journey Complete | End screen after group walk |
+
+---
+
+## Controls
+
+| Key | Scene | Action |
+|-----|--------|--------|
+| `Arrow Keys` / `WASD` | All (when unlocked) | Move Steve |
+| `E` | Attraction | Pick up phone (near phone) |
+| `ESC` | Attraction | Close phone feed |
+| `F` | Attraction | Enter real world (near door) |
+| Mouse wheel | Attraction | Scroll social feed |
+| `T` | Real World | Talk to nearby NPC / advance group conversation |
+| `SPACE` | Learning | Progress current study task |
+
+---
+
+## Real World highlights
+
+- **NPCs:** Mom, Alex (friend), Sam (sibling) — context-sensitive dialogue and emotional reactions.
+- **Perception:** Steve must perceive NPCs (see or hear) before interaction; vision shrinks at dusk and when phone-distracted.
+- **Learning:** Mom’s advice once; avoid NPC after 2 bad interactions; memory carries from other scenes.
+- **Events:** Random dusk, rain, wind, NPC approach, and hearing events.
+- **UI:** No “Press [T] to talk” labels — `[T]` still works when near NPCs or during the group conversation.
+
+---
+
+## Tech stack
 
 | Layer | Technology |
-|---|---|
-| Game Engine | [Phaser.js 3](https://phaser.io/) |
+|--------|------------|
+| Game engine | [Phaser.js 3](https://phaser.io/) |
 | Animations | [GSAP](https://greensock.com/gsap/) |
-| Logic | Vanilla JavaScript ES6 modules |
-| Build Tool | [Vite](https://vitejs.dev/) |
-| Fonts | Inter (Google Fonts) |
+| Logic | Vanilla JavaScript (ES modules) |
+| Build | [Vite](https://vitejs.dev/) |
+| Styling | Tailwind CSS (HUD overlay) + `main.css` |
+| Fonts | Inter, Sora (Google Fonts) |
+| Audio | `public/noti.wav` (phone notification) |
 
 ---
 
-## 🚀 Getting Started
+## Getting started
 
 ```bash
-git clone https://github.com/your-username/echosphere.git
+git clone <your-repo-url>
 cd echosphere
 npm install
 npm run dev
 ```
 
-Open `http://localhost:5173` in your browser.
+Open **http://localhost:5173** in your browser.
 
----
-
-## 🎮 Controls
-
-| Key | Action |
-|---|---|
-| `Arrow Keys` / `WASD` | Move Steve |
-| `E` | Pick up phone (when aligned with phone on X axis) |
-| `T` | Talk to NPC / advance conversation |
-| `SPACE` | Fill study task progress bar (Learning Scene) |
-| `N` / `F` | Skip current scene |
-
----
-
-## 📁 Project Structure
-
-```
-src/
-├── agent/
-│   ├── Agent.js           # Steve — movement, drawing, AI variables
-│   ├── FSM.js             # Finite State Machine (8 states)
-│   └── EmotionSystem.js   # Stress / happiness / loneliness
-├── scenes/
-│   ├── BootScene.js       # Title screen with info panel
-│   ├── AttractionScene.js # Scenario 1 — bedroom, phone vs door
-│   ├── RealWorldScene.js  # Scenario 2 — outdoor park, NPCs
-│   ├── LearningScene.js   # Scenario 3 — study room, tasks
-│   ├── TripScene.js       # Road trip driving scene
-│   └── EndScene.js        # Journey Complete end screen
-├── styles/
-│   └── main.css           # Global styles
-└── main.js                # Phaser game config + scene registration
+```bash
+npm run build    # production build
+npm run preview  # preview production build
 ```
 
 ---
 
-## 🎓 Academic Context
+## Project structure
 
-This project demonstrates the following AI agent behaviours for academic assessment:
+```
+EchoSphere/
+├── public/
+│   └── noti.wav              # Phone notification sound
+├── docs/                     # Academic documentation (PEAS, traits, FSM, etc.)
+├── index.html                # Game container + emotion HUD overlay
+├── src/
+│   ├── agent/
+│   │   ├── Agent.js          # Steve — movement, drawing, AI variables, memory
+│   │   ├── FSM.js            # Finite state machine
+│   │   └── EmotionSystem.js  # Stress / happiness / loneliness
+│   ├── scenes/
+│   │   ├── BootScene.js
+│   │   ├── AttractionScene.js
+│   │   ├── LearningScene.js
+│   │   ├── RealWorldScene.js
+│   │   └── EndScene.js
+│   ├── styles/
+│   │   └── main.css
+│   └── main.js               # Phaser config + scene registration
+├── package.json
+└── vite.config.js
+```
 
-- ✅ **State-based behaviour** — FSM with 8 states and event-driven transitions
-- ✅ **Perception** — vision cone and hearing range with real-world physics modifiers
-- ✅ **Emotional intelligence** — emotion variables (stress, happiness, loneliness) drive FSM and NPC reactions
-- ✅ **Learning & memory** — memory array stores patterns and influences future decisions across scenes
-- ✅ **Autonomous NPC behaviour** — wandering, seek steering, approach decisions, emotional contagion
-- ✅ **Decision making** — behaviour-driven transitions at 70% and 100% addiction thresholds
-- ✅ **Real-world physics** — vision cone angle calculation, dusk/distraction modifiers, posture hunch system
-- ✅ **Random events** — unpredictable world events (dusk, rain, wind, NPC approach, hearing events)
+---
 
-> *"The transition to the next scenario is not time-based, but behaviour-driven, ensuring the agent demonstrates intelligent decision-making and learning."*
+## Academic context
+
+EchoSphere demonstrates intelligent agent design for academic assessment:
+
+- **State-based behaviour** — FSM with multiple states and event-driven transitions  
+- **Perception** — multimodal sensing with environmental modifiers  
+- **Emotional intelligence** — internal emotions and inter-agent emotional response  
+- **Natural language communication** — structured multi-agent dialogue  
+- **Learning** — memory-based adaptation across scenarios  
+- **Pathfinding** — autonomous NPC navigation and goal seeking  
+- **Decision making** — behaviour-driven thresholds and non-linear outcomes  
+- **Real-world modelling** — vision physics, distraction, posture, stochastic events  
+
+> Transitions between scenarios are **behaviour-driven**, not time-based — the agent demonstrates sensing, reasoning, acting, and learning in a changing environment.
+
+Further detail: see `docs/07_Intelligence_Traits.md` and related files in `docs/`.
