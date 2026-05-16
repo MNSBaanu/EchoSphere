@@ -121,7 +121,7 @@ export default class RealWorldScene extends Phaser.Scene {
       fontFamily: FONT, fontSize: "16px", color: "#86efac", fontStyle: "bold"
     }).setOrigin(0.5, 0).setDepth(21);
 
-    this.add.text(width - 24, 14, "↑↓←→/WASD", {
+    this.add.text(width - 24, 14, "↑↓←→/WASD  ·  [T] Talk", {
       fontFamily: FONT, fontSize: "13px", color: "#4ade80"
     }).setOrigin(1, 0).setDepth(21);
 
