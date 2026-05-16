@@ -5,17 +5,9 @@ import { gsap } from 'gsap';
 const FONT      = 'Inter, sans-serif';
 const FONT_BODY = 'Inter, sans-serif';
 
-const FRIEND_MESSAGES = [
-  { speaker: 'Mia', text: 'omg did you see that new trend?? 😭' },
-  { speaker: 'Mia', text: 'you HAVE to check this out lol' },
-  { speaker: 'Kai', text: 'bro this video is everything 🔥' },
-  { speaker: 'Mia', text: 'reply!! i sent you something funny' },
-  { speaker: 'Mia', text: 'hellooo?? you there?' },
-];
-
 const FEED_ITEMS = [
   { icon: '❤️', text: 'Mia liked your photo!' },
-  { icon: '🔥', text: 'Kai: bro this is fire!!' },
+  { icon: '🔥', text: 'Steve: bro this is fire!!' },
   { icon: '😍', text: '47 people loved your post' },
   { icon: '⭐', text: 'You earned a new badge!' },
   { icon: '🎉', text: 'Mia: omg you are so funny' },
@@ -49,8 +41,52 @@ export default class AttractionScene extends Phaser.Scene {
     this._continuousScrollMode = false;
   }
 
+  init(data = {}) {
+    // Receive state passed back from LearningScene
+    this._incomingAddiction = data.addictionLevel ?? null;
+    this._incomingAwareness = data.awareness      ?? null;
+    this._incomingMemory    = data.memory         ?? null;
+  }
+
+  preload() {
+    // Load notification sound from public/ (served as static asset by Vite)
+    this.load.audio('noti', 'noti.wav');
+  }
+
   create() {
     const { width, height } = this.scale;
+
+    // ── Reset all state (scene may be restarted from LearningScene) ───────
+    this._msgIndex          = 0;
+    this._pendingFriendMsg  = false;
+    this._decisionPending   = false;
+    this._ended             = false;
+    this._logLines          = [];
+    this._engageStreak      = 0;
+    this._phonePickedUp     = false;
+    this._doorReached       = false;
+    this._pickupPromptShown = false;
+    this._doorPromptShown   = false;
+    this._mobileScreenOpen  = false;
+    this._scrollOffset      = 0;
+    this._autoScrollEnabled = false;
+    this._autoScrollSpeed   = 0;
+    this._conflictTriggered = false;
+    this._messageQueue      = [];
+    this._lastMessageTime   = 0;
+    this._continuousScrollMode = false;
+    this._notificationFired = false;
+    this._walkingToPhone    = false;
+    this._walkingToDoor     = false;
+    this._phonePos          = null;
+    this._doorPos           = null;
+    this._mobileScreen      = null;
+    this._pickupPrompt      = null;
+    this._doorPrompt        = null;
+    this._pickupKey         = null;
+    this._doorKey           = null;
+    this._decisionShown     = false;
+    this._failShown         = false;    this.agent              = null;
 
     // ── Room environment (side view) ─────────────────────────────────────
     this._drawRoom(width, height);
@@ -65,8 +101,8 @@ export default class AttractionScene extends Phaser.Scene {
     this.add.text(width / 2, 14, 'SCENARIO 1 — THE ATTRACTION', {
       fontFamily: FONT, fontSize: '16px', color: '#a5b4fc', fontStyle: 'bold'
     }).setOrigin(0.5, 0).setDepth(21);
-    this.add.text(width - 24, 14, 'Real World  ·  [F] or [N] skip', {
-      fontFamily: FONT, fontSize: '15px', color: '#818cf8'
+    this.add.text(width - 24, 14, '↑↓←→/WASD  ·  [E] Pick up  ·  [ESC] Close  ·  [F] Door', {
+      fontFamily: FONT, fontSize: '13px', color: '#818cf8'
     }).setOrigin(1, 0).setDepth(21);
 
     // ── Phone on table ────────────────────────────────────────────────────
@@ -76,37 +112,37 @@ export default class AttractionScene extends Phaser.Scene {
     this._spawnDoor(height);
 
     // ── Agent starts centre-left ──────────────────────────────────────────
-    this.agent = new Agent(this, width * 0.35, height * 0.62);
+    this.agent = new Agent(this, width * 0.35, height * 0.72 - 52);
+    // Faster movement in Scenario 1
+    this.agent.speed = 10;
     // Agent can move freely from the start
     this._lockAgentKeys(false);
+
+    // ── Apply state from LearningScene if returning ───────────────────────
+    if (this._incomingAddiction !== null) {
+      this.agent.addictionLevel = this._incomingAddiction;
+    }
+    if (this._incomingAwareness !== null) {
+      this.agent.awareness = this._incomingAwareness;
+    }
+    if (this._incomingMemory !== null) {
+      this.agent.memory = [...this._incomingMemory];
+    }
 
     this.agent.fsm.onTransition((newState, reason) => {
       this._onStateChange(newState, reason);
     });
 
-    // ── Notification fires after 2s (but not if continuous scroll mode is already active)
-    this.time.delayedCall(2000, () => {
+    // ── Notification fires immediately on scene load
+    this.time.delayedCall(300, () => {
       if (!this._continuousScrollMode) {
         this._firePhoneNotification();
       }
     });
 
-    // ── Friend messages ───────────────────────────────────────────────────
-    this._scheduleNextFriendMessage();
-
     // ── UI ────────────────────────────────────────────────────────────────
     this._buildChoiceButtons();
     this._logContainer = this.add.container(16, height - 16).setDepth(25);
-
-    // ── Skip keys ─────────────────────────────────────────────────────────
-    this.input.keyboard.once('keydown-N', () => {
-      if (!this._ended) this._transitionToRealWorld();
-    });
-    
-    // F key for quick access to Real World
-    this.input.keyboard.once('keydown-F', () => {
-      if (!this._ended) this._transitionToRealWorld();
-    });
 
     // ── Keyboard movement widget (top-right) ──────────────────────────────
     this._buildKeyboardWidget(width, height);
@@ -199,15 +235,13 @@ export default class AttractionScene extends Phaser.Scene {
     if (this._ended) return;
     if (this.agent) this.agent.update();
 
-    // Check proximity to phone — show prompt when near, hide when away or screen open
+    // Check proximity to phone — show prompt when on same X column, hide when away
     if (!this._mobileScreenOpen && this._phonePos && this.agent) {
-      const dx = this._phonePos.x - this.agent.x;
-      const dy = this._phonePos.y - this.agent.y;
-      const dist = Math.sqrt(dx * dx + dy * dy);
+      const dx = Math.abs(this._phonePos.x - this.agent.x);
 
-      if (dist < 60 && !this._pickupPromptShown) {
+      if (dx < 40 && !this._pickupPromptShown) {
         this._showPickupPrompt();
-      } else if ((dist >= 60 || this._mobileScreenOpen) && this._pickupPromptShown) {
+      } else if ((dx >= 40 || this._mobileScreenOpen) && this._pickupPromptShown) {
         this._hidePickupPrompt();
       }
     } else if (this._mobileScreenOpen && this._pickupPromptShown) {
@@ -227,7 +261,7 @@ export default class AttractionScene extends Phaser.Scene {
     }
 
     // ── AI-DRIVEN PHONE USAGE ────────────────────────────────────────────
-    if (this._mobileScreenOpen && !this._ended && this.agent) {
+    if (this._mobileScreenOpen && !this._ended && this.agent && !this._decisionPending) {
       // Agent uses phone - updates addiction & awareness
       this.agent.usePhone();
       
@@ -252,32 +286,6 @@ export default class AttractionScene extends Phaser.Scene {
         }
       }
 
-      // ── CONFLICT TRIGGER: Message interruption (but not in continuous scroll mode)
-      if (this.agent.addictionLevel > 70 && !this._conflictTriggered && !this._continuousScrollMode) {
-        const now = this.time.now;
-        if (now - this._lastMessageTime > 3000) { // Random event every 3s
-          if (Math.random() < 0.3) { // 30% chance
-            this._triggerConflict();
-          }
-          this._lastMessageTime = now;
-        }
-      }
-
-      // ── BEHAVIOR-BASED TRANSITION ──────────────────────────────────────
-      // Not just 100% - multiple conditions for intelligent transition
-      // But prevent transition if in continuous scroll mode (after clicking "later")
-      if (!this._continuousScrollMode && (
-          this.agent.addictionLevel >= 100 || 
-          (this.agent.addictionLevel > 85 && this.agent.ignoredMessages >= 2) ||
-          (this.agent.awareness < 20 && this.agent.addictionLevel > 80))) {
-        
-        this._log('🌀 Transition', `Addiction: ${this.agent.addictionLevel.toFixed(0)}%, Ignored: ${this.agent.ignoredMessages}, Awareness: ${this.agent.awareness.toFixed(0)}%`);
-        
-        // Delay transition slightly for dramatic effect
-        this.time.delayedCall(800, () => {
-          this._transitionToRealWorld();
-        });
-      }
     }
 
     // Auto-walk to phone if agent chose phone path
@@ -333,102 +341,87 @@ export default class AttractionScene extends Phaser.Scene {
       }
     }
 
-    // ── Bed (right side) — 3/4 front view, against back wall ────────────
-    const bedX = width * 0.60;
-    const bedY = height * 0.38;
-    const bedW = width * 0.37;
-    const bedH = height * 0.28;
+    // ── Bed (right side) — side view, against right wall ─────────────────
+    const floorY  = height * 0.72;
+    const bedX    = width * 0.72;
+    const bedW    = width * 0.26;
+    const bedH    = height * 0.20;
+    const legH    = 18;
+    const bedY    = floorY - legH - bedH;   // bed sits on floor via legs
+    const deskY   = floorY - height * 0.14 - 14; // desk surface: legs reach floor
 
-    // Drop shadow on floor
-    g.fillStyle(0x000000, 0.10);
-    g.fillRoundedRect(bedX + 8, bedY + bedH + 18, bedW - 8, 14, 6);
+    // Floor shadow
+    g.fillStyle(0x000000, 0.08);
+    g.fillEllipse(bedX + bedW * 0.5, bedY + bedH + 10, bedW * 0.85, 14);
 
-    // ── Headboard — tall panel rising above mattress ──────────────────────
-    const hbH = bedH * 0.55; // headboard height above mattress top
-    g.fillStyle(0x7c3d12, 1);
-    g.fillRoundedRect(bedX, bedY - hbH, bedW, hbH + 10, 10);
-    // Headboard face highlight (lighter wood strip)
-    g.fillStyle(0xa0522d, 1);
-    g.fillRoundedRect(bedX + 5, bedY - hbH + 5, bedW - 10, hbH - 10, 7);
-    // Two decorative inset panels on headboard
-    const panW = (bedW - 40) / 2;
-    g.fillStyle(0x6b3410, 1);
-    g.fillRoundedRect(bedX + 12, bedY - hbH + 12, panW, hbH - 24, 5);
-    g.fillRoundedRect(bedX + 24 + panW, bedY - hbH + 12, panW, hbH - 24, 5);
-    // Panel inner highlight
-    g.fillStyle(0x92400e, 0.6);
-    g.fillRoundedRect(bedX + 14, bedY - hbH + 14, panW - 4, 6, 3);
-    g.fillRoundedRect(bedX + 26 + panW, bedY - hbH + 14, panW - 4, 6, 3);
+    // Bed legs (front pair visible)
+    g.fillStyle(0x5c2d0e, 1);
+    g.fillRoundedRect(bedX + 10, bedY + bedH, 12, 18, 3);
+    g.fillRoundedRect(bedX + bedW - 22, bedY + bedH, 12, 18, 3);
 
-    // ── Bed frame (sides + foot visible from front) ───────────────────────
-    // Left side rail
+    // Bed frame — main box
     g.fillStyle(0x92400e, 1);
-    g.fillRoundedRect(bedX, bedY, 14, bedH, 4);
-    // Right side rail
-    g.fillRoundedRect(bedX + bedW - 14, bedY, 14, bedH, 4);
-    // Footboard (front panel)
-    g.fillStyle(0x7c3d12, 1);
-    g.fillRoundedRect(bedX, bedY + bedH - 18, bedW, 22, 6);
-    g.fillStyle(0xa0522d, 1);
-    g.fillRoundedRect(bedX + 5, bedY + bedH - 15, bedW - 10, 8, 4);
+    g.fillRoundedRect(bedX, bedY, bedW, bedH, 6);
 
-    // ── Mattress top surface ──────────────────────────────────────────────
+    // Mattress (white, inset from frame)
     g.fillStyle(0xf5f5f5, 1);
-    g.fillRoundedRect(bedX + 14, bedY, bedW - 28, bedH - 18, 4);
-    // Mattress side edge (gives thickness)
-    g.fillStyle(0xe0e0e0, 1);
-    g.fillRect(bedX + 14, bedY + bedH - 28, bedW - 28, 10);
+    g.fillRoundedRect(bedX + 6, bedY + 6, bedW - 12, bedH - 10, 4);
 
-    // ── Blanket — draped over mattress, front fold visible ────────────────
-    const blankY = bedY + bedH * 0.32;
-    const blankH = bedH * 0.50;
+    // Blanket — covers lower 55% of mattress face
+    const blankY = bedY + bedH * 0.40;
+    const blankH = bedH * 0.52;
     g.fillStyle(0x6366f1, 1);
-    g.fillRoundedRect(bedX + 14, blankY, bedW - 28, blankH, 5);
-    // Blanket front drape (hangs over footboard slightly)
-    g.fillStyle(0x5254cc, 1);
-    g.fillRoundedRect(bedX + 14, blankY + blankH - 8, bedW - 28, 14, { tl: 0, tr: 0, bl: 5, br: 5 });
-    // Blanket top fold (rolled edge)
+    g.fillRoundedRect(bedX + 6, blankY, bedW - 12, blankH, 4);
+    // Blanket top fold (lighter rolled strip)
     g.fillStyle(0x818cf8, 1);
-    g.fillRoundedRect(bedX + 14, blankY, bedW - 28, 14, 5);
-    g.fillStyle(0x6366f1, 0.5);
-    g.fillRect(bedX + 14, blankY + 12, bedW - 28, 4);
-    // Blanket horizontal crease lines
+    g.fillRoundedRect(bedX + 6, blankY, bedW - 12, 11, 4);
+    // Fold underline shadow
+    g.fillStyle(0x4338ca, 0.35);
+    g.fillRect(bedX + 6, blankY + 9, bedW - 12, 4);
+    // Horizontal crease lines on blanket
     g.lineStyle(1.5, 0x4338ca, 0.4);
     for (let s = 1; s < 4; s++) {
       g.lineBetween(
-        bedX + 18, blankY + 18 + s * (blankH - 18) / 4,
-        bedX + bedW - 18, blankY + 18 + s * (blankH - 18) / 4
+        bedX + 10, blankY + 15 + s * (blankH - 15) / 4,
+        bedX + bedW - 10, blankY + 15 + s * (blankH - 15) / 4
       );
     }
 
-    // ── Two pillows (sitting on mattress, above blanket) ──────────────────
-    const pillowY = bedY + 6;
-    const pillowH = bedH * 0.26;
-    const pillowW = (bedW - 38) / 2;
+    // Two pillows side by side (upper portion of mattress face)
+    const pillowY = bedY + 8;
+    const pillowH = bedH * 0.28;
+    const pillowW = (bedW - 26) / 2;
     // Left pillow
     g.fillStyle(0xdbeafe, 1);
-    g.fillRoundedRect(bedX + 16, pillowY, pillowW, pillowH, 10);
-    // Pillow bottom shadow
-    g.fillStyle(0x93c5fd, 0.45);
-    g.fillRoundedRect(bedX + 16, pillowY + pillowH - 8, pillowW, 8, { tl: 0, tr: 0, bl: 10, br: 10 });
+    g.fillRoundedRect(bedX + 8, pillowY, pillowW, pillowH, 8);
+    g.fillStyle(0x93c5fd, 0.4);
+    g.fillRoundedRect(bedX + 8, pillowY + pillowH - 7, pillowW, 7, { tl: 0, tr: 0, bl: 8, br: 8 });
     g.lineStyle(1.5, 0x93c5fd, 1);
-    g.strokeRoundedRect(bedX + 16, pillowY, pillowW, pillowH, 10);
+    g.strokeRoundedRect(bedX + 8, pillowY, pillowW, pillowH, 8);
     // Right pillow
     g.fillStyle(0xdbeafe, 1);
-    g.fillRoundedRect(bedX + 22 + pillowW, pillowY, pillowW, pillowH, 10);
-    g.fillStyle(0x93c5fd, 0.45);
-    g.fillRoundedRect(bedX + 22 + pillowW, pillowY + pillowH - 8, pillowW, 8, { tl: 0, tr: 0, bl: 10, br: 10 });
+    g.fillRoundedRect(bedX + 14 + pillowW, pillowY, pillowW, pillowH, 8);
+    g.fillStyle(0x93c5fd, 0.4);
+    g.fillRoundedRect(bedX + 14 + pillowW, pillowY + pillowH - 7, pillowW, 7, { tl: 0, tr: 0, bl: 8, br: 8 });
     g.lineStyle(1.5, 0x93c5fd, 1);
-    g.strokeRoundedRect(bedX + 22 + pillowW, pillowY, pillowW, pillowH, 10);
+    g.strokeRoundedRect(bedX + 14 + pillowW, pillowY, pillowW, pillowH, 8);
 
-    // ── Bed legs (visible below footboard) ───────────────────────────────
-    g.fillStyle(0x5c2d0e, 1);
-    g.fillRoundedRect(bedX + 6, bedY + bedH + 4, 10, 16, 3);
-    g.fillRoundedRect(bedX + bedW - 16, bedY + bedH + 4, 10, 16, 3);
+    // Nightstand / bedside table — left of bed
+    const nsX = bedX - 52;
+    const nsY = bedY + bedH * 0.35;
+    const nsW = 44;
+    const nsH = bedH * 0.65;
+    g.fillStyle(0xa0522d, 1);
+    g.fillRoundedRect(nsX, nsY, nsW, nsH, 4);
+    g.fillStyle(0xc8783c, 1);
+    g.fillRoundedRect(nsX + 3, nsY + 3, nsW - 6, 6, 2);
+    // Nightstand legs
+    g.fillStyle(0x8b4513, 1);
+    g.fillRect(nsX + 4, nsY + nsH, 6, 12);
+    g.fillRect(nsX + nsW - 10, nsY + nsH, 6, 12);
 
     // ── Desk / table (centre-right) ───────────────────────────────────────
     const deskX = width * 0.5;
-    const deskY = height * 0.58;
     const deskW = width * 0.22;
     const deskH = 14;
     // Desk surface
@@ -610,6 +603,22 @@ export default class AttractionScene extends Phaser.Scene {
       .setStrokeStyle(2, 0xfbbf24, 0.3)
       .setFillStyle(0x000000, 0)
       .setDepth(3);
+
+    // ── "Real World" label above door ─────────────────────────────────────
+    const labelY = dy - 32;
+    const labelW = dw + 24;
+
+    // Border / badge background
+    const labelBg = this.add.graphics().setDepth(4);
+    labelBg.fillStyle(0x1e1b4b, 0.88);
+    labelBg.fillRoundedRect(dx - 6, labelY - 12, labelW, 26, 6);
+    labelBg.lineStyle(2, 0xfbbf24, 0.85);
+    labelBg.strokeRoundedRect(dx - 6, labelY - 12, labelW, 26, 6);
+
+    // Label text
+    this.add.text(dx + dw / 2, labelY + 1, '🌿  Real World', {
+      fontFamily: FONT_BODY, fontSize: '13px', fontStyle: 'bold', color: '#fbbf24'
+    }).setOrigin(0.5, 0.5).setDepth(5);
   }
 
   // ── Social media icons toggling above phone ──────────────────────────────
@@ -622,7 +631,7 @@ export default class AttractionScene extends Phaser.Scene {
     const icons = [
       { label: '📘', color: 0x1877f2, dx: -55, dy: -65 }, // top-left   — Facebook
       { label: '📸', color: 0xe1306c, dx:   0, dy: -75 }, // top-centre — Instagram
-      { label: '�', color: 0xfffc00, dx:  55, dy: -65 }, // top-right  — SnapchatX
+      { label: '👻', color: 0xfffc00, dx:  55, dy: -65 }, // top-right  — Snapchat
       { label: '▶️', color: 0xff0000, dx: -62, dy: -20 }, // left       — YouTube
       { label: '🎵', color: 0x69c9d0, dx:  62, dy: -20 }, // right      — TikTok
     ];
@@ -689,25 +698,25 @@ export default class AttractionScene extends Phaser.Scene {
       container.setAlpha(0);
       container.setScale(0.3);
 
-      // Staggered pop-in
+      // Staggered pop-in (faster stagger)
       this.tweens.add({
         targets: container,
         y: container._baseY,
         alpha: 1,
         scaleX: 1,
         scaleY: 1,
-        duration: 350,
-        delay: i * 120,
+        duration: 200,
+        delay: i * 60,
         ease: 'Back.easeOut'
       });
 
       // Gentle bob while visible
-      this.time.delayedCall(350 + i * 120, () => {
+      this.time.delayedCall(200 + i * 60, () => {
         if (!container.active) return;
         this.tweens.add({
           targets: container,
           y: container._baseY - 5,
-          duration: 900 + i * 80,
+          duration: 700 + i * 60,
           yoyo: true,
           repeat: 4,
           ease: 'Sine.easeInOut'
@@ -723,8 +732,8 @@ export default class AttractionScene extends Phaser.Scene {
           targets: ring,
           scaleX: 2.5, scaleY: 2.5,
           alpha: 0,
-          duration: 900,
-          delay: i * 120,
+          duration: 600,
+          delay: i * 60,
           ease: 'Sine.easeOut'
         });
       }
@@ -737,13 +746,28 @@ export default class AttractionScene extends Phaser.Scene {
   // ── Phone notification fires ──────────────────────────────────────────────
   _firePhoneNotification() {
     if (this._ended) return;
+    if (this._notificationFired) return; // only fire once
+    this._notificationFired = true;
 
     this._phoneOn = true;
 
+    // ── Play notification sound 3 times ──────────────────────────────────
+    if (this.cache.audio.exists('noti')) {
+      let playCount = 0;
+      const playNext = () => {
+        if (playCount >= 3) return;
+        playCount++;
+        this.sound.play('noti', { volume: 0.8 });
+        // Chain next play after each beep
+        this.time.delayedCall(600, playNext);
+      };
+      playNext();
+    }
+
     // Screen lights up
     const screen = this._phone.list[1];
-    if (screen) {
-      this.tweens.add({ targets: screen, fillColor: 0x6366f1, duration: 300 });
+    if (screen && screen.setFillStyle) {
+      screen.setFillStyle(0x6366f1);
     }
 
     // ── BLINK the phone body ──────────────────────────────────────────────
@@ -768,28 +792,21 @@ export default class AttractionScene extends Phaser.Scene {
     // Activate social icons burst
     this._burstSocialIcons();
 
+    // ── Agent hears notification — eyes snap toward phone then return ─────
+    // Phone is to the right of Steve's starting position
+    if (this.agent) {
+      this.agent.lookAtDirection('right');
+    }
+
     // Agent perceives it — FSM: IDLE → ATTRACTED
     this.agent.fsm.handleEvent('NOTIFICATION_SEEN');
     this._log('🔔 Phone', 'notification received!');
 
-    // Show decision node: phone or door?
-    this.time.delayedCall(1200, () => {
-      this._showDecisionNode(
-        'Kai notices the phone glowing...',
-        '📱 Check Phone',
-        '🚪 Go Outside'
-      );
-    });
-  }
-
-  // ── Placeholder methods (to be implemented) ──────────────────────────────
-  _showDecisionNode(message, option1, option2) {
-    // TODO: Implement decision node UI
-    console.log('Decision:', message, option1, option2);
+    // Agent can now walk to phone or door freely (no popup blocking movement)
   }
 
   _scheduleNextFriendMessage() {
-    // TODO: Implement friend message scheduling
+    // Removed — no random friend messages
   }
 
   _buildChoiceButtons() {
@@ -843,21 +860,49 @@ export default class AttractionScene extends Phaser.Scene {
     if (this._pickupPromptShown) return;
     this._pickupPromptShown = true;
 
-    this._pickupPrompt = this.add.container(this._phonePos.x, this._phonePos.y - 50).setDepth(30);
+    this._pickupPrompt = this.add.container(this._phonePos.x, this._phonePos.y - 55).setDepth(30);
 
-    const bg = this.add.rectangle(0, 0, 100, 32, 0x1e1b4b, 0.92);
+    // Key badge background
+    const bg = this.add.rectangle(0, 0, 110, 36, 0x1e1b4b, 0.95);
     bg.setStrokeStyle(2, 0x6366f1, 1);
 
-    const hint = this.add.text(0, 0, 'Press [E]', {
-      fontFamily: FONT_BODY, fontSize: '13px', color: '#a5b4fc', fontStyle: 'bold'
+    // [E] key box
+    const keyBox = this.add.rectangle(-22, 0, 26, 24, 0x6366f1, 1);
+    keyBox.setStrokeStyle(1, 0x818cf8, 1);
+    const keyLetter = this.add.text(-22, 0, 'E', {
+      fontFamily: FONT_BODY, fontSize: '14px', color: '#ffffff', fontStyle: 'bold'
     }).setOrigin(0.5);
 
-    this._pickupPrompt.add([bg, hint]);
+    const label = this.add.text(14, 0, 'Pick up', {
+      fontFamily: FONT_BODY, fontSize: '12px', color: '#a5b4fc'
+    }).setOrigin(0, 0.5);
 
-    gsap.fromTo(this._pickupPrompt,
-      { alpha: 0, y: this._phonePos.y - 40 },
-      { alpha: 1, y: this._phonePos.y - 50, duration: 0.3, ease: 'back.out(1.5)' }
-    );
+    // Arrow pointing down to phone
+    const arrow = this.add.text(0, 22, '▼', {
+      fontFamily: FONT_BODY, fontSize: '10px', color: '#6366f1'
+    }).setOrigin(0.5);
+
+    this._pickupPrompt.add([bg, keyBox, keyLetter, label, arrow]);
+
+    // Bounce in
+    this._pickupPrompt.setAlpha(0).setScale(0.8);
+    gsap.to(this._pickupPrompt, { alpha: 1, duration: 0.2, ease: 'power2.out' });
+    this.tweens.add({
+      targets: this._pickupPrompt,
+      scaleX: 1, scaleY: 1,
+      duration: 200,
+      ease: 'Back.easeOut'
+    });
+
+    // Gentle float
+    this.tweens.add({
+      targets: this._pickupPrompt,
+      y: this._phonePos.y - 60,
+      duration: 600,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut'
+    });
 
     this._pickupKey = this.input.keyboard.on('keydown-E', () => {
       if (this._pickupPromptShown && !this._mobileScreenOpen) {
@@ -946,37 +991,6 @@ export default class AttractionScene extends Phaser.Scene {
       fontFamily: FONT_BODY, fontSize: '12px', color: '#64748b', fontStyle: 'bold'
     }).setOrigin(0.5);
     
-    // ── EMOTION BARS (AI VISIBILITY) ──────────────────────────────────────
-    const emotionY = -screenH / 2 + 125;
-    const emotionBarW = (screenW - 40) / 3;
-    
-    // Awareness bar
-    const awarenessLabel = this.add.text(-screenW / 2 + 20, emotionY, '👁️', {
-      fontSize: '14px'
-    }).setOrigin(0, 0.5);
-    const awarenessBg = this.add.rectangle(-screenW / 2 + 35, emotionY, emotionBarW - 20, 6, 0x1e293b, 1);
-    awarenessBg.setOrigin(0, 0.5);
-    this._awarenessBar = this.add.rectangle(-screenW / 2 + 35, emotionY, 0, 4, 0x3b82f6, 1);
-    this._awarenessBar.setOrigin(0, 0.5);
-    
-    // Stress bar
-    const stressLabel = this.add.text(-screenW / 2 + 20 + emotionBarW, emotionY, '😰', {
-      fontSize: '14px'
-    }).setOrigin(0, 0.5);
-    const stressBg = this.add.rectangle(-screenW / 2 + 35 + emotionBarW, emotionY, emotionBarW - 20, 6, 0x1e293b, 1);
-    stressBg.setOrigin(0, 0.5);
-    this._stressBar = this.add.rectangle(-screenW / 2 + 35 + emotionBarW, emotionY, 0, 4, 0xef4444, 1);
-    this._stressBar.setOrigin(0, 0.5);
-    
-    // Relationship bar
-    const relationLabel = this.add.text(-screenW / 2 + 20 + emotionBarW * 2, emotionY, '💬', {
-      fontSize: '14px'
-    }).setOrigin(0, 0.5);
-    const relationBg = this.add.rectangle(-screenW / 2 + 35 + emotionBarW * 2, emotionY, emotionBarW - 20, 6, 0x1e293b, 1);
-    relationBg.setOrigin(0, 0.5);
-    this._relationBar = this.add.rectangle(-screenW / 2 + 35 + emotionBarW * 2, emotionY, 0, 4, 0x10b981, 1);
-    this._relationBar.setOrigin(0, 0.5);
-    
     // Create scrollable content container
     const contentY = -screenH / 2 + 155;
     const contentHeight = screenH - 285;
@@ -1001,7 +1015,7 @@ export default class AttractionScene extends Phaser.Scene {
     const allFeedItems = [
       ...FEED_ITEMS,
       { icon: '💬', text: 'Mia commented: "This is amazing!"' },
-      { icon: '❤️', text: 'Kai liked your story' },
+      { icon: '❤️', text: 'Steve liked your story' },
       { icon: '🎊', text: 'You have 25 new followers!' },
       { icon: '⚡', text: 'Your post got 500 views!' },
       { icon: '🌟', text: 'Featured in trending!' },
@@ -1085,7 +1099,7 @@ export default class AttractionScene extends Phaser.Scene {
       closeBtn.setFillStyle(0xef4444);
     });
     
-    // Add all elements to container
+    // Add all elements to container (excluding maskShape - it's only for masking)
     this._mobileScreen.add([
       overlay,
       phoneFrame,
@@ -1098,10 +1112,6 @@ export default class AttractionScene extends Phaser.Scene {
       progressBg,
       this._progressBar,
       this._progressLabel,
-      awarenessLabel, awarenessBg, this._awarenessBar,
-      stressLabel, stressBg, this._stressBar,
-      relationLabel, relationBg, this._relationBar,
-      maskShape,
       this._scrollContent,
       scrollHint,
       closeBtn,
@@ -1129,43 +1139,9 @@ export default class AttractionScene extends Phaser.Scene {
       this._closeMobileScreen();
     });
     
-    // Start emotion bar update loop
-    this._emotionUpdateTimer = this.time.addEvent({
-      delay: 100,
-      callback: this._updateEmotionBars,
-      callbackScope: this,
-      loop: true
-    });
-
-    // ──// Educational notification fires after 8s of scrolling (but not in continuous scroll mode)
-    this.time.delayedCall(8000, () => {
-      if (this._mobileScreenOpen && !this._ended && !this._continuousScrollMode) {
-        this._showEducationalNotification();
-      }
-    });
-    
+    // Emotion tracking happens internally via agent.usePhone()
+    // No visual bars displayed on screen
     this._log('📱 Phone', 'screen opened - AI tracking started');
-  }
-
-  _updateEmotionBars() {
-    if (!this.agent || !this._mobileScreenOpen) return;
-    
-    const barMaxW = (320 - 40) / 3 - 20;
-    
-    // Update awareness bar
-    if (this._awarenessBar) {
-      this._awarenessBar.width = (this.agent.awareness / 100) * barMaxW;
-    }
-    
-    // Update stress bar
-    if (this._stressBar) {
-      this._stressBar.width = (this.agent.emotions.stress / 100) * barMaxW;
-    }
-    
-    // Update relationship bar
-    if (this._relationBar) {
-      this._relationBar.width = (this.agent.relationshipLevel / 100) * barMaxW;
-    }
   }
 
   _updateProgressBar() {
@@ -1187,6 +1163,69 @@ export default class AttractionScene extends Phaser.Scene {
     // Update label text
     if (this._progressLabel) {
       this._progressLabel.setText(`Addiction: ${Math.round(progress)}%`);
+    }
+
+    // ── At 70% — show the learning notification ──────────────────────────
+    if (progress >= 70 && !this._decisionShown) {
+      this._decisionShown = true;
+      this._decisionPending = true; // pause progress while popup is open
+      this._showEducationalNotification();
+    }
+
+    // ── At 100% — show Fail notification ─────────────────────────────────
+    if (progress >= 100 && !this._failShown) {
+      this._failShown = true;
+      this._showFailNotification();
+    }
+  }
+
+  // ── Fail notification at 100% ─────────────────────────────────────────────
+  _showFailNotification() {
+    if (!this._mobileScreen || !this._mobileScreenOpen) return;
+
+    const { width, height } = this.scale;
+    const popup = this.add.container(width / 2, height / 2 - 60).setDepth(140).setAlpha(0);
+
+    const cardW = 280, cardH = 160;
+    const card = this.add.rectangle(0, 0, cardW, cardH, 0xffffff, 1);
+    card.setStrokeStyle(3, 0xef4444, 1);
+
+    const accent = this.add.rectangle(0, -cardH / 2, cardW, 6, 0xef4444, 1);
+
+    const iconBg = this.add.circle(0, -35, 25, 0xfee2e2, 1);
+    const iconT  = this.add.text(0, -35, '❌', { fontSize: '20px' }).setOrigin(0.5);
+
+    const titleT = this.add.text(0, 0, 'Results Failed', {
+      fontFamily: FONT, fontSize: '18px', color: '#ef4444', fontStyle: 'bold'
+    }).setOrigin(0.5);
+
+    const bodyT = this.add.text(0, 28, 'You missed your class.\nYour addiction level is at 100%.', {
+      fontFamily: FONT_BODY, fontSize: '13px', color: '#374151',
+      wordWrap: { width: cardW - 40 }, align: 'center'
+    }).setOrigin(0.5);
+
+    const okBtn = this.add.rectangle(0, 65, 80, 32, 0xef4444, 1);
+    okBtn.setStrokeStyle(2, 0xdc2626, 1);
+    okBtn.setInteractive({ useHandCursor: true });
+    const okTxt = this.add.text(0, 65, 'OK', {
+      fontFamily: FONT, fontSize: '14px', color: '#ffffff', fontStyle: 'bold'
+    }).setOrigin(0.5);
+
+    popup.add([card, accent, iconBg, iconT, titleT, bodyT, okBtn, okTxt]);
+    gsap.fromTo(popup, { alpha: 0, scale: 0.85 }, { alpha: 1, scale: 1, duration: 0.4, ease: 'back.out(1.5)' });
+
+    okBtn.on('pointerover', () => okBtn.setFillStyle(0xdc2626));
+    okBtn.on('pointerout',  () => okBtn.setFillStyle(0xef4444));
+    okBtn.on('pointerdown', () => {
+      gsap.to(popup, { alpha: 0, scale: 0.85, duration: 0.3, onComplete: () => {
+        popup.destroy();
+        this._showLearningKey();
+      }});
+    });
+
+    // Affect agent state
+    if (this.agent) {
+      this.agent.addictionLevel = Math.min(100, this.agent.addictionLevel + 10);
     }
   }
 
@@ -1263,35 +1302,28 @@ export default class AttractionScene extends Phaser.Scene {
 
     // Accept — go to learning scene
     acceptBtn.on('pointerdown', () => {
-      this._ended = true;
+      this._decisionPending = false;
       gsap.to(popup, { alpha: 0, scale: 0.8, duration: 0.3 });
       this._closeMobileScreen();
-      this.time.delayedCall(400, () => {
-        this.cameras.main.fadeOut(600, 0, 0, 0);
-        this.cameras.main.once('camerafadeoutcomplete', () => {
-          this.scene.start('LearningScene');
-        });
+      this.time.delayedCall(200, () => {
+        this.scene.start('LearningScene');
       });
     });
 
     // Decline — dismiss and keep scrolling
     declineBtn.on('pointerdown', () => {
+      this._decisionPending = false;
       gsap.to(popup, {
         alpha: 0, y: height / 2 - 90, duration: 0.3,
         onComplete: () => popup.destroy()
       });
-      this._log('Notif', 'Kai dismissed the class reminder');
+      this._log('Notif', 'Steve dismissed the class reminder');
       
       // Set continuous scroll mode flag to prevent distortion transition
       this._continuousScrollMode = true;
       
       // Start continuous scrolling mode
       this._startContinuousScrolling();
-      
-      // Show "results failed" notification after delay
-      this.time.delayedCall(8000, () => {
-        this._showResultsFailedNotification();
-      });
     });
   }
 
@@ -1336,185 +1368,15 @@ export default class AttractionScene extends Phaser.Scene {
     if (this._ended) return;
     this._ended = true;
 
-    this._log('🌿 Real World', 'Kai steps outside...');
+    this._log('🌿 Real World', 'Steve steps outside...');
 
-    if (this._emotionUpdateTimer) this._emotionUpdateTimer.remove();
-
-    // Smooth fade out transition (no flash/glitch)
-    this.cameras.main.fadeOut(1200, 255, 240, 200);
-
-    this.cameras.main.once('camerafadeoutcomplete', () => {
-      // Pass agent state to real world scene
-      this.scene.start('RealWorldScene', {
+    this.scene.start('RealWorldScene', {
         addictionLevel:    this.agent ? this.agent.addictionLevel    : 0,
         awareness:         this.agent ? this.agent.awareness         : 70,
         relationshipLevel: this.agent ? this.agent.relationshipLevel : 50,
         hasPhone:          this.agent ? this.agent.hasPhone          : false,
         memory:            this.agent ? [...this.agent.memory]       : [],
       });
-    });
-  }
-
-  // ── CONFLICT TRIGGER: Message Interruption ────────────────────────────────
-  _triggerConflict() {
-    if (this._conflictTriggered || !this._mobileScreenOpen) return;
-    this._conflictTriggered = true;
-    
-    const messages = [
-      { from: 'Mom', text: 'Where are you? We need you at dinner.' },
-      { from: 'Best Friend', text: 'Hey, you okay? You\'ve been quiet...' },
-      { from: 'Dad', text: 'Can you help me with something?' },
-      { from: 'Mia', text: 'Are you ignoring me? 😢' },
-    ];
-    
-    const msg = Phaser.Utils.Array.GetRandom(messages);
-    
-    this._log('💬 Conflict', `Message from ${msg.from}`);
-    
-    // Show message popup
-    this._showMessageChoice(msg.from, msg.text);
-    
-    // Play notification sound (if available)
-    // this.sound.play('notification');
-  }
-
-  _showMessageChoice(from, text) {
-    if (!this._mobileScreen) return;
-    
-    const { width, height } = this.scale;
-    
-    // Create message popup
-    this._messagePopup = this.add.container(0, 0).setDepth(110);
-    
-    // Semi-transparent overlay
-    const popupOverlay = this.add.rectangle(0, 0, width, height, 0x000000, 0.6);
-    popupOverlay.setInteractive();
-    
-    // Message card
-    const cardW = 300;
-    const cardH = 200;
-    const card = this.add.rectangle(0, 0, cardW, cardH, 0x1e1b4b, 1);
-    card.setStrokeStyle(3, 0x6366f1, 1);
-    
-    // Notification icon
-    const icon = this.add.text(0, -70, '📱', {
-      fontSize: '32px'
-    }).setOrigin(0.5);
-    
-    // From label
-    const fromLabel = this.add.text(0, -40, from, {
-      fontFamily: FONT, fontSize: '18px', color: '#ffffff', fontStyle: 'bold'
-    }).setOrigin(0.5);
-    
-    // Message text
-    const msgText = this.add.text(0, -10, text, {
-      fontFamily: FONT_BODY, fontSize: '14px', color: '#e2e8f0',
-      wordWrap: { width: cardW - 40 }, align: 'center'
-    }).setOrigin(0.5);
-    
-    // Reply button
-    const replyBtn = this.add.rectangle(-70, 50, 120, 40, 0x10b981, 1);
-    replyBtn.setStrokeStyle(2, 0x059669, 1);
-    replyBtn.setInteractive({ useHandCursor: true });
-    
-    const replyTxt = this.add.text(-70, 50, '✓ Reply', {
-      fontFamily: FONT, fontSize: '16px', color: '#ffffff', fontStyle: 'bold'
-    }).setOrigin(0.5);
-    
-    // Ignore button
-    const ignoreBtn = this.add.rectangle(70, 50, 120, 40, 0x64748b, 1);
-    ignoreBtn.setStrokeStyle(2, 0x475569, 1);
-    ignoreBtn.setInteractive({ useHandCursor: true });
-    
-    const ignoreTxt = this.add.text(70, 50, '✕ Ignore', {
-      fontFamily: FONT, fontSize: '16px', color: '#ffffff', fontStyle: 'bold'
-    }).setOrigin(0.5);
-    
-    // Button interactions
-    replyBtn.on('pointerdown', () => {
-      if (this.agent) {
-        this.agent.respondToMessage('reply');
-      }
-      this._closeMessagePopup();
-      this._log('💬 Choice', 'Replied to message - relationship improved');
-    });
-    
-    replyBtn.on('pointerover', () => {
-      replyBtn.setFillStyle(0x059669);
-    });
-    
-    replyBtn.on('pointerout', () => {
-      replyBtn.setFillStyle(0x10b981);
-    });
-    
-    ignoreBtn.on('pointerdown', () => {
-      if (this.agent) {
-        this.agent.respondToMessage('ignore');
-      }
-      this._closeMessagePopup();
-      this._log('💬 Choice', 'Ignored message - relationship damaged');
-      
-      // Allow another conflict trigger
-      this.time.delayedCall(5000, () => {
-        this._conflictTriggered = false;
-      });
-    });
-    
-    ignoreBtn.on('pointerover', () => {
-      ignoreBtn.setFillStyle(0x475569);
-    });
-    
-    ignoreBtn.on('pointerout', () => {
-      ignoreBtn.setFillStyle(0x64748b);
-    });
-    
-    this._messagePopup.add([
-      popupOverlay,
-      card,
-      icon,
-      fromLabel,
-      msgText,
-      replyBtn,
-      replyTxt,
-      ignoreBtn,
-      ignoreTxt
-    ]);
-    
-    this._messagePopup.setPosition(width / 2, height / 2);
-    this._messagePopup.setAlpha(0);
-    
-    // Animate in
-    gsap.to(this._messagePopup, {
-      alpha: 1,
-      duration: 0.3,
-      ease: 'power2.out'
-    });
-    
-    this._messagePopup.setScale(0.8);
-    gsap.to(this._messagePopup, {
-      scaleX: 1,
-      scaleY: 1,
-      duration: 0.3,
-      ease: 'back.out(1.5)'
-    });
-  }
-
-  _closeMessagePopup() {
-    if (!this._messagePopup) return;
-    
-    gsap.to(this._messagePopup, {
-      alpha: 0,
-      scaleX: 0.8,
-      scaleY: 0.8,
-      duration: 0.2,
-      ease: 'power2.in',
-      onComplete: () => {
-        if (this._messagePopup) {
-          this._messagePopup.destroy();
-          this._messagePopup = null;
-        }
-      }
-    });
   }
 
   _reachDoor() {
@@ -1640,175 +1502,61 @@ export default class AttractionScene extends Phaser.Scene {
   }
 
   // Show results failed notification
-  _showResultsFailedNotification() {
-    if (!this._mobileScreen || !this._mobileScreenOpen) return;
-    
-    this._log('Results Failed', 'Agent missed the class and feels sad');
-    
-    const { width, height } = this.scale;
-    
-    // Create sad notification popup
-    const popup = this.add.container(width / 2, height / 2 - 60).setDepth(130).setAlpha(0);
-    
-    // Dim overlay
-    const dim = this.add.rectangle(0, 0, 320, 600, 0x000000, 0.7);
-    
-    // Notification card with red accent
-    const cardW = 280, cardH = 150;
-    const card = this.add.rectangle(0, 0, cardW, cardH, 0xffffff, 1);
-    card.setStrokeStyle(3, 0xef4444, 1);
-    
-    // Red top accent
-    const accent = this.add.rectangle(0, -cardH / 2, cardW, 6, 0xef4444, 1);
-    
-    // Sad icon
-    const iconBg = this.add.circle(0, -30, 25, 0xfee2e2, 1);
-    const iconT = this.add.text(0, -30, 'Failed', {
-      fontFamily: FONT, fontSize: '16px', color: '#ef4444', fontStyle: 'bold'
-    }).setOrigin(0.5);
-    
-    // Title
-    const titleT = this.add.text(0, 5, 'Results Failed', {
-      fontFamily: FONT, fontSize: '18px', color: '#ef4444', fontStyle: 'bold'
-    }).setOrigin(0.5);
-    
-    // Body text
-    const bodyT = this.add.text(0, 30, 'You didn\'t attend the class.\nYour addiction level has increased.', {
-      fontFamily: FONT_BODY, fontSize: '13px', color: '#374151',
-      wordWrap: { width: cardW - 40 }, align: 'center'
-    }).setOrigin(0.5);
-    
-    // OK button
-    const okBtn = this.add.rectangle(0, 55, 70, 30, 0xef4444, 1);
-    okBtn.setStrokeStyle(2, 0xdc2626, 1);
-    okBtn.setInteractive({ useHandCursor: true });
-    
-    const okTxt = this.add.text(0, 55, 'OK', {
-      fontFamily: FONT, fontSize: '14px', color: '#ffffff', fontStyle: 'bold'
-    }).setOrigin(0.5);
-    
-    popup.add([dim, card, accent, iconBg, iconT, titleT, bodyT, okBtn, okTxt]);
-    
-    // Animate in
-    gsap.fromTo(popup,
-      { alpha: 0, scale: 0.8 },
-      { alpha: 1, scale: 1, duration: 0.4, ease: 'back.out(1.5)' }
-    );
-    
-    // Button interaction
-    okBtn.on('pointerdown', () => {
-      gsap.to(popup, {
-        alpha: 0, scale: 0.8, duration: 0.3,
-        onComplete: () => {
-          popup.destroy();
-          // Show key icon for learning scene transition
-          this._showLearningKey();
-        }
-      });
-    });
-    
-    okBtn.on('pointerover', () => {
-      okBtn.setFillStyle(0xdc2626);
-    });
-    
-    okBtn.on('pointerout', () => {
-      okBtn.setFillStyle(0xef4444);
-    });
-    
-    // Make agent sad (affect emotions)
-    if (this.agent) {
-      this.agent.emotions.happiness -= 20;
-      this.agent.emotions.stress += 15;
-      this.agent.addictionLevel += 10;
-    }
-  }
-
   // Show learning key icon for transition to Learning Scene
   _showLearningKey() {
-    if (!this._mobileScreen || !this._mobileScreenOpen) return;
-    
     this._log('🔑 Learning Key', 'Agent has learned from mistakes - key to learning appears');
     
     const { width, height } = this.scale;
-    const screenW = 320;
-    const screenH = 600;
     
-    // Create key icon container
-    this._learningKey = this.add.container(0, 0).setDepth(130).setAlpha(0);
+    // Create key icon container — shown over the main scene (not inside phone screen)
+    this._learningKey = this.add.container(width / 2, height / 2).setDepth(130).setAlpha(0);
     
-    // Key background circle
-    const keyBg = this.add.circle(0, -100, 35, 0x10b981, 0.9);
-    keyBg.setStrokeStyle(3, 0x059669, 1);
-    
+    // Dark overlay
+    const overlay = this.add.rectangle(0, 0, width, height, 0x000000, 0.7);
+    overlay.setInteractive(); // block clicks through
+
+    // Card background
+    const card = this.add.rectangle(0, 0, 340, 200, 0x0f172a, 1);
+    card.setStrokeStyle(3, 0x10b981, 1);
+
     // Key icon
-    const keyIcon = this.add.text(0, -100, '🔑', {
-      fontSize: '32px'
+    const keyIcon = this.add.text(0, -60, '🔑', { fontSize: '40px' }).setOrigin(0.5);
+    
+    // Title
+    const keyLabel = this.add.text(0, -15, 'Return to Studies', {
+      fontFamily: FONT, fontSize: '20px', color: '#10b981', fontStyle: 'bold'
     }).setOrigin(0.5);
     
-    // Key text label
-    const keyLabel = this.add.text(0, -60, 'Return to Studies', {
-      fontFamily: FONT, fontSize: '14px', color: '#10b981', fontStyle: 'bold'
+    const keySubLabel = this.add.text(0, 15, 'You can still learn from your mistakes!', {
+      fontFamily: FONT_BODY, fontSize: '13px', color: '#94a3b8'
     }).setOrigin(0.5);
-    
-    const keySubLabel = this.add.text(0, -45, 'Click to learn from mistakes', {
-      fontFamily: FONT_BODY, fontSize: '11px', color: '#64748b'
-    }).setOrigin(0.5);
-    
-    this._learningKey.add([keyBg, keyIcon, keyLabel, keySubLabel]);
-    
-    // Position relative to phone screen
-    this._learningKey.setPosition(width / 2, height / 2);
-    
-    // Make interactive
+
+    // Button
+    const keyBg = this.add.rectangle(0, 60, 200, 44, 0x10b981, 1);
+    keyBg.setStrokeStyle(2, 0x059669, 1);
     keyBg.setInteractive({ useHandCursor: true });
-    keyIcon.setInteractive({ useHandCursor: true });
+    const btnTxt = this.add.text(0, 60, '📚 Go to Learning', {
+      fontFamily: FONT, fontSize: '15px', color: '#ffffff', fontStyle: 'bold'
+    }).setOrigin(0.5);
     
-    // Animate in with bounce
+    this._learningKey.add([overlay, card, keyIcon, keyLabel, keySubLabel, keyBg, btnTxt]);
+    
+    // Animate in
     gsap.fromTo(this._learningKey,
-      { alpha: 0, scale: 0.5 },
-      { alpha: 1, scale: 1, duration: 0.6, ease: 'back.out(1.8)' }
+      { alpha: 0, scale: 0.85 },
+      { alpha: 1, scale: 1, duration: 0.5, ease: 'back.out(1.8)' }
     );
     
-    // Pulse animation to draw attention
-    gsap.to(keyBg, {
-      scaleX: 1.1, scaleY: 1.1, duration: 1,
-      yoyo: true, repeat: -1, ease: 'sine.inOut'
-    });
-    
-    // Click handlers
-    const goToLearning = () => {
-      this._log('🔑 Learning', 'Agent chooses to return to studies - learned from mistakes');
-      
-      // End the scene and transition to Learning Scene
-      this._ended = true;
-      
-      // Fade out animation
-      gsap.to(this._learningKey, {
-        alpha: 0, scale: 0.8, duration: 0.3
-      });
-      
-      this._closeMobileScreen();
-      
-      this.time.delayedCall(400, () => {
-        this.cameras.main.fadeOut(600, 0, 0, 0);
-        this.cameras.main.once('camerafadeoutcomplete', () => {
-          this.scene.start('LearningScene', { fromKeyRedemption: true });
-        });
-      });
-    };
-    
-    keyBg.on('pointerdown', goToLearning);
-    keyIcon.on('pointerdown', goToLearning);
-    
     // Hover effects
-    keyBg.on('pointerover', () => {
-      keyBg.setFillStyle(0x059669);
-      keyBg.setScale(1.15);
-    });
+    keyBg.on('pointerover', () => keyBg.setFillStyle(0x059669));
+    keyBg.on('pointerout',  () => keyBg.setFillStyle(0x10b981));
     
-    keyBg.on('pointerout', () => {
-      keyBg.setFillStyle(0x10b981);
-      keyBg.setScale(1);
+    // Click handler
+    keyBg.on('pointerdown', () => {
+      gsap.to(this._learningKey, { alpha: 0, scale: 0.85, duration: 0.3, onComplete: () => {
+        if (this._learningKey) { this._learningKey.destroy(); this._learningKey = null; }
+        this.scene.start('LearningScene', { fromKeyRedemption: true });
+      }});
     });
   }
 }

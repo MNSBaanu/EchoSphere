@@ -1,4 +1,4 @@
-import Phaser from 'phaser';
+﻿import Phaser from 'phaser';
 import Agent from '../agent/Agent.js';
 import { gsap } from 'gsap';
 
@@ -9,7 +9,6 @@ const FONT_BODY = 'Inter, sans-serif';
 const STUDY_TASKS = [
   { subject: '📐 Mathematics',  task: 'Solving quadratic equations',   xp: 30 },
   { subject: '🔬 Science',      task: 'Reading about photosynthesis',  xp: 25 },
-  { subject: ' Coding',       task: 'Writing a Python function',     xp: 35 },
 ];
 
 export default class LearningScene extends Phaser.Scene {
@@ -18,7 +17,6 @@ export default class LearningScene extends Phaser.Scene {
     this._ended   = false;
     this._taskIdx = 0;
     this._xp      = 0;
-    this._isSitting = false;
     this._chair = null;
   }
 
@@ -47,7 +45,7 @@ export default class LearningScene extends Phaser.Scene {
       fontFamily: FONT, fontSize: '14px', color: '#4ade80', fontStyle: 'bold'
     }).setOrigin(0.5, 0).setDepth(11);
 
-    this.add.text(width - 24, 14, '[N] skip', {
+    this.add.text(width - 24, 14, '↑↓←→/WASD  ·  [SPACE] Study', {
       fontFamily: FONT, fontSize: '13px', color: '#818cf8'
     }).setOrigin(1, 0).setDepth(11);
 
@@ -64,19 +62,6 @@ export default class LearningScene extends Phaser.Scene {
 
     // ── Start first task after a moment ──────────────────────────────────
     this.time.delayedCall(1500, () => this._startNextTask());
-
-    // ── Dev skip ──────────────────────────────────────────────────────────
-    this.input.keyboard.once('keydown-N', () => {
-      if (!this._ended) this._endScene('good');
-    });
-
-    // ── Sit/Stand functionality ─────────────────────────────────────────────
-    this.input.keyboard.on('keydown-C', () => {
-      if (!this._ended) this._toggleSitting();
-    });
-
-    
-    this.cameras.main.fadeIn(600, 0, 0, 0);
   }
 
   update() {
@@ -434,7 +419,7 @@ export default class LearningScene extends Phaser.Scene {
     if (!this._taskProgress || this._taskCompleting) return;
 
     const currentW = this._taskProgress.width;
-    const newW = Math.min(this._taskProgressMax, currentW + 18);
+    const newW = Math.min(this._taskProgressMax, currentW + this._taskProgressMax * 0.5);
     this._taskProgress.width = newW;
 
     // Agent shows focus while studying (no jumping)
@@ -451,12 +436,13 @@ export default class LearningScene extends Phaser.Scene {
   // ── Complete task ─────────────────────────────────────────────────────────
   _completeTask(task) {
     // Remove the completed card
-    gsap.to(this._taskCard, { alpha: 0, duration: 0.3, onComplete: () => {
-      if (this._taskCard) {
-        this._taskCard.destroy();
-        this._taskCard = null;
-      }
-    }});
+    const cardToDestroy = this._taskCard;
+    this._taskCard = null;
+    if (cardToDestroy) {
+      gsap.to(cardToDestroy, { alpha: 0, duration: 0.3, onComplete: () => {
+        if (cardToDestroy.active) cardToDestroy.destroy();
+      }});
+    }
 
     this._xp += task.xp;
     this._taskIdx++;
@@ -467,19 +453,16 @@ export default class LearningScene extends Phaser.Scene {
     this._xpBar.width = xpPct * this._xpBarMax;
     this._xpLabel.setText(`${this._xp} / ${totalXP} XP`);
 
-    // Completion burst (no jumping)
+    // Completion burst
     this._burstParticles(this.agent.x, this.agent.y);
 
-    // Flash card green
-    const bg = this._taskCard?.list[0];
-    if (bg) {
-      this.tweens.add({ targets: bg, fillColor: 0xd1fae5, duration: 300, yoyo: true });
-    }
-
-    
     this.time.delayedCall(1000, () => {
       this._taskCompleting = false;
-      // Start next task automatically
+      // Remove old SPACE listener before starting next task
+      if (this._studyKey) {
+        this.input.keyboard.off('keydown-SPACE', this._studyKey);
+        this._studyKey = null;
+      }
       this._startNextTask();
     });
   }
@@ -510,33 +493,52 @@ export default class LearningScene extends Phaser.Scene {
     if (this._ended) return;
     this._ended = true;
 
+    // Remove any active study key listener
+    if (this._studyKey) {
+      this.input.keyboard.off('keydown-SPACE', this._studyKey);
+      this._studyKey = null;
+    }
+
+    // Remove any lingering task card
+    if (this._taskCard) {
+      this._taskCard.destroy();
+      this._taskCard = null;
+    }
+
     const { _width: W, _height: H } = this;
 
-    this.cameras.main.flash(300, 100, 200, 100);
+    const card = this.add.container(W / 2, H / 2).setDepth(40);
+    const bg   = this.add.rectangle(0, 0, 540, 160, 0xffffff, 0.97);
+    bg.setStrokeStyle(3, 0x16a34a, 1);
+    const title = this.add.text(0, -35, '✅ Steve chose to learn!', {
+      fontFamily: FONT, fontSize: '28px', fontStyle: 'bold', color: '#16a34a'
+    }).setOrigin(0.5);
+    const sub = this.add.text(0, 10, `He earned ${this._xp} XP and grew as a person.`, {
+      fontFamily: FONT_BODY, fontSize: '15px', color: '#374151'
+    }).setOrigin(0.5);
+    const hint = this.add.text(0, 55, 'Click anywhere to return →', {
+      fontFamily: FONT_BODY, fontSize: '12px', color: '#9ca3af'
+    }).setOrigin(0.5);
+    this.tweens.add({ targets: hint, alpha: 0.3, duration: 700, yoyo: true, repeat: -1 });
+    card.add([bg, title, sub, hint]);
 
-    this.time.delayedCall(400, () => {
-      const card = this.add.container(W / 2, H / 2).setDepth(40);
-      const bg   = this.add.rectangle(0, 0, 540, 160, 0xffffff, 0.97);
-      bg.setStrokeStyle(3, 0x16a34a, 1);
-      const title = this.add.text(0, -35, '✅ Kai chose to learn!', {
-        fontFamily: FONT, fontSize: '28px', fontStyle: 'bold', color: '#16a34a'
-      }).setOrigin(0.5);
-      const sub = this.add.text(0, 10, `He earned ${this._xp} XP and grew as a person.`, {
-        fontFamily: FONT_BODY, fontSize: '15px', color: '#374151'
-      }).setOrigin(0.5);
-      const hint = this.add.text(0, 55, 'Click anywhere to continue →', {
-        fontFamily: FONT_BODY, fontSize: '12px', color: '#9ca3af'
-      }).setOrigin(0.5);
-      this.tweens.add({ targets: hint, alpha: 0.3, duration: 700, yoyo: true, repeat: -1 });
-      card.add([bg, title, sub, hint]);
+    gsap.fromTo(card, { alpha: 0, scale: 0.85 }, { alpha: 1, scale: 1, duration: 0.5, ease: 'back.out(1.5)' });
 
-      gsap.fromTo(card, { alpha: 0, scale: 0.85 }, { alpha: 1, scale: 1, duration: 0.5, ease: 'back.out(1.5)' });
+    this.input.once('pointerdown', () => {
+      // Pass reduced addiction level back to AttractionScene
+      const reducedAddiction = this.agent ? Math.max(0, this.agent.addictionLevel - 30) : 0;
+      const improvedAwareness = this.agent ? Math.min(100, this.agent.awareness + 20) : 70;
+      const memory = this.agent ? [...this.agent.memory] : [];
 
-      this.input.once('pointerdown', () => {
-        this.cameras.main.fadeOut(600, 0, 0, 0);
-        this.cameras.main.once('camerafadeoutcomplete', () => {
-          console.log('[Scene] Learning path complete — good ending branch');
-        });
+      // Push learning memory if not already there
+      if (!memory.includes('completed_learning')) {
+        memory.push('completed_learning');
+      }
+
+      this.scene.start('AttractionScene', {
+        addictionLevel: reducedAddiction,
+        awareness: improvedAwareness,
+        memory: memory,
       });
     });
   }
@@ -576,28 +578,5 @@ export default class LearningScene extends Phaser.Scene {
     };
   }
 
-  // ── Toggle sitting/standing ─────────────────────────────────────────────────
-  _toggleSitting() {
-    if (this._isSitting) {
-      // Stand up
-      this._isSitting = false;
-      this.agent.y = this._groundY - 60;
-      this.agent.fsm.forceState('IDLE');
-          } else {
-      // Sit down
-      this._isSitting = true;
-      this.agent.x = this._chair.x - 20;
-      this.agent.y = this._groundY - 60;
-      this.agent.fsm.forceState('IDLE');
-            
-      // Add sitting animation
-      this.tweens.add({
-        targets: this.agent,
-        x: this._chair.x - 20,
-        duration: 300,
-        ease: 'power2.out'
-      });
-    }
-    
-  }
 }
+

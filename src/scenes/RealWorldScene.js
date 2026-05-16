@@ -75,14 +75,14 @@ export default class RealWorldScene extends Phaser.Scene {
     this._playerEngageCount = 0;
 
     // ── Physics / perception constants ────────────────────────────────────
-    this.VISION_RANGE   = 200;   // px — how far Kai can see
+    this.VISION_RANGE   = 200;   // px — how far Steve can see
     this.VISION_ANGLE   = 90;    // degrees — cone of vision (±45° from facing)
-    this.HEARING_RANGE  = 150;   // px — how far Kai can hear NPCs
+    this.HEARING_RANGE  = 150;   // px — how far Steve can hear NPCs
     this.NPC_WANDER_SPEED = 0.6; // px/frame — NPCs wander slowly
 
     // ── Learning / memory ─────────────────────────────────────────────────
-    this._learnedNPCs   = new Set(); // NPCs Kai has spoken to (not same mistake twice)
-    this._avoidedNPC    = null;      // NPC Kai decided to avoid after bad interaction
+    this._learnedNPCs   = new Set(); // NPCs Steve has spoken to (not same mistake twice)
+    this._avoidedNPC    = null;      // NPC Steve decided to avoid after bad interaction
     this._adviceGiven   = false;     // Mom gave advice once — not repeated
 
     // ── Random event state ────────────────────────────────────────────────
@@ -105,9 +105,7 @@ export default class RealWorldScene extends Phaser.Scene {
     this._h = height;
     this._groundY = height * 0.75;
 
-    this.cameras.main.fadeIn(800, 255, 240, 200);
-
-    // ── Background: warm outdoor park ────────────────────────────────────
+    // Background: warm outdoor park
     this._drawOutdoor(width, height);
 
     // ── Top bar ───────────────────────────────────────────────────────────
@@ -123,14 +121,14 @@ export default class RealWorldScene extends Phaser.Scene {
       fontFamily: FONT, fontSize: "16px", color: "#86efac", fontStyle: "bold"
     }).setOrigin(0.5, 0).setDepth(21);
 
-    this.add.text(width - 24, 14, "[N] skip", {
-      fontFamily: FONT, fontSize: "14px", color: "#4ade80"
+    this.add.text(width - 24, 14, "↑↓←→/WASD", {
+      fontFamily: FONT, fontSize: "13px", color: "#4ade80"
     }).setOrigin(1, 0).setDepth(21);
 
     // ── Spawn NPCs ────────────────────────────────────────────────────────
     NPC_DATA.forEach(data => this._spawnNPC(data, width, height));
 
-    // ── Player character (Kai) ────────────────────────────────────────────
+    // ── Player character (Steve) ────────────────────────────────────────────
     this._spawnPlayer(width, height);
 
     // ── Vision cone graphics (removed - no visual effects) ───────────────
@@ -175,11 +173,6 @@ export default class RealWorldScene extends Phaser.Scene {
 
     // ── NPC autonomous wander ─────────────────────────────────────────────
     this._npcs.forEach(npc => this._startNPCWander(npc));
-
-    // ── Skip key ──────────────────────────────────────────────────────────
-    this.input.keyboard.once("keydown-N", () => {
-      if (!this._ended) this._endScene();
-    });
   }
 
   update() {
@@ -230,7 +223,7 @@ export default class RealWorldScene extends Phaser.Scene {
     g.strokeCircle(ax, ay, this.HEARING_RANGE);
   }
 
-  // ── PERCEPTION: Kai perceives NPCs in vision/hearing range ───────────────
+  // ── PERCEPTION: Steve perceives NPCs in vision/hearing range ───────────────
   _updatePerception() {
     if (!this.agent) return;
     const ax = this.agent.x;
@@ -258,7 +251,7 @@ export default class RealWorldScene extends Phaser.Scene {
         npc._perceived = true;
         // First time perceiving this NPC — log it
         if (!this._learnedNPCs.has(npc.id)) {
-          this._log(`👁 Kai noticed ${npc.name}`);
+          this._log(`👁 Steve noticed ${npc.name}`);
         }
       } else if (!canSee && !canHear) {
         npc._perceived = false;
@@ -311,12 +304,12 @@ export default class RealWorldScene extends Phaser.Scene {
     });
   }
 
-  // ── DECISION MAKING: NPC decides to approach Kai if ignored too long ──────
+  // ── DECISION MAKING: NPC decides to approach Steve if ignored too long ──────
   _npcDecideToApproach(npc) {
     if (npc._seekingPlayer || npc.bubble) return;
     npc._seekingPlayer = true;
 
-    // NPC walks toward Kai
+    // NPC walks toward Steve
     const seekInterval = this.time.addEvent({
       delay: 50,
       callback: () => {
@@ -343,13 +336,14 @@ export default class RealWorldScene extends Phaser.Scene {
     const roll = Math.random();
 
     if (roll < 0.25) {
-      // Time shifts to dusk — vision range drops
+      // Time shifts to dusk — vision range drops (visual effect disabled)
       this._timeOfDay = 'dusk';
-      this._applyDusk();
-      this._log('🌅 Dusk falls — Kai\'s vision narrows');
+      // Removed dusk visual overlay to prevent yellow tint
+      // this._applyDusk();
+      this._log('🌅 Dusk falls — Steve\'s vision narrows');
       this.time.delayedCall(12000, () => {
         this._timeOfDay = 'day';
-        this._removeDusk();
+        // this._removeDusk();
       });
 
     } else if (roll < 0.45) {
@@ -378,24 +372,24 @@ export default class RealWorldScene extends Phaser.Scene {
       });
 
     } else if (roll < 0.75) {
-      // Random NPC decides to approach Kai
+      // Random NPC decides to approach Steve
       const npc = Phaser.Utils.Array.GetRandom(this._npcs);
       if (npc) {
-        this._log(`${npc.name} is coming to find Kai...`);
+        this._log(`${npc.name} is coming to find Steve...`);
         this._npcDecideToApproach(npc);
       }
 
     } else if (roll < 0.88) {
-      // Kai hears something — perception event
+      // Steve hears something — perception event
       const npc = Phaser.Utils.Array.GetRandom(this._npcs);
       if (npc && this.agent) {
         const dist = Phaser.Math.Distance.Between(this.agent.x, this.agent.y, npc.x, npc.y);
         if (dist < this.HEARING_RANGE) {
-          const hearLines = ['Hey Kai! Over here! 👋', 'Kai! Can you hear me?', 'Psst! Kai!'];
+          const hearLines = ['Hey Steve! Over here! 👋', 'Steve! Can you hear me?', 'Psst! Steve!'];
           const line = Phaser.Utils.Array.GetRandom(hearLines);
           this._createSpeechBubble(npc.x, npc.y - 110, line, npc.data.color, 'happy');
-          this._log(`👂 Kai heard ${npc.name} calling`);
-          // Kai's awareness increases when he hears someone
+          this._log(`👂 Steve heard ${npc.name} calling`);
+          // Steve's awareness increases when he hears someone
           this._awareness = Math.min(100, this._awareness + 8);
         }
       }
@@ -443,7 +437,7 @@ export default class RealWorldScene extends Phaser.Scene {
     }
   }
 
-  // ── LEARNING: Kai remembers advice from Mom ───────────────────────────────
+  // ── LEARNING: Steve remembers advice from Mom ───────────────────────────────
   _giveAdvice(npc) {
     if (this._adviceGiven || npc.id !== 'mom') return;
     this._adviceGiven = true;
@@ -452,10 +446,10 @@ export default class RealWorldScene extends Phaser.Scene {
     const bubble = this._createSpeechBubble(npc.x, npc.y - 110, adviceLine, npc.data.color, 'happy');
     npc.bubble = bubble;
 
-    // Kai learns — store in memory
+    // Steve learns — store in memory
     if (this.agent && !this.agent.memory.includes('mom_advice')) {
       this.agent.memory.push('mom_advice');
-      this._log('🧠 Kai learned: mom_advice — will not ignore Mom again');
+      this._log('🧠 Steve learned: mom_advice — will not ignore Mom again');
     }
 
     // Addiction drops significantly after advice
@@ -550,7 +544,7 @@ export default class RealWorldScene extends Phaser.Scene {
 
   // ── Handle notification click (distraction event) ─────────────────────────
   _onNotificationClicked() {
-    // Kai gets distracted by phone
+    // Steve gets distracted by phone
     this._phoneVisible = true;
     this._addictionLevel = Math.min(100, this._addictionLevel + 15);
     this._awareness = Math.max(0, this._awareness - 10);
@@ -572,7 +566,7 @@ export default class RealWorldScene extends Phaser.Scene {
       fontFamily: FONT, fontSize: "24px", color: "#ffffff", fontStyle: "bold"
     }).setOrigin(0.5);
     
-    const subText = this.add.text(0, 15, "Kai got distracted by the phone...", {
+    const subText = this.add.text(0, 15, "Steve got distracted by the phone...", {
       fontFamily: FONT, fontSize: "14px", color: "#e0e7ff"
     }).setOrigin(0.5);
     
@@ -650,8 +644,8 @@ export default class RealWorldScene extends Phaser.Scene {
     const g = this.add.graphics().setDepth(0);
     const groundY = height * 0.75;
 
-    // Sky gradient (no sun, no yellow effect)
-    g.fillGradientStyle(0x87ceeb, 0x87ceeb, 0xe0f2fe, 0xe0f2fe, 1);
+    // Sky - solid light blue
+    g.fillStyle(0x87ceeb, 1);
     g.fillRect(0, 0, width, groundY);
 
     // Clouds
@@ -702,8 +696,7 @@ export default class RealWorldScene extends Phaser.Scene {
 
   // ── Spawn NPC — drawn with same style as Agent._drawCharacter ───────────
   _spawnNPC(data, width, height) {
-    const x = width * data.x;
-    const y = height * data.y;
+    const pos = { x: width * data.x, y: height * data.y }; // mutable position
 
     // NPC shirt colors per character
     const shirtColors = { mom: 0xe879a0, friend: 0x0ea5e9, sibling: 0x16a34a };
@@ -711,10 +704,12 @@ export default class RealWorldScene extends Phaser.Scene {
     const shirt = shirtColors[data.id] || 0x6366f1;
     const pants = pantsColors[data.id] || 0x1e3a5f;
 
-    const S = 2.2; // slightly smaller than Kai (2.8)
+    const S = 2.2; // slightly smaller than Steve (2.8)
     const g = this.add.graphics().setDepth(8);
 
     const drawNPC = (emotion) => {
+      const x = pos.x;
+      const y = pos.y;
       g.clear();
 
       // Shadow
@@ -887,7 +882,7 @@ export default class RealWorldScene extends Phaser.Scene {
         g.fillEllipse(x - 9 * S, y - 21 * S, 7 * S, 4 * S);
         g.fillEllipse(x + 9 * S, y - 21 * S, 7 * S, 4 * S);
       } else if (emotion === 'angry' || emotion === 'sad') {
-        g.beginPath(); g.arc(x, y - 18 * S, 4 * S, Phaser.Math.DegToRad(200), Phaser.Math.DegToRad(340), false); g.strokePath();
+        g.beginPath(); g.arc(x, y - 14 * S, 4 * S, Phaser.Math.DegToRad(200), Phaser.Math.DegToRad(340), false); g.strokePath();
       } else {
         g.beginPath(); g.moveTo(x - 3 * S, y - 15 * S); g.lineTo(x + 3 * S, y - 15 * S); g.strokePath();
       }
@@ -901,7 +896,12 @@ export default class RealWorldScene extends Phaser.Scene {
     const emotionTag = null;
 
     const npc = {
-      id: data.id, name: data.name, x, y, g, nameTag, emotionTag,
+      id: data.id, name: data.name,
+      get x() { return pos.x; },
+      set x(v) { pos.x = v; },
+      get y() { return pos.y; },
+      set y(v) { pos.y = v; },
+      g, nameTag, emotionTag,
       data, emotion: data.emotion, lineIndex: 0, bubble: null,
       drawNPC  // store so we can redraw on emotion change
     };
@@ -937,48 +937,11 @@ export default class RealWorldScene extends Phaser.Scene {
 
   // ── HUD ───────────────────────────────────────────────────────────────────
   _buildHUD(width, height) {
-
-    const hud = this.add.container(width - 200, 62).setDepth(25);
-
-    const bg = this.add.rectangle(0, 0, 185, 110, 0x000000, 0.6);
-    bg.setStrokeStyle(1, 0x4ade80, 0.5);
-
-    const title = this.add.text(0, -40, "Agent State", {
-      fontFamily: FONT, fontSize: "12px", color: "#86efac", fontStyle: "bold"
-    }).setOrigin(0.5);
-
-    // Awareness bar
-    const awLabel = this.add.text(-70, -20, "👁 Awareness", {
-      fontFamily: FONT, fontSize: "10px", color: "#e2e8f0"
-    }).setOrigin(0, 0.5);
-    const awBg = this.add.rectangle(20, -20, 60, 8, 0x1e293b, 1).setOrigin(0, 0.5);
-    this._awBar = this.add.rectangle(20, -20, (this._awareness / 100) * 60, 6, 0x3b82f6, 1).setOrigin(0, 0.5);
-
-    // Addiction bar
-    const adLabel = this.add.text(-70, 0, "📱 Addiction", {
-      fontFamily: FONT, fontSize: "10px", color: "#e2e8f0"
-    }).setOrigin(0, 0.5);
-    const adBg = this.add.rectangle(20, 0, 60, 8, 0x1e293b, 1).setOrigin(0, 0.5);
-    this._adBar = this.add.rectangle(20, 0, (this._addictionLevel / 100) * 60, 6, 0xef4444, 1).setOrigin(0, 0.5);
-
-    // Relationship bar
-    const relLabel = this.add.text(-70, 20, "💬 Relations", {
-      fontFamily: FONT, fontSize: "10px", color: "#e2e8f0"
-    }).setOrigin(0, 0.5);
-    const relBg = this.add.rectangle(20, 20, 60, 8, 0x1e293b, 1).setOrigin(0, 0.5);
-    this._relBar = this.add.rectangle(20, 20, (this._relationshipLevel / 100) * 60, 6, 0x10b981, 1).setOrigin(0, 0.5);
-
-    hud.add([bg, title, awLabel, awBg, this._awBar, adLabel, adBg, this._adBar, relLabel, relBg, this._relBar]);
+    // HUD removed — metrics tracked internally only
   }
 
   _updateHUD() {
-    if (this._awBar)  this._awBar.width  = (this._awareness / 100) * 60;
-    if (this._adBar)  this._adBar.width  = (this._addictionLevel / 100) * 60;
-    if (this._relBar) this._relBar.width = (this._relationshipLevel / 100) * 60;
-
-    // Agent Status HUD removed for cleaner interface
-    // Metrics are still tracked internally but not displayed
-    return;
+    // HUD removed — metrics tracked internally only
   }
 
   // ── Player movement — delegated to Agent ─────────────────────────────────
@@ -1010,20 +973,14 @@ export default class RealWorldScene extends Phaser.Scene {
   }
 
   _showInteractPrompt(npc) {
-    if (npc._interactPrompt) return;
+    if (npc._talkKey) return;
+    if (this._convActive) return; // block during greeting conversation
 
-    const prompt = this.add.container(npc.x, npc.y - 80).setDepth(15);
-    const bg = this.add.rectangle(0, 0, 130, 32, 0x14532d, 0.95);
-    bg.setStrokeStyle(2, 0x4ade80, 1);
-    const txt = this.add.text(0, 0, "Press [T] to talk", {
-      fontFamily: FONT, fontSize: "12px", color: "#ffffff"
-    }).setOrigin(0.5);
-    prompt.add([bg, txt]);
+    npc._interactPrompt = true;
 
-    npc._interactPrompt = prompt;
-
-    // Register T key for this NPC
+    // Register T key for this NPC (only fires if conversation is not active)
     npc._talkKey = this.input.keyboard.on("keydown-T", () => {
+      if (this._convTHandler) return; // conversation in progress — ignore proximity talk
       const dx = npc.x - this._playerX;
       const dy = npc.y - this._playerY;
       if (Math.sqrt(dx * dx + dy * dy) < 90) {
@@ -1033,10 +990,7 @@ export default class RealWorldScene extends Phaser.Scene {
   }
 
   _hideInteractPrompt(npc) {
-    if (npc._interactPrompt) {
-      npc._interactPrompt.destroy();
-      npc._interactPrompt = null;
-    }
+    npc._interactPrompt = null;
     if (npc._talkKey) {
       this.input.keyboard.off("keydown-T", npc._talkKey);
       npc._talkKey = null;
@@ -1045,9 +999,12 @@ export default class RealWorldScene extends Phaser.Scene {
 
   // ── NPC Speech Bubble (Natural Language Communication) ────────────────────
   _npcSpeak(npc) {
-    // ── LEARNING: Skip NPC Kai decided to avoid ───────────────────────────
+    // Block all NPC speech while the greeting conversation is running
+    if (this._convActive) return;
+
+    // ── LEARNING: Skip NPC Steve decided to avoid ───────────────────────────
     if (this._avoidedNPC === npc.id) {
-      this._log(`🧠 Kai remembers avoiding ${npc.name} — walking away`);
+      this._log(`🧠 Steve remembers avoiding ${npc.name} — walking away`);
       return;
     }
 
@@ -1060,7 +1017,7 @@ export default class RealWorldScene extends Phaser.Scene {
       return;
     }
 
-    // ── LEARNING: Kai already spoke to this NPC — uses remembered context ─
+    // ── LEARNING: Steve already spoke to this NPC — uses remembered context ─
     const isReturningVisit = this._learnedNPCs.has(npc.id);
 
     // ── Emotional Intelligence: NPC reacts to phone addiction ─────────────
@@ -1073,11 +1030,11 @@ export default class RealWorldScene extends Phaser.Scene {
       this._addictionLevel = Math.min(100, this._addictionLevel + 3);
       this._relationshipLevel = Math.max(0, this._relationshipLevel - 8);
 
-      // ── LEARNING: After 2 bad interactions with same NPC, Kai avoids them
+      // ── LEARNING: After 2 bad interactions with same NPC, Steve avoids them
       npc._badInteractions = (npc._badInteractions || 0) + 1;
       if (npc._badInteractions >= 2 && npc.id !== 'mom') {
         this._avoidedNPC = npc.id;
-        this._log(`🧠 Kai learned: avoid ${npc.name} after repeated conflict`);
+        this._log(`🧠 Steve learned: avoid ${npc.name} after repeated conflict`);
         if (this.agent) this.agent.memory.push(`avoid_${npc.id}`);
       }
     } else {
@@ -1085,9 +1042,9 @@ export default class RealWorldScene extends Phaser.Scene {
       // Returning visit — NPC acknowledges it
       if (isReturningVisit) {
         const returnLines = [
-          `Good to see you again, Kai! 😊`,
+          `Good to see you again, Steve! 😊`,
           `You came back! That means a lot.`,
-          `Kai! Glad you are still here with us.`
+          `Steve! Glad you are still here with us.`
         ];
         line = Phaser.Utils.Array.GetRandom(returnLines);
       } else {
@@ -1269,76 +1226,80 @@ export default class RealWorldScene extends Phaser.Scene {
     return container;
   }
 
-  // ── Greeting sequence on scene start (automatic, one by one) ──────────────
+  // ── Greeting sequence — T key advances one message at a time ────────────
   _startGreetings() {
-    // Family conversation leading to trip decision
     const conversation = [
-      { npc: "mom", text: "Hey everyone! It's such a beautiful day outside! 😊", emotion: "happy", delay: 0 },
-      { npc: "sibling", text: "Yeah! Can we do something fun together?", emotion: "happy", delay: 4000 },
-      { npc: "friend", text: "I'm down for anything! What do you guys want to do?", emotion: "happy", delay: 8000 },
-      { npc: "mom", text: "How about we go on a trip? We could drive to the lake!", emotion: "happy", delay: 12000 },
-      { npc: "sibling", text: "Yes! Road trip! Can we pick up more friends on the way?", emotion: "happy", delay: 16000 },
-      { npc: "friend", text: "That sounds awesome! I'll bring snacks! 🎉", emotion: "happy", delay: 20000 },
-      { npc: "mom", text: "Perfect! Let's get ready and head to the car! 🚗", emotion: "happy", delay: 24000 }
+      { npc: "mom",     text: "Hey everyone! It's such a beautiful day outside! 😊", emotion: "happy" },
+      { npc: "sibling", text: "Yeah! Can we do something fun together?",               emotion: "happy" },
+      { npc: "friend",  text: "I'm down for anything! What do you guys want to do?",   emotion: "happy" },
+      { npc: "mom",     text: "How about we spend the afternoon together? 💚",         emotion: "happy" },
+      { npc: "sibling", text: "Yes! Let's go for a walk in the park!",                 emotion: "happy" },
+      { npc: "friend",  text: "That sounds awesome! I'll bring snacks! 🎉",            emotion: "happy" },
+      { npc: "mom",     text: "Perfect! Real moments like these are what matter. 🌿",  emotion: "happy" },
     ];
 
-    conversation.forEach(({ npc: npcId, text, emotion, delay }) => {
-      this.time.delayedCall(delay, () => {
-        if (this._ended) return;
-        const npc = this._npcs.find(n => n.id === npcId);
-        if (!npc) return;
+    let index = 0;
+    let waiting = false;
+    this._convActive = true; // block all other NPC speech while conversation runs
 
-        // Clear previous bubble
-        if (npc.bubble) {
-          npc.bubble.destroy();
-          npc.bubble = null;
+    const clearAllBubbles = () => {
+      // Destroy every NPC bubble — no leftovers
+      this._npcs.forEach(n => {
+        if (n.bubble) {
+          n.bubble.destroy();
+          n.bubble = null;
         }
+        // Reset emotion back to neutral
+        n.emotion = "neutral";
+        if (n.drawNPC) n.drawNPC("neutral");
+      });
+    };
 
-        // Create speech bubble
-        const bubble = this._createSpeechBubble(npc.x, npc.y - 110, text, npc.data.color, emotion);
-        npc.bubble = bubble;
-        npc.emotion = emotion;
-        if (npc.emotionTag) npc.emotionTag.setText(emotion === "happy" ? "😊" : "😐");
-        if (npc.drawNPC) npc.drawNPC(emotion);
+    const showMessage = (i) => {
+      if (this._ended) return;
+      clearAllBubbles(); // always wipe before showing next
 
-        // ── EMOTIONAL INTELLIGENCE: Other NPCs react to excitement ────────
-        if (emotion === "happy" && (text.includes("trip") || text.includes("awesome"))) {
-          this._npcs.forEach(other => {
-            if (other.id !== npcId && !other.bubble) {
-              this.time.delayedCall(500, () => {
-                other.emotion = "happy";
-                if (other.emotionTag) other.emotionTag.setText("😊");
-                if (other.drawNPC) other.drawNPC("happy");
-                
-                // Reset emotion after a moment
-                this.time.delayedCall(2000, () => {
-                  if (!other.bubble) {
-                    other.emotion = "neutral";
-                    if (other.emotionTag) other.emotionTag.setText("😐");
-                    if (other.drawNPC) other.drawNPC("neutral");
-                  }
-                });
-              });
-            }
+      const { npc: npcId, text, emotion } = conversation[i];
+      const npc = this._npcs.find(n => n.id === npcId);
+      if (!npc) return;
+
+      const bubble = this._createSpeechBubble(npc.x, npc.y - 110, text, npc.data.color, emotion);
+      npc.bubble = bubble;
+      npc.emotion = emotion;
+      if (npc.drawNPC) npc.drawNPC(emotion);
+
+      waiting = true;
+    };
+
+    const onT = () => {
+      if (this._ended) return;
+
+      if (!waiting && index === 0) {
+        showMessage(index);
+        index++;
+        return;
+      }
+
+      if (waiting) {
+        if (index < conversation.length) {
+          showMessage(index);
+          index++;
+        } else {
+          // All done
+          waiting = false;
+          this._convActive = false;
+          this._convTHandler = null;
+          clearAllBubbles();
+          this.input.keyboard.off("keydown-T", onT);
+          this.time.delayedCall(400, () => {
+            if (!this._ended) this._agentWalkToRoad();
           });
         }
-
-        // Auto-dismiss after 3.5 seconds
-        this.time.delayedCall(3500, () => {
-          if (npc.bubble === bubble) {
-            gsap.to(bubble, { alpha: 0, duration: 0.3, onComplete: () => bubble.destroy() });
-            npc.bubble = null;
-          }
-        });
-      });
-    });
-
-    // After conversation ends, agent walks to road then transition to trip scene
-    this.time.delayedCall(28000, () => {
-      if (!this._ended) {
-        this._agentWalkToRoad();
       }
-    });
+    };
+
+    this.input.keyboard.on("keydown-T", onT);
+    this._convTHandler = onT;
   }
 
   // ── Agent and NPCs walk to road together ──────────────────────────────────
@@ -1354,26 +1315,26 @@ export default class RealWorldScene extends Phaser.Scene {
     const groupCenterX = this._w / 2;
     const spacing = 80; // Space between characters
     
-    // Positions: Mom (left), Kai (center), Friend (right of Kai), Sibling (far right)
+    // Positions: Mom (left), Steve (center), Friend (right of Steve), Sibling (far right)
     const positions = [
       { x: groupCenterX - spacing * 1.5, y: targetY }, // Mom (leftmost)
-      { x: groupCenterX - spacing * 0.5, y: targetY }, // Kai (center-left)
+      { x: groupCenterX - spacing * 0.5, y: targetY }, // Steve (center-left)
       { x: groupCenterX + spacing * 0.5, y: targetY }, // Friend (center-right)
       { x: groupCenterX + spacing * 1.5, y: targetY }  // Sibling (rightmost)
     ];
 
-    // Kai's target position (center-left)
+    // Steve's target position (center-left)
     const kaiTarget = positions[1];
 
     // Show message
-    this._createSpeechBubble(this.agent.x, this.agent.y - 110, "Let's all go to the car! 🚗", 0x4ade80, "happy");
+    this._createSpeechBubble(this.agent.x, this.agent.y - 110, "Let's head out together! 🌿", 0x4ade80, "happy");
 
     // Calculate duration based on distance
     const distance = Phaser.Math.Distance.Between(this.agent.x, this.agent.y, kaiTarget.x, kaiTarget.y);
     const walkSpeed = 2;
     const duration = (distance / walkSpeed) * 16.67;
 
-    // Animate Kai walking
+    // Animate Steve walking
     this.tweens.add({
       targets: this.agent,
       x: kaiTarget.x,
@@ -1435,10 +1396,13 @@ export default class RealWorldScene extends Phaser.Scene {
         duration: npcDuration,
         ease: "Linear",
         onUpdate: () => {
-          // Update NPC visuals during walk
+          // Redraw NPC at updated position
           if (npc.drawNPC) npc.drawNPC(npc.emotion);
-          if (npc.nameTag) npc.nameTag.setPosition(npc.x, npc.nameTag.y);
-          if (npc.emotionTag) npc.emotionTag.setPosition(npc.x + 30, npc.emotionTag.y);
+          // Move speech bubble with NPC if present
+          if (npc.bubble) npc.bubble.setPosition(npc.x, npc.y - 110);
+        },
+        onComplete: () => {
+          if (npc.drawNPC) npc.drawNPC(npc.emotion);
         }
       });
 
@@ -1446,8 +1410,8 @@ export default class RealWorldScene extends Phaser.Scene {
       const excitedLines = [
         "This is going to be so fun! 😊",
         "Can't wait! 🎉",
-        "Road trip time! 🚗",
-        "Let's go! 💚"
+        "Together at last! 💚",
+        "Let's go! 🌿"
       ];
       
       this.time.delayedCall(500 + index * 800, () => {
@@ -1467,43 +1431,17 @@ export default class RealWorldScene extends Phaser.Scene {
 
     // Wait for everyone to arrive, then transition
     this.time.delayedCall(duration + 1000, () => {
-      this._transitionToTrip();
+      this._transitionToEnd();
     });
   }
 
-  // ── Transition to trip scene ──────────────────────────────────────────────
-  _transitionToTrip() {
+  // ── End — transition to EndScene ─────────────────────────────────────────
+  _transitionToEnd() {
     if (this._ended) return;
     this._ended = true;
 
-    const { _w: W, _h: H } = this;
-
-    // Show transition message
-    const card = this.add.container(W / 2, H / 2).setDepth(50);
-    const bg = this.add.rectangle(0, 0, 520, 140, 0x000000, 0.92);
-    bg.setStrokeStyle(3, 0x4ade80, 1);
-    const title = this.add.text(0, -28, "🚗 Time for a Road Trip!", {
-      fontFamily: FONT, fontSize: "28px", fontStyle: "bold",
-      color: "#4ade80"
-    }).setOrigin(0.5);
-    const sub = this.add.text(0, 16, "The family decided to go on an adventure together!", {
-      fontFamily: FONT, fontSize: "14px", color: "#e2e8f0",
-      wordWrap: { width: 480 }, align: "center"
-    }).setOrigin(0.5);
-
-    card.add([bg, title, sub]);
-    gsap.fromTo(card, { alpha: 0, scale: 0.8 }, { alpha: 1, scale: 1, duration: 0.5, ease: "back.out(1.5)" });
-
-    this.time.delayedCall(3000, () => {
-      this.cameras.main.fadeOut(800, 0, 0, 0);
-      this.cameras.main.once("camerafadeoutcomplete", () => {
-        // Start trip/driving scene
-        this.scene.start("TripScene", {
-          addictionLevel: this._addictionLevel,
-          awareness: this._awareness,
-          relationshipLevel: this._relationshipLevel
-        });
-      });
+    this.time.delayedCall(500, () => {
+      this.scene.start('EndScene');
     });
   }
 
@@ -1582,19 +1520,19 @@ export default class RealWorldScene extends Phaser.Scene {
 
     if (learnedAdvice && lowAddiction && highRelation) {
       outcome = { title: "🌿 Full Recovery!", color: 0x4ade80,
-        sub: "Kai put the phone down and reconnected with the real world." };
+        sub: "Steve put the phone down and reconnected with the real world." };
     } else if (manyConversations && highRelation) {
       outcome = { title: "💚 Real Connection Made", color: 0x86efac,
-        sub: "Kai chose people over the screen." };
+        sub: "Steve chose people over the screen." };
     } else if (this._playerIgnoreCount >= 3) {
       outcome = { title: "📱 Still Distracted...", color: 0xfbbf24,
-        sub: "The phone kept pulling Kai back. Relationships suffered." };
+        sub: "The phone kept pulling Steve back. Relationships suffered." };
     } else if (this._avoidedNPC) {
       outcome = { title: "😔 Bridges Burned", color: 0xef4444,
-        sub: `Kai avoided ${this._avoidedNPC} after repeated conflict.` };
+        sub: `Steve avoided ${this._avoidedNPC} after repeated conflict.` };
     } else {
       outcome = { title: "🤔 Uncertain Path", color: 0x94a3b8,
-        sub: "Kai is still figuring out the balance." };
+        sub: "Steve is still figuring out the balance." };
     }
 
     // Show outcome card
@@ -1622,11 +1560,8 @@ export default class RealWorldScene extends Phaser.Scene {
 
     gsap.fromTo(card, { alpha: 0, scale: 0.8 }, { alpha: 1, scale: 1, duration: 0.5, ease: "back.out(1.5)" });
 
-    this.time.delayedCall(4000, () => {
-      this.cameras.main.fadeOut(800, 0, 0, 0);
-      this.cameras.main.once("camerafadeoutcomplete", () => {
-        this.scene.start("BootScene");
-      });
+    this.time.delayedCall(2000, () => {
+      this.scene.start("BootScene");
     });
   }
 }

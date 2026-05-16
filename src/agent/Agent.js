@@ -1,8 +1,8 @@
-import FSM from './FSM.js';
+﻿import FSM from './FSM.js';
 import EmotionSystem from './EmotionSystem.js';
 
 /**
- * Agent — "Kai", teen boy character
+ * Agent — "Steve", teen boy character
  * Drawn with Phaser Graphics at 3× scale for crisp visuals.
  * Movement: keyboard arrow keys / WASD — player controlled.
  * FSM still reacts to events (notifications walked into, random events, etc.)
@@ -31,13 +31,14 @@ export default class Agent {
     this.vy = 0;
     this._facingRight = true;
     this._walkCycle   = 0;
-    this._glitchOffset = 0;
     this._moving = false;
     this.hasPhone = false;
     this._bouncing = false;
     this.rubberBand = false;
     this.hunchLevel = 0; // 0 = upright, 4 = fully hunched
     this.keysLocked = false; // Can lock keyboard control
+    this.speed = 6; // movement speed — can be overridden per scene
+    this._eyeOffset = 0; // horizontal iris/pupil shift for look-direction animation
 
     // Keyboard input
     this._keys = scene.input.keyboard.createCursorKeys();
@@ -57,7 +58,7 @@ export default class Agent {
     this.container.add(this._gfx);
 
     // Glow layer behind character — hidden (kept for state-based logic)
-    this._glow = scene.add.circle(x, y, 38, 0x7b2fff, 0.0).setDepth(9).setVisible(false);
+    this._glow = scene.add.circle(x, y, 38, 0x000000, 0.0).setDepth(9).setVisible(false);
 
     // Name tag — removed
     this.nameTag = { setPosition: () => {}, setText: () => {}, setStyle: () => {}, setAlpha: () => {} };
@@ -67,7 +68,7 @@ export default class Agent {
 
     // Perception ring — hidden
     this.perceptionRing = scene.add.circle(x, y, 90)
-      .setStrokeStyle(0, 0x7b2fff, 0)
+      .setStrokeStyle(0, 0x1e3a5f, 0)
       .setFillStyle(0x000000, 0)
       .setDepth(5)
       .setVisible(false);
@@ -84,26 +85,17 @@ export default class Agent {
 
     const S = 2.8; // scale multiplier — bigger character
     const w = this._walkCycle;
-    const gl = this._glitchOffset;
+    const gl = 0;
     const legSwing = Math.sin(w) * (this._moving ? 8 : 0);
     const armSwing = Math.sin(w) * (this._moving ? 6 : 0);
 
-    // ── Palette — MAIN AGENT COLORS STAY CONSTANT ────────────────────────
-    // Shirt (0x2563eb) and eye color (0x1e3a5f) never change for main agent
+    // ── Palette — fixed at initial load (IDLE); FSM state only affects expression ─
     const P = {
-      IDLE:           { skin: 0xf5c5a3, hair: 0x3d2314, shirt: 0x2563eb, pants: 0x1e3a5f, shoe: 0x111827, eye: 0x1e3a5f, phone: null,   glow: 0x000000, glowA: 0 },
-      ATTRACTED:      { skin: 0xf5c5a3, hair: 0x3d2314, shirt: 0x2563eb, pants: 0x1e3a5f, shoe: 0x111827, eye: 0x1e3a5f, phone: 0x111827, glow: 0x7c3aed, glowA: 0.12 },
+      skin: 0xf5c5a3, hair: 0x3d2314, shirt: 0x2563eb, pants: 0x1e3a5f,
+      shoe: 0x111827, eye: 0x1e3a5f, phone: 0x111827, glow: 0x000000, glowA: 0,
+    };
 
-      LOOPING:        { skin: 0xedb48a, hair: 0x2c1a0e, shirt: 0x1d4ed8, pants: 0x172554, shoe: 0x0f172a, eye: 0x1e3a5f, phone: 0x0f172a, glow: 0xea580c, glowA: 0.18 },
-      DISTORTED:      { skin: 0xd4956e, hair: 0x1a0f08, shirt: 0x1e40af, pants: 0x0f1f3d, shoe: 0x080f1e, eye: 0x1e3a5f, phone: 0x080f1e, glow: 0xdc2626, glowA: 0.25 },
-      BREAKING_POINT: { skin: 0xb87a55, hair: 0x0f0805, shirt: 0x1e3a8a, pants: 0x0a1628, shoe: 0x050a14, eye: 0x1e3a5f, phone: 0x050a14, glow: 0x7f1d1d, glowA: 0.3 },
-      RECOVERED:      { skin: 0xf5c5a3, hair: 0x3d2314, shirt: 0x16a34a, pants: 0x14532d, shoe: 0x052e16, eye: 0x1e3a5f, phone: null,   glow: 0x16a34a, glowA: 0.15 },
-      PARTIAL:        { skin: 0xefc090, hair: 0x2c1a0e, shirt: 0xca8a04, pants: 0x3f2d00, shoe: 0x1c1300, eye: 0x1e3a5f, phone: 0x1c1300, glow: 0xca8a04, glowA: 0.12 },
-      LOST:           { skin: 0x9a8070, hair: 0x111111, shirt: 0x1f2937, pants: 0x111827, shoe: 0x030712, eye: 0x1e3a5f, phone: 0x030712, glow: 0x000000, glowA: 0 },
-
-    }[state] || { skin: 0xf5c5a3, hair: 0x3d2314, shirt: 0x2563eb, pants: 0x1e3a5f, shoe: 0x111827, eye: 0x1e3a5f, phone: null, glow: 0x000000, glowA: 0 };
-
-    const showPhone = this.hasPhone && P.phone !== null;
+    const showPhone = this.hasPhone;
 
 
     // ── Hunch transform — compress posture but no rotation ────────
@@ -241,18 +233,20 @@ export default class Agent {
     // ── Iris ──────────────────────────────────────────────────────────────
     g.fillStyle(P.eye, 1);
     const irisR = state === 'ATTRACTED' ? 3.2*S : state === 'LOST' ? 1.8*S : 2.6*S;
-    g.fillCircle(gl + -6*S, -25*S, irisR);
-    g.fillCircle(gl +  6*S, -25*S, irisR);
+    // _eyeOffset shifts iris/pupil horizontally so agent looks toward a sound source
+    const eo = Phaser.Math.Clamp(this._eyeOffset, -2, 2) * S;
+    g.fillCircle(gl + -6*S + eo, -25*S, irisR);
+    g.fillCircle(gl +  6*S + eo, -25*S, irisR);
 
     // ── Pupil ─────────────────────────────────────────────────────────────
     g.fillStyle(0x000000, 1);
-    g.fillCircle(gl + -6*S, -25*S, irisR * 0.5);
-    g.fillCircle(gl +  6*S, -25*S, irisR * 0.5);
+    g.fillCircle(gl + -6*S + eo, -25*S, irisR * 0.5);
+    g.fillCircle(gl +  6*S + eo, -25*S, irisR * 0.5);
 
     // ── Eye shine ─────────────────────────────────────────────────────────
     g.fillStyle(0xffffff, 0.95);
-    g.fillCircle(gl + -5*S, -26*S, 1.2*S);
-    g.fillCircle(gl +  7*S, -26*S, 1.2*S);
+    g.fillCircle(gl + -5*S + eo, -26*S, 1.2*S);
+    g.fillCircle(gl +  7*S + eo, -26*S, 1.2*S);
 
     // ── Eye outline ───────────────────────────────────────────────────────
     g.lineStyle(1.2*S * 0.4, P.hair, 0.8);
@@ -275,7 +269,7 @@ export default class Agent {
       g.beginPath(); g.arc(gl, -14*S, 4*S, Phaser.Math.DegToRad(20), Phaser.Math.DegToRad(160), false); g.strokePath();
     } else if (state === 'LOST' || state === 'BREAKING_POINT') {
       // Frown — arc curving upward
-      g.beginPath(); g.arc(gl, -18*S, 4*S, Phaser.Math.DegToRad(200), Phaser.Math.DegToRad(340), false); g.strokePath();
+      g.beginPath(); g.arc(gl, -14*S, 4*S, Phaser.Math.DegToRad(200), Phaser.Math.DegToRad(340), false); g.strokePath();
     } else if (state === 'ATTRACTED') {
       // Slight smile
       g.beginPath(); g.arc(gl, -14.5*S, 3.5*S, Phaser.Math.DegToRad(25), Phaser.Math.DegToRad(155), false); g.strokePath();
@@ -381,7 +375,7 @@ export default class Agent {
     if (this.keysLocked) return; // Allow locking keyboard control
     
     const { width, height } = this.scene.scale;
-    const speed = 6;
+    const speed = this.speed;
     const k = this._keys;
     const w = this._wasd;
 
@@ -407,6 +401,12 @@ export default class Agent {
 
     this.x += this.vx;
     this.y += this.vy;
+
+    // ── Hard boundary clamp (all scenes) ─────────────────────────────────
+    const margin = 24;
+    const topBarH = 52;
+    this.x = Phaser.Math.Clamp(this.x, margin, width  - margin);
+    this.y = Phaser.Math.Clamp(this.y, topBarH + margin, height - margin);
 
     // ── Rubber-band boundary (Scene 2) ────────────────────────────────────
     if (this.rubberBand) {
@@ -466,7 +466,10 @@ export default class Agent {
       if (!n.active || n._seen) return;
       const dist = Phaser.Math.Distance.Between(this.x, this.y, n.x, n.y);
       if (dist < 90) {
-        this.fsm.handleEvent('NOTIFICATION_SEEN');
+        // Only fire if scene hasn't already handled it
+        if (!this.scene._notificationFired) {
+          this.fsm.handleEvent('NOTIFICATION_SEEN');
+        }
         this._perceptionCooldown = 50;
         n._seen = true;
       }
@@ -478,6 +481,51 @@ export default class Agent {
   onFriendIgnored()        { this.fsm.handleEvent('FRIEND_IGNORED'); }
   onRandomEvent(type)      { this.fsm.handleEvent(type); }
   onPlayerChoice(choice)   { this.fsm.handleEvent(choice); }
+
+  // ── Look toward a direction (eye animation on hearing notification) ──────
+  /**
+   * Snaps eyes toward 'right' or 'left', holds briefly, then returns to centre.
+   * Called when Steve hears the notification sound.
+   */
+  lookAtDirection(direction) {
+    const targetOffset = direction === 'right' ? 2 : -2;
+
+    // Cancel any running eye tween
+    if (this._eyeTween) {
+      this._eyeTween.stop();
+      this._eyeTween = null;
+    }
+
+    // Step 1 — snap eyes to the side quickly
+    this._eyeTween = this.scene.tweens.addCounter({
+      from: 0,
+      to: targetOffset,
+      duration: 120,
+      ease: 'Sine.easeOut',
+      onUpdate: (tween) => {
+        this._eyeOffset = tween.getValue();
+      },
+      onComplete: () => {
+        // Step 2 — hold for 800ms (agent is "listening / reacting")
+        this.scene.time.delayedCall(800, () => {
+          // Step 3 — return to centre smoothly
+          this._eyeTween = this.scene.tweens.addCounter({
+            from: targetOffset,
+            to: 0,
+            duration: 300,
+            ease: 'Sine.easeInOut',
+            onUpdate: (tween) => {
+              this._eyeOffset = tween.getValue();
+            },
+            onComplete: () => {
+              this._eyeOffset = 0;
+              this._eyeTween = null;
+            }
+          });
+        });
+      }
+    });
+  }
 
   // ── Bounce / victory hop ──────────────────────────────────────────────────
   bounce() {
@@ -546,16 +594,11 @@ export default class Agent {
       backgroundColor: (badgeColors[state] || '#1a1a2e') + 'ee'
     });
 
-    // Glitch in distorted states
-    this._glitchOffset = (state === 'DISTORTED' || state === 'BREAKING_POINT')
-      && Math.random() < 0.07 ? Phaser.Math.Between(-4, 4) : 0;
-
     this._drawCharacter(state);
 
     // Perception ring
     const ringAlpha = 0.1 + (this.emotions.stress / 100) * 0.4;
-    const ringColor = state === 'RECOVERED' ? 0x16a34a : 0x7b2fff;
-    this.perceptionRing.setStrokeStyle(2, ringColor, ringAlpha);
+    this.perceptionRing.setStrokeStyle(2, 0x1e3a5f, ringAlpha);
   }
 
   // ── HUD ───────────────────────────────────────────────────────────────────
