@@ -64,16 +64,17 @@ npm run preview
 
 ```
 EchoSphere/
-├── docs/                 # Technical documentation
 ├── public/               # Static assets
 ├── src/
 │   ├── agent/            # Agent core (Agent, FSM, EmotionSystem)
 │   ├── scenes/           # Environment modules
 │   ├── styles/
 │   └── main.js           # Application entry point
+├── dist/                 # Production build output (after npm run build)
 ├── index.html
 ├── package.json
-└── vite.config.js
+├── vite.config.js
+└── tailwind.config.js
 ```
 
 ---
