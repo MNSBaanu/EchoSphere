@@ -31,7 +31,6 @@ export default class Agent {
     this.vy = 0;
     this._facingRight = true;
     this._walkCycle   = 0;
-    this._glitchOffset = 0;
     this._moving = false;
     this.hasPhone = false;
     this._bouncing = false;
@@ -86,26 +85,17 @@ export default class Agent {
 
     const S = 2.8; // scale multiplier — bigger character
     const w = this._walkCycle;
-    const gl = this._glitchOffset;
+    const gl = 0;
     const legSwing = Math.sin(w) * (this._moving ? 8 : 0);
     const armSwing = Math.sin(w) * (this._moving ? 6 : 0);
 
-    // ── Palette — MAIN AGENT COLORS STAY CONSTANT ────────────────────────
-    // Shirt (0x2563eb) and eye color (0x1e3a5f) never change for main agent
+    // ── Palette — fixed at initial load (IDLE); FSM state only affects expression ─
     const P = {
-      IDLE:           { skin: 0xf5c5a3, hair: 0x3d2314, shirt: 0x2563eb, pants: 0x1e3a5f, shoe: 0x111827, eye: 0x1e3a5f, phone: null,   glow: 0x000000, glowA: 0 },
-      ATTRACTED:      { skin: 0xf5c5a3, hair: 0x3d2314, shirt: 0x2563eb, pants: 0x1e3a5f, shoe: 0x111827, eye: 0x1e3a5f, phone: 0x111827, glow: 0x000000, glowA: 0 },
+      skin: 0xf5c5a3, hair: 0x3d2314, shirt: 0x2563eb, pants: 0x1e3a5f,
+      shoe: 0x111827, eye: 0x1e3a5f, phone: 0x111827, glow: 0x000000, glowA: 0,
+    };
 
-      LOOPING:        { skin: 0xedb48a, hair: 0x2c1a0e, shirt: 0x1d4ed8, pants: 0x172554, shoe: 0x0f172a, eye: 0x1e3a5f, phone: 0x0f172a, glow: 0xea580c, glowA: 0.18 },
-      DISTORTED:      { skin: 0xd4956e, hair: 0x1a0f08, shirt: 0x1e40af, pants: 0x0f1f3d, shoe: 0x080f1e, eye: 0x1e3a5f, phone: 0x080f1e, glow: 0xdc2626, glowA: 0.25 },
-      BREAKING_POINT: { skin: 0xb87a55, hair: 0x0f0805, shirt: 0x1e3a8a, pants: 0x0a1628, shoe: 0x050a14, eye: 0x1e3a5f, phone: 0x050a14, glow: 0x7f1d1d, glowA: 0.3 },
-      RECOVERED:      { skin: 0xf5c5a3, hair: 0x3d2314, shirt: 0x16a34a, pants: 0x14532d, shoe: 0x052e16, eye: 0x1e3a5f, phone: null,   glow: 0x16a34a, glowA: 0.15 },
-      PARTIAL:        { skin: 0xefc090, hair: 0x2c1a0e, shirt: 0xca8a04, pants: 0x3f2d00, shoe: 0x1c1300, eye: 0x1e3a5f, phone: 0x1c1300, glow: 0xca8a04, glowA: 0.12 },
-      LOST:           { skin: 0x9a8070, hair: 0x111111, shirt: 0x1f2937, pants: 0x111827, shoe: 0x030712, eye: 0x1e3a5f, phone: 0x030712, glow: 0x000000, glowA: 0 },
-
-    }[state] || { skin: 0xf5c5a3, hair: 0x3d2314, shirt: 0x2563eb, pants: 0x1e3a5f, shoe: 0x111827, eye: 0x1e3a5f, phone: null, glow: 0x000000, glowA: 0 };
-
-    const showPhone = this.hasPhone && P.phone !== null;
+    const showPhone = this.hasPhone;
 
 
     // ── Hunch transform — compress posture but no rotation ────────
@@ -604,16 +594,11 @@ export default class Agent {
       backgroundColor: (badgeColors[state] || '#1a1a2e') + 'ee'
     });
 
-    // Glitch in distorted states
-    this._glitchOffset = (state === 'DISTORTED' || state === 'BREAKING_POINT')
-      && Math.random() < 0.07 ? Phaser.Math.Between(-4, 4) : 0;
-
     this._drawCharacter(state);
 
     // Perception ring
     const ringAlpha = 0.1 + (this.emotions.stress / 100) * 0.4;
-    const ringColor = state === 'RECOVERED' ? 0x16a34a : 0x1e3a5f;
-    this.perceptionRing.setStrokeStyle(2, ringColor, ringAlpha);
+    this.perceptionRing.setStrokeStyle(2, 0x1e3a5f, ringAlpha);
   }
 
   // ── HUD ───────────────────────────────────────────────────────────────────

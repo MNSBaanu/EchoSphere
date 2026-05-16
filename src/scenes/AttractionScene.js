@@ -631,7 +631,7 @@ export default class AttractionScene extends Phaser.Scene {
     const icons = [
       { label: '📘', color: 0x1877f2, dx: -55, dy: -65 }, // top-left   — Facebook
       { label: '📸', color: 0xe1306c, dx:   0, dy: -75 }, // top-centre — Instagram
-      { label: '�', color: 0xfffc00, dx:  55, dy: -65 }, // top-right  — SnapchatX
+      { label: '👻', color: 0xfffc00, dx:  55, dy: -65 }, // top-right  — Snapchat
       { label: '▶️', color: 0xff0000, dx: -62, dy: -20 }, // left       — YouTube
       { label: '🎵', color: 0x69c9d0, dx:  62, dy: -20 }, // right      — TikTok
     ];
@@ -766,8 +766,8 @@ export default class AttractionScene extends Phaser.Scene {
 
     // Screen lights up
     const screen = this._phone.list[1];
-    if (screen) {
-      this.tweens.add({ targets: screen, fillColor: 0x6366f1, duration: 300 });
+    if (screen && screen.setFillStyle) {
+      screen.setFillStyle(0x6366f1);
     }
 
     // ── BLINK the phone body ──────────────────────────────────────────────
