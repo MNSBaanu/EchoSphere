@@ -14,20 +14,42 @@ const STUDY_TASKS = [
 export default class LearningScene extends Phaser.Scene {
   constructor() {
     super({ key: 'LearningScene' });
-    this._ended   = false;
-    this._taskIdx = 0;
-    this._xp      = 0;
+    this._resetSessionState();
     this._chair = null;
   }
 
-  create(data = {}) {
+  init(data = {}) {
+    this._incomingAddiction = data.addictionLevel ?? null;
+    this._incomingAwareness = data.awareness ?? null;
+    this._incomingMemory = data.memory ?? null;
+    this._fromKeyRedemption = data.fromKeyRedemption || false;
+  }
+
+  _resetSessionState() {
+    this._ended = false;
+    this._taskIdx = 0;
+    this._xp = 0;
+    this._taskCompleting = false;
+    this._taskCard = null;
+    this._taskProgress = null;
+    this._studyKey = null;
+  }
+
+  shutdown() {
+    if (this._studyKey) {
+      this.input.keyboard.off('keydown-SPACE', this._studyKey);
+      this._studyKey = null;
+    }
+  }
+
+  create() {
     const { width, height } = this.scale;
+    this._resetSessionState();
+    this.time.removeAllEvents();
+
     this._width   = width;
     this._height  = height;
     this._groundY = height - 70;
-    
-    // Check if agent came from key redemption
-    this._fromKeyRedemption = data.fromKeyRedemption || false;
 
     // ── Background — warm study room ─────────────────────────────────────
     this._drawStudyRoom(width, height);
@@ -56,6 +78,16 @@ export default class LearningScene extends Phaser.Scene {
     this.agent = new Agent(this, width * 0.38, this._groundY - 60);
     this.agent.fsm.forceState('IDLE');
     this.agent.hasPhone = false;
+
+    if (this._incomingAddiction !== null) {
+      this.agent.addictionLevel = this._incomingAddiction;
+    }
+    if (this._incomingAwareness !== null) {
+      this.agent.awareness = this._incomingAwareness;
+    }
+    if (this._incomingMemory !== null) {
+      this.agent.memory = [...this._incomingMemory];
+    }
 
     // ── Desk + study UI ───────────────────────────────────────────────────
     this._buildStudyDesk(width, height);
@@ -525,20 +557,30 @@ export default class LearningScene extends Phaser.Scene {
     gsap.fromTo(card, { alpha: 0, scale: 0.85 }, { alpha: 1, scale: 1, duration: 0.5, ease: 'back.out(1.5)' });
 
     this.input.once('pointerdown', () => {
-      // Pass reduced addiction level back to AttractionScene
-      const reducedAddiction = this.agent ? Math.max(0, this.agent.addictionLevel - 30) : 0;
-      const improvedAwareness = this.agent ? Math.min(100, this.agent.awareness + 20) : 70;
+      const addictionDrop = this._fromKeyRedemption
+        ? Phaser.Math.Between(30, 40)
+        : 30;
+      const awarenessGain = this._fromKeyRedemption
+        ? Phaser.Math.Between(25, 35)
+        : 20;
+
+      const reducedAddiction = this.agent
+        ? Math.max(0, this.agent.addictionLevel - addictionDrop)
+        : 0;
+      const improvedAwareness = this.agent
+        ? Math.min(100, this.agent.awareness + awarenessGain)
+        : 70;
       const memory = this.agent ? [...this.agent.memory] : [];
 
-      // Push learning memory if not already there
-      if (!memory.includes('completed_learning')) {
-        memory.push('completed_learning');
+      if (!memory.includes('educational_completion')) {
+        memory.push('educational_completion');
       }
 
       this.scene.start('AttractionScene', {
         addictionLevel: reducedAddiction,
         awareness: improvedAwareness,
-        memory: memory,
+        memory,
+        allowLearningRetry: true,
       });
     });
   }
