@@ -1193,7 +1193,7 @@ export default class AttractionScene extends Phaser.Scene {
     }
   }
 
-  // ── Fail notification at 100% ─────────────────────────────────────────────
+  // ── Fail notification at 100% (auto-dismisses) ──────────────────────────
   _showFailNotification() {
     if (!this._mobileScreen || !this._mobileScreenOpen) return;
 
@@ -1218,22 +1218,16 @@ export default class AttractionScene extends Phaser.Scene {
       wordWrap: { width: cardW - 40 }, align: 'center'
     }).setOrigin(0.5);
 
-    const okBtn = this.add.rectangle(0, 65, 80, 32, 0xef4444, 1);
-    okBtn.setStrokeStyle(2, 0xdc2626, 1);
-    okBtn.setInteractive({ useHandCursor: true });
-    const okTxt = this.add.text(0, 65, 'OK', {
-      fontFamily: FONT, fontSize: '14px', color: '#ffffff', fontStyle: 'bold'
-    }).setOrigin(0.5);
-
-    popup.add([card, accent, iconBg, iconT, titleT, bodyT, okBtn, okTxt]);
+    popup.add([card, accent, iconBg, iconT, titleT, bodyT]);
     gsap.fromTo(popup, { alpha: 0, scale: 0.85 }, { alpha: 1, scale: 1, duration: 0.4, ease: 'back.out(1.5)' });
 
-    okBtn.on('pointerover', () => okBtn.setFillStyle(0xdc2626));
-    okBtn.on('pointerout',  () => okBtn.setFillStyle(0xef4444));
-    okBtn.on('pointerdown', () => {
+    this.time.delayedCall(2500, () => {
       gsap.to(popup, { alpha: 0, scale: 0.85, duration: 0.3, onComplete: () => {
         popup.destroy();
-        this._showLearningKey();
+        this._closeMobileScreen();
+        this.time.delayedCall(400, () => {
+          this.scene.start('LearningScene', this._getLearningSceneData({ fromKeyRedemption: true }));
+        });
       }});
     });
 
