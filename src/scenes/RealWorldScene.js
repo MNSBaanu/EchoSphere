@@ -935,13 +935,18 @@ export default class RealWorldScene extends Phaser.Scene {
     this.agent.hunchLevel = Math.floor(this._addictionLevel / 25);
   }
 
-  // ── HUD ───────────────────────────────────────────────────────────────────
   _buildHUD(width, height) {
     // HUD removed — metrics tracked internally only
   }
 
   _updateHUD() {
-    // HUD removed — metrics tracked internally only
+    if (this._awBar)  this._awBar.width  = (this._awareness / 100) * 60;
+    if (this._adBar)  this._adBar.width  = (this._addictionLevel / 100) * 60;
+    if (this._relBar) this._relBar.width = (this._relationshipLevel / 100) * 60;
+
+    // Agent Status HUD removed for cleaner interface
+    // Metrics are still tracked internally but not displayed
+    // Removed return statement to keep HUD update functionality
   }
 
   // ── Player movement — delegated to Agent ─────────────────────────────────
